@@ -33,7 +33,7 @@ Updated in the push that finishes each item ([WORKFLOW.md](WORKFLOW.md) §4.2).
 | M1 | T4 parse and canonical numeric text | ✅ done |
 | M1 | T5 spec-driven vector test, validation and property tests | ✅ done |
 | M1 | T6 KDoc gate | ✅ done; `docs/contracts/Calendar.md` is written when the API is frozen at the end of M1 |
-| M1 | T6b date arithmetic on `IfcDate` (plus/minus days, weeks, months, years; calendar-spec §7.7) | ⬜ next |
+| M1 | T6b date arithmetic on `IfcDate` (plus/minus days, weeks, months, years; calendar-spec §7.7) | ✅ done |
 | M1 | T7–T9 `Clock`/`DateTicker` interfaces, holiday rule engine, holiday JSON packs | ⬜ next |
 
 Before M0 can start, the owner needs to: install `platforms;android-37` and `cmdline-tools` from the

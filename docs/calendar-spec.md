@@ -809,6 +809,9 @@ IFC pseudo-fields `(year, monthNumber 1..13, dayOfMonth 1..29)` with `java.time`
   As in `java.time`, month arithmetic is not reversible or associative around clamped values; that is accepted.
 - Differences: `daysBetween` = `ChronoUnit.DAYS.between` on the `LocalDate`s (the only difference the UI needs
   in v1). A months/years `Period`-style difference, if ever needed, is defined on the pseudo-fields.
+- This section is silent on `Long` overflow and on which exception type it produces; see
+  `docs/adr/0002-ifc-date-arithmetic.md` for that decision (every `IfcDate` arithmetic method throws
+  `DateTimeException`, never `ArithmeticException`, matching every other entry point in §3.3).
 - **Recurrence:**
   - "Monthly on day d" (1..28) exists in every month — 13 occurrences a year, always the same nominal weekday.
   - "Yearly on Year Day" occurs every year (always Gregorian Dec 31).

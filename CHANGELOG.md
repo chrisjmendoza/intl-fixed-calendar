@@ -20,3 +20,8 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - Spec-driven tests that read their vectors from `docs/calendar-spec.md` §6, plus an exhaustive
   definitional oracle over every day of years 1–9999.
 - CI workflow running the full gate and the doc link check.
+- `IfcDate` date arithmetic (M1 T6b, `docs/calendar-spec.md` §7.7): `plusDays`/`minusDays` and
+  `plusWeeks`/`minusWeeks` (real Gregorian days/weeks), `plusMonths`/`minusMonths` and
+  `plusYears`/`minusYears` (IFC pseudo-fields with `java.time`-style clamping of day 29 to 28). Arithmetic
+  overflow and results outside years 1–9999 throw `DateTimeException`, never `ArithmeticException`
+  (`docs/adr/0002-ifc-date-arithmetic.md`).

@@ -79,6 +79,149 @@ public sealed interface IfcDate : Comparable<IfcDate> {
     override fun compareTo(other: IfcDate): Int = compareValuesBy(this, other, IfcDate::year, IfcDate::dayOfYear)
 
     /**
+     * Returns the date [days] real days after this one (before it, if negative).
+     *
+     * Delegates to [LocalDate.plusDays] on the Gregorian equivalent, so intercalary days count as
+     * ordinary days: this operation is exact and always reversible by [minusDays].
+     *
+     * Spec: `docs/calendar-spec.md` §7.7.
+     *
+     * @throws DateTimeException if the result's year falls outside [MIN_YEAR]..[MAX_YEAR], or on
+     *   arithmetic overflow (`docs/adr/0002-ifc-date-arithmetic.md`).
+     */
+    public fun plusDays(days: Long): IfcDate =
+        from(
+            try {
+                toLocalDate().plusDays(days)
+            } catch (overflow: ArithmeticException) {
+                throw DateTimeException("Arithmetic overflow: plusDays($days) on $this", overflow)
+            },
+        )
+
+    /**
+     * Returns the date [days] real days before this one. Equivalent to `plusDays(-days)`, with the
+     * same `Long.MIN_VALUE` handling as [LocalDate.minusDays].
+     *
+     * Spec: `docs/calendar-spec.md` §7.7.
+     *
+     * @throws DateTimeException if the result's year falls outside [MIN_YEAR]..[MAX_YEAR], or on
+     *   arithmetic overflow.
+     */
+    public fun minusDays(days: Long): IfcDate =
+        if (days == Long.MIN_VALUE) plusDays(Long.MAX_VALUE).plusDays(1) else plusDays(-days)
+
+    /**
+     * Returns the date [weeks] real (7-day) weeks after this one (before it, if negative). Equivalent
+     * to `plusDays(weeks * 7)`.
+     *
+     * **Trap:** a real week does not preserve the nominal weekday across an intercalary day (users
+     * live in the real week, not the IFC one): `Regular(2024, JUNE, 25).plusWeeks(1)` lands on
+     * `Regular(2024, SOL, 3)`, nominal Tuesday, not nominal Wednesday.
+     *
+     * Spec: `docs/calendar-spec.md` §7.7.
+     *
+     * @throws DateTimeException if the result's year falls outside [MIN_YEAR]..[MAX_YEAR], or on
+     *   arithmetic overflow.
+     */
+    public fun plusWeeks(weeks: Long): IfcDate =
+        plusDays(
+            try {
+                Math.multiplyExact(weeks, DAYS_PER_WEEK.toLong())
+            } catch (overflow: ArithmeticException) {
+                throw DateTimeException("Arithmetic overflow: plusWeeks($weeks) on $this", overflow)
+            },
+        )
+
+    /**
+     * Returns the date [weeks] real weeks before this one. Equivalent to `plusWeeks(-weeks)`, with the
+     * same `Long.MIN_VALUE` handling as [LocalDate.minusWeeks].
+     *
+     * Spec: `docs/calendar-spec.md` §7.7.
+     *
+     * @throws DateTimeException if the result's year falls outside [MIN_YEAR]..[MAX_YEAR], or on
+     *   arithmetic overflow.
+     */
+    public fun minusWeeks(weeks: Long): IfcDate =
+        if (weeks == Long.MIN_VALUE) plusWeeks(Long.MAX_VALUE).plusWeeks(1) else plusWeeks(-weeks)
+
+    /**
+     * Returns the date [months] IFC months after this one (before it, if negative), computed on the
+     * pseudo-fields ([year], [monthNumber], [dayOfMonth]) with `java.time`-style clamping: day 29
+     * clamps to 28 when the target month has no 29th (every month except June in leap years, and
+     * December). Regular days (1..28) never clamp and always keep their nominal weekday.
+     *
+     * **Trap:** clamped steps are not reversible or associative, exactly as with [LocalDate.plusMonths]
+     * (`Leap Day 2024 + 1 month` = `Sol 28, 2024`, but `Sol 28, 2024 - 1 month` = `June 28, 2024`, not
+     * back to Leap Day).
+     *
+     * Spec: `docs/calendar-spec.md` §7.7, with the full worked-example table.
+     *
+     * @throws DateTimeException if the result's year falls outside [MIN_YEAR]..[MAX_YEAR], or on
+     *   arithmetic overflow.
+     */
+    public fun plusMonths(months: Long): IfcDate {
+        val index =
+            try {
+                Math.addExact(year.toLong() * IfcMonth.MONTHS_PER_YEAR + (monthNumber - 1), months)
+            } catch (overflow: ArithmeticException) {
+                throw DateTimeException("Arithmetic overflow: plusMonths($months) on $this", overflow)
+            }
+        val newYear = Math.floorDiv(index, IfcMonth.MONTHS_PER_YEAR.toLong())
+        if (newYear !in MIN_YEAR..MAX_YEAR) {
+            throw DateTimeException("IFC year out of range after plusMonths($months) on $this: $newYear")
+        }
+        val newMonthNumber = Math.floorMod(index, IfcMonth.MONTHS_PER_YEAR.toLong()).toInt() + 1
+        return resolveClamped(newYear.toInt(), newMonthNumber, dayOfMonth)
+    }
+
+    /**
+     * Returns the date [months] IFC months before this one. Equivalent to `plusMonths(-months)`, with
+     * the same `Long.MIN_VALUE` handling as [LocalDate.minusMonths].
+     *
+     * Spec: `docs/calendar-spec.md` §7.7.
+     *
+     * @throws DateTimeException if the result's year falls outside [MIN_YEAR]..[MAX_YEAR], or on
+     *   arithmetic overflow.
+     */
+    public fun minusMonths(months: Long): IfcDate =
+        if (months == Long.MIN_VALUE) plusMonths(Long.MAX_VALUE).plusMonths(1) else plusMonths(-months)
+
+    /**
+     * Returns the date [years] years after this one (before it, if negative), keeping [monthNumber]
+     * and clamping [dayOfMonth] the same way as [plusMonths] (`Leap Day 2024 + 1 year` = `June 28,
+     * 2025`; `Leap Day 2024 + 4 years` = `Leap Day 2028`, since June 29 exists again).
+     *
+     * Spec: `docs/calendar-spec.md` §7.7.
+     *
+     * @throws DateTimeException if the result's year falls outside [MIN_YEAR]..[MAX_YEAR], or on
+     *   arithmetic overflow.
+     */
+    public fun plusYears(years: Long): IfcDate {
+        val newYear =
+            try {
+                Math.addExact(year.toLong(), years)
+            } catch (overflow: ArithmeticException) {
+                throw DateTimeException("Arithmetic overflow: plusYears($years) on $this", overflow)
+            }
+        if (newYear !in MIN_YEAR..MAX_YEAR) {
+            throw DateTimeException("IFC year out of range after plusYears($years) on $this: $newYear")
+        }
+        return resolveClamped(newYear.toInt(), monthNumber, dayOfMonth)
+    }
+
+    /**
+     * Returns the date [years] years before this one. Equivalent to `plusYears(-years)`, with the same
+     * `Long.MIN_VALUE` handling as [LocalDate.minusYears].
+     *
+     * Spec: `docs/calendar-spec.md` §7.7.
+     *
+     * @throws DateTimeException if the result's year falls outside [MIN_YEAR]..[MAX_YEAR], or on
+     *   arithmetic overflow.
+     */
+    public fun minusYears(years: Long): IfcDate =
+        if (years == Long.MIN_VALUE) plusYears(Long.MAX_VALUE).plusYears(1) else plusYears(-years)
+
+    /**
      * One of the 364 days of a year that belong to a month and a week.
      *
      * @property month the month this day belongs to.
@@ -288,6 +431,20 @@ public sealed interface IfcDate : Comparable<IfcDate> {
 
         internal fun requireYear(year: Int) {
             if (year !in MIN_YEAR..MAX_YEAR) throw DateTimeException("IFC year out of range: $year")
+        }
+
+        /**
+         * Resolves the pseudo-fields produced by month/year arithmetic (spec §7.7), clamping
+         * [dayOfMonth] from 29 to 28 when the target month has no 29th day.
+         */
+        private fun resolveClamped(
+            year: Int,
+            monthNumber: Int,
+            dayOfMonth: Int,
+        ): IfcDate {
+            if (dayOfMonth != INTERCALARY_DAY_OF_MONTH) return of(year, monthNumber, dayOfMonth)
+            return runCatching { of(year, monthNumber, INTERCALARY_DAY_OF_MONTH) }
+                .getOrElse { of(year, monthNumber, IfcMonth.DAYS_PER_MONTH) }
         }
     }
 }
