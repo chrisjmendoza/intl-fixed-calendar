@@ -4,8 +4,9 @@ An Android app for the [International Fixed Calendar](https://en.wikipedia.org/w
 (IFC): 13 months of exactly 28 days, a month called **Sol** between June and July, and two "floating"
 days — **Year Day** and **Leap Day** — that belong to no week.
 
-> **Status: planning.** The design docs below are complete; no app code exists yet. The working name is
-> a placeholder until the app name is chosen.
+> **Status: early development.** The design docs are complete and the calendar core (`:core:calendar`,
+> pure Kotlin) is implemented and exhaustively tested. The Android app itself has not been started. The
+> working name is a placeholder until the app name is chosen.
 
 ## The calendar in 30 seconds
 
@@ -43,6 +44,16 @@ See [docs/FEATURES.md](docs/FEATURES.md) for the prioritised feature catalog.
 | [docs/holidays-and-import.md](docs/holidays-and-import.md) | Holiday rule engine, data licensing, device-calendar overlay, `.ics` import/export |
 | [docs/security-and-privacy.md](docs/security-and-privacy.md) | Threat model, permissions, backups, Play policy, repo hygiene |
 | [docs/competitive-analysis.md](docs/competitive-analysis.md) | Existing IFC apps, what their users say, and the gaps |
+| [docs/WORKFLOW.md](docs/WORKFLOW.md) | How work is done here: the gate, Definition of Done, documentation and anti-drift rules |
+
+## Building
+
+Requires JDK 21 (Android Studio's bundled JBR works). From the repo root:
+
+```powershell
+.\gradlew.bat check          # compile, tests, ktlint, KDoc gate
+python scripts\check_docs.py # doc link check
+```
 
 ## Tech stack (planned)
 

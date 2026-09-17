@@ -3,8 +3,26 @@
 Android app for the International Fixed Calendar (IFC; the owner also says "FC"): 13 months × 28 days,
 the month Sol, plus Year Day and Leap Day. Solo developer working with AI agents.
 
-**Status: planning complete, no code yet.** The next step is milestone M0 in `docs/ROADMAP.md`.
-Update this file when the scaffold lands (real build commands, module list).
+**Status:** planning complete; Gradle skeleton and `:core:calendar` (pure JVM) exist. No Android
+modules yet — those start with the M0 toolchain spike in `docs/ROADMAP.md`, which needs SDK Platform 37
+and the SDK command-line tools installed first.
+
+## Workflow — mandatory
+
+**`docs/WORKFLOW.md` is binding.** In short: read the docs below first; tests and KDoc land in the same
+change as the code; owning docs are updated in the same PR as the behaviour; run the gate and report the
+real result; end every task with the completion report from WORKFLOW.md §6. Never weaken a test, edit an
+expected value, or bypass a gate to get to green.
+
+```powershell
+$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"; $env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
+.\gradlew.bat check                 # compile (warnings = errors), tests, ktlint, KDoc gate — all modules
+.\gradlew.bat :core:calendar:test   # fast loop for one module
+.\gradlew.bat spotlessApply         # fix formatting
+python scripts\check_docs.py        # doc link check
+```
+
+`java` is not on PATH, so the first line is required in every fresh shell.
 
 ## Read before working
 
@@ -31,8 +49,9 @@ disagree, the authoritative one wins — fix the other in the same change.
    today highlight, events, reminders — uses the actual weekday.
 4. **Dates are stored Gregorian** (epoch day / ISO). IFC is a view. The only IFC data at rest is
    IFC-anchored recurrence rules.
-5. **IFC numeric dates always carry the `IFC` prefix** in anything a user can see, and are never
-   formatted locale-style (`10/08/2026`). IFC month numbers 8–13 do not match Gregorian ones.
+5. **IFC numeric dates always carry the `IFC` prefix** in anything a user can see
+   (`IfcDate.toPrefixedString()`), and are never formatted locale-style (`10/08/2026`). IFC month
+   numbers 8–13 do not match Gregorian ones.
 6. **Year Day and Leap Day must be handled in every `when`, picker, formatter, widget, and test.**
    Leap Day exists only in leap years.
 7. **No `INTERNET` permission, analytics, ads, crash SDKs, Firebase, or Play Services.** No new
@@ -41,6 +60,8 @@ disagree, the authoritative one wins — fix the other in the same change.
 9. **All user-visible strings live in resources**, including "Sol".
 10. **Module boundaries:** features depend on `:core:domain` interfaces, never on `:core:data` or on
     other features. Cross-feature navigation goes through `:core:navigation` keys.
+11. **Spec tables and golden files are inputs.** `SpecVectorsTest` reads `docs/calendar-spec.md` §6;
+    never edit those tables to match the code.
 
 ## API generations — easy to get wrong
 
@@ -49,28 +70,25 @@ This project is on newer library lines than most training data:
 - Room is **Room 3**: package `androidx.room3`, KSP-only, coroutines-only, `SQLiteDriver`. Not `androidx.room`.
 - Navigation is **Navigation 3** (`androidx.navigation3`), not Navigation Compose.
 - AGP 9 with the new DSL and built-in Kotlin: Android modules do **not** apply `org.jetbrains.kotlin.android`.
-- Pinned versions live in `gradle/libs.versions.toml` (from ARCHITECTURE.md §1). Do not bump AGP,
-  Kotlin, or KSP casually; the M0 spike result is in `docs/adr/0001-toolchain.md`.
+- Tests in pure-JVM modules are **JUnit 6** (Jupiter) with Kotest used as a library, not as the runner.
+- Versions live in `gradle/libs.versions.toml`. Do not bump Kotlin, AGP, or KSP casually; toolchain
+  changes get an ADR (`docs/adr/`).
 
-## Environment (Windows, PowerShell)
+## Build layout
 
-`java` is not on PATH. Before any Gradle command in a fresh shell:
-
-```powershell
-$env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"; $env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
-```
-
-Expected gate once the scaffold exists: `./gradlew spotlessCheck lint test verifyRoborazziDebug :app:assembleDebug`.
-Fast loop for the pure modules: `./gradlew :core:calendar:test :core:domain:test :core:holidays:test`.
-Screenshot goldens are recorded only in CI (Linux); locally use `compareRoborazziDebug`.
+- `build-logic/convention` — convention plugins. `ifc.jvm.library` = explicit API, warnings as errors,
+  JUnit 6 + Kotest, Spotless/ktlint, Dokka with undocumented-public-API as a build failure.
+- `core/calendar` — `IfcMonth`, `IfcDate`, `IfcYearMonth`. Base package `io.github.chrisjmendoza.fixedcal`.
+- Screenshot goldens (later) are recorded only in CI (Linux); locally use `compareRoborazziDebug`.
 
 ## Working conventions
 
-- One task = one PR = one module owner. Parallel agents never share a module; use a git worktree each.
+- One task = one branch = one PR = one module owner. Parallel agents never share a module; use a git
+  worktree each. Commits are GPG-signed; never bypass signing.
 - Contract-first: interfaces and fakes (`:core:testing`) land before implementations, and frozen
   contracts are documented in `docs/contracts/`.
 - Tests use hand-written fakes, not a mocking library. Inject a fake `Clock`; include a
   midnight-crossing case for anything that shows "today".
-- The calendar core's implementation and its brute-force test oracle are written by different
-  agents on purpose, so they do not share bugs.
+- Correctness-critical code and its oracle tests are written by different agents on purpose; the test
+  author works from the spec, not the implementation.
 - Decisions that change the architecture get a short ADR in `docs/adr/`.

@@ -1,0 +1,23 @@
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: "/"
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7
+    groups:
+      test-libraries:
+        patterns: ["org.junit*", "io.kotest*"]
+    ignore:
+      # Toolchain bumps are deliberate and recorded in an ADR (docs/ARCHITECTURE.md §1).
+      - dependency-name: "org.jetbrains.kotlin*"
+      - dependency-name: "com.android.*"
+      - dependency-name: "com.google.devtools.ksp*"
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: weekly
+    cooldown:
+      default-days: 7

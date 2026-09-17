@@ -15,6 +15,9 @@ toolchain spike (see [ROADMAP.md](ROADMAP.md)), whose outcome is recorded in `do
 | [security-and-privacy.md](security-and-privacy.md) | Threat model, permissions, backup rules, Play policy, repo hygiene |
 | [competitive-analysis.md](competitive-analysis.md) | Evidence behind priorities; naming collisions |
 | [ROADMAP.md](ROADMAP.md) | Milestones, task breakdown for parallel agents, open questions |
+| [WORKFLOW.md](WORKFLOW.md) | How work is done: the gate, Definition of Done, KDoc standard, anti-drift rules, rules for LLM agents |
+| `gradle/libs.versions.toml` | The dependency versions the build actually uses (§1 explains the choices) |
+| [adr/](adr/) | Decisions made after this baseline |
 
 When two docs disagree, the doc that is authoritative for that topic wins, and the other gets fixed.
 

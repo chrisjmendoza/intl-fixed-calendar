@@ -14,6 +14,28 @@ Status: **planning baseline** (2026-09-17). Milestones sequence the work describ
 | 1.3 | `.ics` subscription by URL — first use of `INTERNET`; Data safety re-audit | M7c |
 | Later | More holiday packs, translations, date math, Wear OS, F-Droid, KMP library extraction | — |
 
+## Progress ledger
+
+Updated in the PR that finishes each item ([WORKFLOW.md](WORKFLOW.md) §4.2).
+
+| Milestone | Task | State |
+|---|---|---|
+| M0 | T1 repo, `.gitignore`, Gradle wrapper 9.7.1 | ✅ done |
+| M0 | T1 owner setup: SDK Platform 37, cmdline-tools, `JAVA_HOME`, 2FA, repo security settings | ⬜ owner |
+| M0 | T2 `settings.gradle.kts`, version catalog, `build-logic` — JVM convention plugin only | 🟡 partial: the five Android convention plugins follow the T3 spike |
+| M0 | T3 toolchain spike + ADR 0001 | ⬜ blocked on SDK Platform 37 |
+| M0 | T6 Spotless/ktlint, `.editorconfig` | ✅ done for JVM modules; Android Lint config follows T3 |
+| M0 | T7 `ci.yml` (SHA-pinned, read-only token, wrapper validation), Dependabot | 🟡 partial: manifest permission allow-list check follows the first Android module |
+| M0 | T8 `CLAUDE.md`, workflow rules, PR template, ADR template, CHANGELOG | ✅ done; `SECURITY.md` and LICENSE pending owner decisions |
+| M1 | T1 `IfcMonth`, `IfcDate`, conversion | ✅ done |
+| M1 | T2 independent definitional oracle (years 1–9999) | ✅ done |
+| M1 | T3 `IfcYearMonth` layout, ranges, `actualDayOfWeek(column)` | ✅ done |
+| M1 | T4 parse and canonical numeric text | ✅ done |
+| M1 | T5 spec-driven vector test, validation and property tests | ✅ done |
+| M1 | T6 KDoc gate | ✅ done; `docs/contracts/Calendar.md` is written when the API is frozen at the end of M1 |
+| M1 | T6b date arithmetic on `IfcDate` (plus/minus days, weeks, months, years; calendar-spec §7.7) | ⬜ next |
+| M1 | T7–T9 `Clock`/`DateTicker` interfaces, holiday rule engine, holiday JSON packs | ⬜ next |
+
 Before M0 can start, the owner needs to: install `platforms;android-37` and `cmdline-tools` from the
 Android Studio SDK Manager, set `JAVA_HOME` / `ANDROID_HOME` (ARCHITECTURE.md → Development
 environment), and ideally update Android Studio to Quail 4. Turning on 2FA/passkeys for the GitHub
