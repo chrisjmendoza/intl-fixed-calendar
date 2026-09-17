@@ -1,0 +1,237 @@
+# Roadmap
+
+Status: **planning baseline** (2026-09-17). Milestones sequence the work described in
+[FEATURES.md](FEATURES.md) using the structure in [ARCHITECTURE.md](ARCHITECTURE.md).
+
+## Release map
+
+| Release | Contents | Milestones |
+|---|---|---|
+| 0.1 (Play internal track) | Read-only calendar: Today, month grid, day detail, settings | M0 – M2 |
+| **1.0** | Converter, year view, Learn, events with IFC recurrence, Today + Month widgets, reminders, built-in holidays. **No calendar permission, no network.** | M3 – M6, M8 |
+| 1.1 | Read-only device-calendar overlay (`READ_CALENDAR`, opt-in); agenda widget + widget privacy mode; Quick Settings tile; app shortcuts | M7a |
+| 1.2 | `.ics` import/export, file backup/restore (optionally passphrase-encrypted), app lock | M7b |
+| 1.3 | `.ics` subscription by URL — first use of `INTERNET`; Data safety re-audit | M7c |
+| Later | More holiday packs, translations, date math, Wear OS, F-Droid, KMP library extraction | — |
+
+Before M0 can start, the owner needs to: install `platforms;android-37` and `cmdline-tools` from the
+Android Studio SDK Manager, set `JAVA_HOME` / `ANDROID_HOME` (ARCHITECTURE.md → Development
+environment), and ideally update Android Studio to Quail 4. Turning on 2FA/passkeys for the GitHub
+and Google Play accounts is the one security task that should happen now.
+
+**Conventions:** each task is one PR or one agent session and names the module it owns, so parallel agents never share a module. Tasks sharing a group letter run in parallel. Use git worktrees, one per agent. Effort is in focused days for the owner plus agents, not calendar dates.
+
+## M0 Scaffold and toolchain (about 2 to 3 days). Blocks everything except M1-A.
+
+**Goal:** an empty app launches, CI is green, and every module exists as a stub.
+
+**Tasks:**
+
+- **T1 (serial):** machine setup.
+  - Set `JAVA_HOME` and `ANDROID_HOME`.
+  - Install `platforms;android-37` and cmdline-tools.
+  - ~~`git init`, `.gitignore`, public GitHub repo~~ (done during planning).
+  - Bootstrap the Gradle wrapper (9.7.1).
+  - Enable 2FA/passkeys on the GitHub and Google accounts; turn on secret scanning with push protection, private vulnerability reporting, and branch protection on `main`.
+- **T2 (serial):** `settings.gradle.kts`, `gradle/libs.versions.toml` from the ARCHITECTURE.md §1 tables, and `build-logic` with the 6 plugins.
+- **T3 (serial): toolchain spike.**
+  - Build a hello-world on AGP 9.3.3 defaults (new DSL, built-in Kotlin) with Hilt (KSP), Room 3 (KSP) and Roborazzi, first on Kotlin 2.3.21.
+  - Record the outcome in `docs/adr/0001-toolchain.md`.
+  - Try Kotlin 2.4.20 and keep it only if it is green.
+  - Resolve the unverified flags from ARCHITECTURE.md §1.
+- **[A]:**
+  - T4: module stubs plus the dependency rule check.
+  - T5: `:app` shell (Hilt application, MainActivity, edge-to-edge, empty Nav3 with 5 tabs).
+  - T6: Spotless, Lint config and `.editorconfig`.
+  - T7: `ci.yml`, with actions pinned by commit SHA, a read-only `GITHUB_TOKEN`, Gradle wrapper validation, and a merged-manifest permission allow-list check. Dependabot config for `gradle` and `github-actions`.
+  - T8: `CLAUDE.md` and `AGENTS.md` (build commands, env vars, module ownership rules, the "Room is `androidx.room3`" note, the "never `LocalDate.now()`" rule), a `docs/contracts/` skeleton, `SECURITY.md`, and the LICENSE once the owner has chosen one.
+
+**Exit:** `./gradlew spotlessCheck lint test assembleDebug` is green locally from PowerShell and in CI, the app launches on an API 26 emulator and an API 36 emulator, and the ADR is written.
+
+## M1 Calendar core (about 2 to 3 days). Group A starts alongside M0 once T2 lands.
+
+**Goal:** `:core:calendar` is complete, exhaustively tested and API-frozen.
+
+**Tasks:**
+
+- **[A]:**
+  - T1: `IfcMonth`, `IfcDate` and conversion arithmetic.
+  - T2: the independent brute-force oracle plus the golden CSV in `:core:testing`. Give this to a different agent than T1 on purpose, so the two do not share bugs.
+- **[B] (after T1):**
+  - T3: `IfcYearMonth`, `IfcYear` layout, ranges and `realDayOfWeek`.
+  - T4: parse and canonical text.
+  - T5: exhaustive and property test suite.
+  - T6: KDoc plus `docs/contracts/Calendar.md`.
+- **[C] (parallel, `:core:domain` and `:core:holidays`):**
+  - T7: `Clock`, `ZoneProvider` and `DateTicker` interfaces plus fakes.
+  - T8: `HolidayRule` engine and tests.
+  - T9: holiday-set JSON schema, plus the IFC and US Federal sets.
+
+**Exit:** 100% branch coverage on conversion, the exhaustive round trip over years 1 to 9999 passes, every vector in calendar-spec §6 passes (including the negative vectors), the public API is reviewed and declared stable with `explicitApi`, and the holiday tables match published data.
+
+**Depends on:** the M0 T2 skeleton only.
+
+## M2 Read-only calendar UI, the walking skeleton (about 4 to 5 days). Needs M0 and M1.
+
+**Tasks:**
+
+- **[A]:**
+  - T1 `:core:designsystem`: theme, dynamic color and typography.
+  - T2 `:core:navigation`: keys, Navigator and tab back stacks in `:app`.
+  - T3 `:core:data`: settings only (DataStore `UserSettings` plus repository).
+- **[B] (after T1):**
+  - T4: `MonthGrid`, `DayCell`, `IntercalaryBand` and dual headers, with previews and the Roborazzi matrix.
+  - T5: `IfcDateFormatter` and string resources.
+- **[C] (after B, all in `:feature:calendar`, so one agent or strictly separate files):**
+  - T6: Today.
+  - T7: Month pager.
+  - T8: Day detail sheet.
+- **[C'] (parallel):** T9 `:feature:settings` (weekday display, theme), and T10 `record-screenshots.yml` plus the first goldens.
+- **T11:** `release.yml` (builds the tag, no signing key in CI), the offline upload key, Play App Signing and the Play Console app. Needs the app-name and applicationId decisions.
+- **T12:** privacy policy on GitHub Pages, in-app Privacy screen, and the Data safety form. Play requires these before any track, including internal and closed testing.
+
+**Exit:**
+
+- Opening the app shows today's date.
+- Swiping months shows the correct bands for June 2028 and for December.
+- Tapping a day shows its Gregorian equivalent.
+- A TalkBack pass is done on the grid.
+- The screenshot gate is live.
+- **v0.1.0 is on the Play internal track.**
+
+## M3 Converter, Year, Learn and adaptive layouts (about 3 to 4 days). Needs M2. All tasks are parallel.
+
+**Tasks:**
+
+- **[A]:**
+  - T1 `:feature:converter`: two-way conversion with a Gregorian date picker and an IFC picker (month, day and intercalary chooser), a pre-1582 note, and share and copy.
+  - T2: Year overview in `:feature:calendar`.
+  - T3: Learn/About in `:feature:settings`. It covers the rules, "every month has a Friday the 13th", and why the weekdays differ.
+  - T4: adaptive layouts (rail, list-detail Scene).
+  - T5: `IntentRouter` plus the `ConverterKey` prefill from Day detail.
+
+**Exit:** the converter round-trips in the UI on property-generated dates, and the expanded-width screenshots are approved.
+
+## M4 Events (about 6 to 8 days). Needs M1. UI integration needs M2.
+
+Work contract-first. **T1 is serial:** the domain models, `EventRepository` and `ObserveAgendaUseCase` interfaces, and fakes in `:core:testing`. It freezes `docs/contracts/Events.md`.
+
+**Tasks after T1:**
+
+- **[A]:**
+  - T2 `:core:data`: Room 3 schema, DAOs, mappers and JVM tests.
+  - T3 `:core:domain`: `IfcRecurrence` and `RecurrenceExpander` (IFC rules plus lib-recur for RRULE), with property tests.
+  - T4 `:feature:events` editor UI, built against fakes (all-day or timed, zone picker, recurrence picker with an IFC tab, reminder chips).
+  - T5 `:feature:events` list and search, built against fakes.
+- **[B] (after A):**
+  - T6: real repository implementation plus agenda use case wiring.
+  - T7: month-grid dots, Day detail agenda and Today agenda.
+  - T8: exdates ("delete this occurrence") and the edit-all flow.
+  - T9: encrypted-only Auto Backup rules (`dataExtractionRules` plus legacy `fullBackupContent`) and the "Delete all data" action.
+  - T10: intent hardening in `IntentRouter`: typed, validated extras carrying IDs only; immutable explicit `PendingIntent`s; no event content in logs.
+
+**Exit:**
+
+- One-off events can be created.
+- "Every Sol 13" and "every Year Day" events can be created.
+- A weekly Gregorian event can be created.
+- All of these survive process death.
+- The zone and DST tests are green.
+- The month query takes under 5 ms with 1,000 events in a JVM benchmark test.
+
+## M5 Widgets (about 4 to 5 days). Today and Month widgets need only M1 and the M2 design tokens, so they run in parallel with M4. The Agenda widget needs M4.
+
+**Tasks:**
+
+- **[A]:**
+  - T1 `:widget` Today widget, with Hilt EntryPoint, Glance theme and tap routing.
+  - T2 `:core:scheduling`: `DayRolloverScheduler`, the manifest receivers (TIME_SET, TIMEZONE, LOCALE, BOOT, MY_PACKAGE_REPLACED) with Robolectric ShadowAlarmManager tests. The rollover must be correct on the windowed-alarm fallback alone; the exact-alarm permission is only declared once reminders ship in M6.
+- **[B]:**
+  - T3: Month-grid widget.
+  - T4: config activity plus per-widget state.
+  - T5: previews (`providePreview` and `setWidgetPreview` with a version/locale guard, `previewLayout`, `previewImage`).
+- **[C] (after M4):**
+  - T6: `WidgetUpdater` implementation, debounced on repository writes, so event dots on the month widget stay current.
+  - T7: moved to 1.1 (M7a) — the Agenda widget, which ships together with the widget privacy mode.
+- **T8:** manual test matrix doc covering midnight, a manual clock change, a zone change, reboot, Doze (`adb shell dumpsys deviceidle force-idle`), a Samsung or Xiaomi device if available, and an app update. Start recruiting closed-test testers at this milestone.
+
+**Exit:** the widget shows the correct date within seconds of midnight, and immediately after a time or zone change, on API 26, 33 and 36, and the picker previews render.
+
+## M6 Reminders and the Holidays UI (about 3 to 4 days). Needs M4 and M5-T2.
+
+**Tasks:**
+
+- **[A]:**
+  - T1: `ReminderScheduler` (next-alarm pattern), notification channel, in-context `POST_NOTIFICATIONS` request, and re-arm hooks.
+  - T2 `:feature:holidays`: browse sets, toggle sets, a per-year list with both dates, and holidays merged into the agenda and the grid.
+  - T3: declare `USE_EXACT_ALARM` (plus `SCHEDULE_EXACT_ALARM` up to SDK 32) and write the Play Console exact-alarm declaration. Reminder notifications use `VISIBILITY_PRIVATE` with a redacted public version; no full-screen intents.
+
+**Exit:** a reminder fires within one minute of its target time in Doze, and holidays show on the grid and the widgets.
+
+## M7 Interop — post-1.0 (releases 1.1 to 1.3). Needs M4.
+
+**M7a (1.1):** T2 below, plus the Agenda widget with widget privacy mode and `not_keyguard`, the Quick Settings tile, and app shortcuts.
+**M7b (1.2):** T1 below, plus file backup/restore with optional passphrase encryption, and the optional app lock.
+**M7c (1.3):** `.ics` subscriptions by URL — adds `INTERNET`, a network security config, HTTPS-only fetching with redirect/size/timeout limits, and a Data safety re-audit.
+
+**Tasks:**
+
+- **T1:** ICS import (SAF picker, leading to a new `calendars` row) and export in `:core:data`. Parser choice (hand-rolled vs the `biweekly` library behind our own interface) is settled by an ADR first. Either way it covers unfolding, DTSTART, DTEND, RRULE, EXDATE, UID, SUMMARY, DESCRIPTION, LOCATION and `X-IFC-RRULE`, tested with fixture files and a hostile-file corpus (size/count caps, RRULE expansion bombs, malformed input). Import is transactional with preview and undo; imported reminders are off by default.
+- **T2:** `:core:devicecalendar`, a CalendarContract.Instances overlay with a permission rationale and a per-calendar visibility list.
+- **T3:** Settings UI for both.
+
+**Exit:** a Google Calendar `.ics` export imports correctly, including recurring events, and the device overlay can be toggled off cleanly when permission is revoked.
+
+None of this is in 1.0: the first Play review stays free of calendar and network permissions.
+
+## M8 Release hardening, leading to 1.0 (about 4 to 5 days plus the mandatory 14-day closed test)
+
+**Tasks (all parallel):**
+
+- **[A]:**
+  - T1: a11y audit (TalkBack script, font 200%, contrast).
+  - T2: R8 plus the new `optimization {}` DSL, a `:baselineprofile` module, and a startup check.
+  - T3: l10n readiness (pseudolocale `en-XA` and `ar-XB` screenshots).
+  - T4: store listing (screenshots from Roborazzi, feature graphic), data-safety form (no data collected) and content rating.
+  - T5: migration test for schema v1 frozen.
+  - T6: bug reporting without a backend, as a "Send feedback" email intent. Any attached diagnostics contain no event content.
+  - T7: security acceptance checklist from security-and-privacy.md, including the `bmgr` backup → reinstall → restore round trip and a final merged-manifest permission review.
+
+**Exit:** the closed test is complete, no P1 bugs are open, and **1.0.0 is in production.**
+
+## Beyond 1.0
+
+- Bump targetSdk to 37 before Play's likely August 2027 deadline.
+- Move to Kotlin 2.4.x once KSP catches up, to AGP 9.4 or later once Studio is updated, and to Nav3 1.2 deep links.
+- Add per-occurrence edits (`event_overrides`).
+- Add translations.
+- Add more holiday sets (data-only PRs).
+- Publish on F-Droid (it builds from source with its own key).
+- Build a Wear OS tile or complication.
+- Offer CalendarContract write-out or sync so IFC events appear in other calendar apps.
+- Extract `:core:calendar` as a published KMP library.
+- Add detekt 2.0 when it is stable.
+
+**Critical path:** M0, M1, M2, M4, M6, M8. The work that runs off the critical path is M1-C (holidays engine), M3, M5 groups A and B, and M7 (post-1.0).
+
+---
+
+## Open decisions for the owner
+
+Each has a recommendation and a deadline — the milestone that cannot finish without it. Nothing here
+blocks M0 or M1.
+
+| # | Decision | Recommendation | Needed by |
+|---|---|---|---|
+| 1 | **App name.** "13 Month Fixed Calendar" is taken twice on Play and "International Fixed Calendar" is used on iOS (competitive-analysis.md). | A short brand plus a descriptor, e.g. **"Sol28 – 13-Month Calendar"** or **"Yearal – 13-Month Calendar"**; keep "International Fixed Calendar (IFC)" in the short description for search. Trademark and domain checks not done yet. | M2 (store listing) |
+| 2 | **applicationId.** Permanent once uploaded to Play. | `io.github.chrisjmendoza.<brand>` — free, legitimate, matches the public repo. Use an owned domain instead if there is one. | M2 (first Play upload) |
+| 3 | **License.** The repo is public with no license yet, which means all rights reserved. | MIT or Apache-2.0 if reuse is welcome; GPL-3.0 if Play-store clones are a worry. Deliberately left unset until decided. | Before accepting outside contributions |
+| 4 | **Play developer account type.** Personal accounts created after 2023-11-13 must run a closed test with ≥12 testers for 14 continuous days before production. | Check now; if it applies, start recruiting testers at M5. | M5 |
+| 5 | **Weekday display default.** | `BOTH` (nominal headers + actual weekdays beneath). Validate with internal testers. | M2 |
+| 6 | **Intercalary day labelling.** | Named days ("Leap Day", "Year Day") everywhere; `06-29` / `13-29` only in the numeric form. | M2 |
+| 7 | **Monday-first option.** | No — it breaks the "13th is always Friday" identity. | M2 |
+| 8 | **Holiday scope for 1.0.** | IFC observances + US pack (federal + common observances). Lunisolar tables are a stretch goal; other countries are post-1.0 data PRs. | M6 |
+| 9 | **Android Studio update to Quail 4.** | Yes, before M0 — allows AGP 9.4 from day one and avoids an early bump. | M0 |
+| 10 | **Brand colour and icon.** Dynamic colour covers API 31+; older devices and the launcher icon need a seed colour and a design. | Pick a seed colour at M2; commission or design the icon before M8. | M2 / M8 |
+| 11 | **Monetisation.** | Free, no ads, no billing in 1.0. Optional tip jar later (note: Play Billing would complicate F-Droid). | After 1.0 |
+| 12 | **Distribution beyond Play.** | Play only at 1.0; F-Droid afterwards (it builds from source with its own key). No APKs on GitHub Releases. | After 1.0 |
