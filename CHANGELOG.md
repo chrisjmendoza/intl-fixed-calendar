@@ -10,7 +10,7 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - Planning baseline: calendar specification, feature catalog, architecture, roadmap, holiday and import
   strategy, security and privacy plan, competitive analysis.
 - Workflow rules ([docs/WORKFLOW.md](docs/WORKFLOW.md)): definition of done, KDoc standard, anti-drift
-  rules, rules for LLM agents, completion report, PR template, ADR template.
+  rules, rules for LLM agents, completion report, ADR template. Work is committed straight to `main`; no pull requests.
 - Gradle build skeleton: wrapper 9.7.1, version catalog, `build-logic` with the `ifc.jvm.library`
   convention (explicit API, warnings as errors, ktlint via Spotless, Dokka KDoc gate, JUnit 6 + Kotest).
 - Gradle daemon pinned to JDK 21 (`gradle/gradle-daemon-jvm.properties`) and parallel IDE sync enabled,

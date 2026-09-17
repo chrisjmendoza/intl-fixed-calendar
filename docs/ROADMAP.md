@@ -16,7 +16,7 @@ Status: **planning baseline** (2026-09-17). Milestones sequence the work describ
 
 ## Progress ledger
 
-Updated in the PR that finishes each item ([WORKFLOW.md](WORKFLOW.md) §4.2).
+Updated in the push that finishes each item ([WORKFLOW.md](WORKFLOW.md) §4.2).
 
 | Milestone | Task | State |
 |---|---|---|
@@ -26,7 +26,7 @@ Updated in the PR that finishes each item ([WORKFLOW.md](WORKFLOW.md) §4.2).
 | M0 | T3 toolchain spike + ADR 0001 | ⬜ blocked on SDK Platform 37 |
 | M0 | T6 Spotless/ktlint, `.editorconfig` | ✅ done for JVM modules; Android Lint config follows T3 |
 | M0 | T7 `ci.yml` (SHA-pinned, read-only token, wrapper validation), Dependabot | 🟡 partial: manifest permission allow-list check follows the first Android module |
-| M0 | T8 `CLAUDE.md`, workflow rules, PR template, ADR template, CHANGELOG | ✅ done; `SECURITY.md` and LICENSE pending owner decisions |
+| M0 | T8 `CLAUDE.md`, workflow rules, ADR template, CHANGELOG | ✅ done; `SECURITY.md` and LICENSE pending owner decisions |
 | M1 | T1 `IfcMonth`, `IfcDate`, conversion | ✅ done |
 | M1 | T2 independent definitional oracle (years 1–9999) | ✅ done |
 | M1 | T3 `IfcYearMonth` layout, ranges, `actualDayOfWeek(column)` | ✅ done |
@@ -41,7 +41,7 @@ Android Studio SDK Manager, set `JAVA_HOME` / `ANDROID_HOME` (ARCHITECTURE.md �
 environment), and ideally update Android Studio to Quail 4. Turning on 2FA/passkeys for the GitHub
 and Google Play accounts is the one security task that should happen now.
 
-**Conventions:** each task is one PR or one agent session and names the module it owns, so parallel agents never share a module. Tasks sharing a group letter run in parallel. Use git worktrees, one per agent. Effort is in focused days for the owner plus agents, not calendar dates.
+**Conventions:** each task is one agent session (committed straight to `main`; no pull requests) and names the module it owns, so parallel agents never share a module. Tasks sharing a group letter run in parallel. Use git worktrees, one per agent. Effort is in focused days for the owner plus agents, not calendar dates.
 
 ## M0 Scaffold and toolchain (about 2 to 3 days). Blocks everything except M1-A.
 
@@ -54,7 +54,7 @@ and Google Play accounts is the one security task that should happen now.
   - Install `platforms;android-37` and cmdline-tools.
   - ~~`git init`, `.gitignore`, public GitHub repo~~ (done during planning).
   - Bootstrap the Gradle wrapper (9.7.1).
-  - Enable 2FA/passkeys on the GitHub and Google accounts; turn on secret scanning with push protection, private vulnerability reporting, and branch protection on `main`.
+  - Enable 2FA/passkeys on the GitHub and Google accounts; turn on secret scanning with push protection, private vulnerability reporting, and and (optionally) a `main` branch rule that blocks force-pushes and deletion.
 - **T2 (serial):** `settings.gradle.kts`, `gradle/libs.versions.toml` from the ARCHITECTURE.md §1 tables, and `build-logic` with the 6 plugins.
 - **T3 (serial): toolchain spike.**
   - Build a hello-world on AGP 9.3.3 defaults (new DSL, built-in Kotlin) with Hilt (KSP), Room 3 (KSP) and Roborazzi, first on Kotlin 2.3.21.
@@ -227,7 +227,7 @@ None of this is in 1.0: the first Play review stays free of calendar and network
 - Move to Kotlin 2.4.x once KSP catches up, to AGP 9.4 or later once Studio is updated, and to Nav3 1.2 deep links.
 - Add per-occurrence edits (`event_overrides`).
 - Add translations.
-- Add more holiday sets (data-only PRs).
+- Add more holiday sets (data-only changes).
 - Publish on F-Droid (it builds from source with its own key).
 - Build a Wear OS tile or complication.
 - Offer CalendarContract write-out or sync so IFC events appear in other calendar apps.
@@ -252,7 +252,7 @@ blocks M0 or M1.
 | 5 | **Weekday display default.** | `BOTH` (nominal headers + actual weekdays beneath). Validate with internal testers. | M2 |
 | 6 | **Intercalary day labelling.** | Named days ("Leap Day", "Year Day") everywhere; `06-29` / `13-29` only in the numeric form. | M2 |
 | 7 | **Monday-first option.** | No — it breaks the "13th is always Friday" identity. | M2 |
-| 8 | **Holiday scope for 1.0.** | IFC observances + US pack (federal + common observances). Lunisolar tables are a stretch goal; other countries are post-1.0 data PRs. | M6 |
+| 8 | **Holiday scope for 1.0.** | IFC observances + US pack (federal + common observances). Lunisolar tables are a stretch goal; other countries are post-1.0 data-only changes. | M6 |
 | 9 | **Android Studio update to Quail 4.** | Yes, before M0 — allows AGP 9.4 from day one and avoids an early bump. | M0 |
 | 10 | **Brand colour and icon.** Dynamic colour covers API 31+; older devices and the launcher icon need a seed colour and a design. | Pick a seed colour at M2; commission or design the icon before M8. | M2 / M8 |
 | 11 | **Monetisation.** | Free, no ads, no billing in 1.0. Optional tip jar later (note: Play Billing would complicate F-Droid). | After 1.0 |

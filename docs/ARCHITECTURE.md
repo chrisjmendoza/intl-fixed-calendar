@@ -35,7 +35,7 @@ When two docs disagree, the doc that is authoritative for that topic wins, and t
 | Holidays | Own pure-Kotlin rule engine, bundled JSON rule packs, computed per year, never stored |
 | Network | None in 1.0 — no `INTERNET` permission. No analytics, ads, or accounts, ever |
 | Tests | JVM-first: JUnit 6 + Kotest property tests for pure modules; Robolectric + Roborazzi for UI; emulator only for nightly smoke tests |
-| CI | GitHub Actions: format check, lint, all JVM tests, screenshot verification, debug assemble on every PR |
+| CI | GitHub Actions: format check, lint, all JVM tests, screenshot verification, debug assemble on every push to `main` (no pull requests; see WORKFLOW.md) |
 
 ## Reconciled decisions
 
@@ -489,23 +489,23 @@ Never update a widget per minute. The widgets show dates, not clocks.
 | Screenshots | Roborazzi. The preview scanner auto-captures every `@Preview` in `:core:designsystem` and the features. | `verifyRoborazziDebug` |
 | | Explicit matrices for MonthGrid: {normal, June-leap, December} x {light, dark} x {font 1.0, 2.0} x {compact, expanded} x {LTR, RTL}. | |
 | | Glance widgets through glance-appwidget-testing or previews. | |
-| Instrumented | Minimal smoke tests. They run nightly and on a label, not per PR: app launch, a widget receiver smoke test, and the alarm re-arm after `TIME_SET` (adb broadcast). | emulator-runner |
+| Instrumented | Minimal smoke tests. They run nightly and on manual dispatch, not per push: app launch, a widget receiver smoke test, and the alarm re-arm after `TIME_SET` (adb broadcast). | emulator-runner |
 
 ### Goldens
 
 Robolectric native-graphics output differs between Windows and Linux, so CI (Linux) is the only recorder.
 
-- A `workflow_dispatch` "record-screenshots" job commits goldens to the PR branch.
+- A `workflow_dispatch` "record-screenshots" job commits goldens to the branch it is dispatched on (normally `main`).
 - Local and agent runs use `compareRoborazziDebug`, which never blocks.
 
-### CI gate per PR
+### CI gate per push
 
 `spotlessCheck`, `lint`, `test` (all JVM and Robolectric tests), `verifyRoborazziDebug`, and `:app:assembleDebug`.
 
 ## 7. CI/CD (GitHub Actions)
 
 - **`ci.yml`**
-  - Triggers: PRs and pushes to main.
+  - Triggers: pushes to `main` (and Dependabot's pull requests).
   - Setup: ubuntu-latest, `actions/setup-java` (temurin 21), and `gradle/actions/setup-gradle` with caching.
   - Steps: `./gradlew spotlessCheck lint test verifyRoborazziDebug :app:assembleDebug`.
   - Artifacts: upload test, lint and Roborazzi diff reports.
@@ -564,7 +564,7 @@ Robolectric native-graphics output differs between Windows and Linux, so CI (Lin
 4. **OEM background killers** (Xiaomi, Samsung, Huawei) can defeat alarms. The `updatePeriodMillis` backstop and update-on-app-open limit the damage. Document this in the app's help.
 5. **Weekday confusion is the core UX risk.** The IFC "Sunday" is not the real Sunday. The dual headers and the Learn screen mitigate it. Decide the default with real users during internal testing.
 6. **Agents hallucinating older APIs** (Room 2 packages, Navigation Compose, `kotlin-android` plugin usage). The CLAUDE.md rules and the compile-time gates cover this.
-7. **Screenshot goldens across operating systems.** Windows development against Linux CI is solved by CI-only recording, but that adds a step to UI PRs.
+7. **Screenshot goldens across operating systems.** Windows development against Linux CI is solved by CI-only recording, but that adds a step to UI changes.
 8. **Scope creep in events.** Per-occurrence edits, attendees and sync are explicitly out of version 1.
 
 ## Sources

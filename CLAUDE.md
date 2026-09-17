@@ -10,7 +10,7 @@ and the SDK command-line tools installed first.
 ## Workflow — mandatory
 
 **`docs/WORKFLOW.md` is binding.** In short: read the docs below first; tests and KDoc land in the same
-change as the code; owning docs are updated in the same PR as the behaviour; run the gate and report the
+change as the code; owning docs are updated in the same push as the behaviour; run the gate and report the
 real result; end every task with the completion report from WORKFLOW.md §6. Never weaken a test, edit an
 expected value, or bypass a gate to get to green.
 
@@ -83,7 +83,8 @@ This project is on newer library lines than most training data:
 
 ## Working conventions
 
-- One task = one branch = one PR = one module owner. Parallel agents never share a module; use a git
+- **No pull requests** — commit straight to `main` in small signed commits, and run the gate before every
+  push. One task = one module owner. Parallel agents never share a module; use a git
   worktree each. Commits are GPG-signed; never bypass signing.
 - Contract-first: interfaces and fakes (`:core:testing`) land before implementations, and frozen
   contracts are documented in `docs/contracts/`.

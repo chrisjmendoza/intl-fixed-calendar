@@ -14,7 +14,7 @@ goes, and the docs stay true. These rules bind every contributor — human or LL
 5. **Run the gate** (§2) locally and read the output.
 6. **Self-review** against the Definition of Done (§3), then write the completion report (§6).
 
-One task = one branch = one PR = one owning module. Small PRs. `main` is always green.
+**No pull requests.** This is a two-person project (the owner and an AI agent), so work is committed straight to `main` in small, signed commits — one task, one owning module per commit series. The gate is run **before every push**, so `main` is always green; CI on `main` is the backstop, and a red CI run is fixed before anything else. Parallel agents still work in separate git worktrees and their work is fast-forwarded onto `main` once the gate passes. The only pull requests in this repo are Dependabot's.
 
 ## 2. The gate
 
@@ -33,19 +33,19 @@ python scripts\check_docs.py # doc link and reference check
 | `spotlessCheck` | ktlint formatting (`.\gradlew.bat spotlessApply` fixes it) **[gate]** |
 | `dokkaGenerate` | **KDoc on every public declaration** — an undocumented one fails the build **[gate]** |
 
-CI (`.github/workflows/ci.yml`) runs the same gate on every push and PR. Android modules will add
+CI (`.github/workflows/ci.yml`) runs the same gate on every push to `main`. Android modules will add
 `lint`, Robolectric tests, and `verifyRoborazziDebug` when they land (ARCHITECTURE.md §6).
 
 ## 3. Definition of Done
 
 A task is done only when **all** of these are true:
 
-- [ ] Behaviour matches the cited spec sections; every FEATURES ID touched is named in the PR.
-- [ ] New or changed behaviour has tests **in the same PR**. Bug fixes start with a failing test.
+- [ ] Behaviour matches the cited spec sections; every FEATURES ID touched is named in the commit message.
+- [ ] New or changed behaviour has tests **in the same commit series, pushed together**. Bug fixes start with a failing test.
 - [ ] Every `when` over `IfcDate` and every date UI handles Year Day and Leap Day, and a test proves it.
 - [ ] Anything that shows "today" has a test that crosses midnight with a fake `Clock`.
 - [ ] Every public declaration has KDoc that meets §4.1.
-- [ ] Docs changed in the same PR wherever behaviour, structure, versions, or scope changed (§4.2).
+- [ ] Docs changed in the same push wherever behaviour, structure, versions, or scope changed (§4.2).
 - [ ] `CHANGELOG.md` has an entry under *Unreleased* for anything user-visible or architectural.
 - [ ] The full gate passes locally, and the completion report quotes the real result.
 - [ ] No leftovers: no `TODO()` or stub in `main`, no commented-out code, no debug logging, no unused
@@ -70,7 +70,7 @@ KDoc is mandatory on every public class, function, and property **[gate]**. Good
 
 1. **One authority per topic.** The table at the top of [ARCHITECTURE.md](ARCHITECTURE.md) says which
    doc owns what. Other docs link to the owner instead of restating it. When two docs disagree, the
-   owner wins and the other is fixed in the same PR.
+   owner wins and the other is fixed in the same push.
 2. **Executable specs beat prose.** Where a doc contains checkable facts, a test reads the doc:
    - `SpecVectorsTest` parses the vector tables in `calendar-spec.md` §6 and fails if the code
      disagrees or if the row count changes **[gate]**.
@@ -79,11 +79,11 @@ KDoc is mandatory on every public class, function, and property **[gate]**. Good
 3. **Code is the authority for versions.** `gradle/libs.versions.toml` is what the build uses.
    ARCHITECTURE.md §1 explains *why*; after the M0 toolchain ADR it links to the catalog rather than
    repeating numbers.
-4. **Same-PR rule.** A PR that changes behaviour, a module boundary, a permission, a dependency, a
-   release scope, or a priority must update the owning doc in the same PR. "Docs later" is not a state.
+4. **Same-push rule.** A change to behaviour, a module boundary, a permission, a dependency, a
+   release scope, or a priority must update the owning doc in the same push. "Docs later" is not a state.
 5. **Decisions are recorded, not remembered.** Anything that changes or fills a gap in the architecture
    or spec gets an ADR in [docs/adr/](adr/) and a pointer from the owning doc.
-6. **Roadmap is a ledger.** Finishing a ROADMAP task ticks it (or strikes it) in the PR that finishes
+6. **Roadmap is a ledger.** Finishing a ROADMAP task ticks it (or strikes it) in the push that finishes
    it. Scope moved between releases is edited in both ROADMAP.md and FEATURES.md.
 7. **Links must resolve.** `scripts/check_docs.py` fails on any relative markdown link that does not
    point at an existing file **[gate]**. Link to files rather than naming them in prose, so renames and
@@ -127,7 +127,7 @@ weakening tests until they pass, inventing APIs from older library versions, and
   strictness, no skipping commit signing, no `-x test`.
 - No placeholder implementations, fake data, or "simplified for now" logic presented as done. If you
   cannot finish something, leave it out and say so.
-- No new dependency, permission, or module without the doc update and justification in the same PR.
+- No new dependency, permission, or module without the doc update and justification in the same push.
 - The implementation of correctness-critical logic and its oracle tests are written by **different
   agents**, and the test author works from the spec, not from the implementation.
 
