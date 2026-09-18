@@ -89,9 +89,11 @@ This project is on newer library lines than most training data:
 
 ## Working conventions
 
-- **Local work: no branches, no pull requests** — commit straight to `main` in small signed commits, and
-  run the gate before every push. **Cloud work (scheduled routines): branch `cloud/<task>` and open a
-  PR** for the owner's review; never push to `main` from the cloud. One task = one module owner.
+- **Local work: branch `local/<task>`, no pull request.** Small signed commits; run the gate before every
+  push. **Merge to `main` only when the owner says so** (per branch, or a blanket permission for the
+  session), then fast-forward or squash and delete the branch. **Cloud work (scheduled routines): branch
+  `cloud/<task>` and open a PR** for the owner's review; never push to `main` from the cloud. One task =
+  one module owner.
   Parallel agents never share a module; use a git worktree each. Local commits are GPG-signed; never
   bypass signing.
 - Contract-first: interfaces and fakes (`:core:testing`) land before implementations, and frozen

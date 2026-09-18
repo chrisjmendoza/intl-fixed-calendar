@@ -16,11 +16,14 @@ goes, and the docs stay true. These rules bind every contributor — human or LL
 
 **Where commits go depends on who made them.**
 
-- **Local work** (the owner, or an agent running on the owner's machine with the owner present): commit
-  straight to `main` in small, signed commits — no branches, no pull requests. This is a two-person
-  project and a PR would be an extra step. The gate is run **before every push**, so `main` is always
-  green; CI on `main` is the backstop, and a red CI run is fixed before anything else. Parallel local
-  agents still use separate git worktrees, fast-forwarded onto `main` once the gate passes.
+- **Local work** (an agent running on the owner's machine): work on a branch named `local/<task>` in
+  small, signed commits, and push the branch. **Nothing is merged to `main` until the owner says so** —
+  either "merge" for a specific branch, or a blanket permission for the current session. No pull request
+  is needed (this is a two-person project); the owner reviews the branch and the completion report (§6)
+  in the conversation, then the agent fast-forwards or squashes it onto `main` and deletes the branch.
+  The gate is run **before every push**, so every branch tip and `main` are always green; CI on `main` is
+  the backstop, and a red CI run is fixed before anything else. Parallel local agents use separate git
+  worktrees, one branch each.
 - **Cloud work** (scheduled routines and any agent the owner cannot watch): work on a branch named
   `cloud/<task>` and **open a pull request** so the owner can review it before it reaches `main`. Never
   push to `main` from the cloud. The PR description is the completion report (§6). The reviewer runs the
