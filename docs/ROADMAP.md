@@ -45,6 +45,8 @@ Updated in the push that finishes each item ([WORKFLOW.md](WORKFLOW.md) §4.2).
 | M2 | T2 `:core:navigation` keys, `Navigator`, tab back stacks in `:app` | ✅ done |
 | M2 | T5 `IfcDateFormatter` and string resources | ✅ done |
 | M2 | T6 Today | 🟡 partial: hero date, both weekdays, day/week/quarter, year progress, countdown; agenda and next-holiday follow M4/M6 |
+| M2 | T7 Month pager (`:feature:calendar`) | ✅ done: swipeable 1583–9999, holiday marks from the enabled packs, Today action; title→Year zoom is M3 T2 |
+| M2 | T8 Day detail | ✅ done as a compact bottom sheet (both dates, both weekdays, day/week/quarter, holidays); the expanded-width pane is M3 T4, "Add event"/"Open in converter" arrive with M4/M3 |
 | M2 | T9 `:feature:settings` (weekday display, theme, dynamic colour, holiday packs) and the More hub | ✅ done |
 
 Owner setup still open: set `JAVA_HOME` / `ANDROID_HOME` at user level (ARCHITECTURE.md → Development

@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Strings of the Today screen (docs/FEATURES.md T1–T4, T6). Calendar terms and date patterns live in
-     :core:designsystem, not here. -->
+<!-- Strings of the Today screen (docs/FEATURES.md T1–T4, T6), the Month pager (C1, C3, C7) and the Day
+     detail sheet (C5). Calendar terms and date patterns live in :core:designsystem, not here. -->
 <resources>
 
     <!-- Spoken description of the progress spinner shown until the first date tick arrives. -->
@@ -13,5 +13,46 @@
     <!-- Joins the day-and-week text with the quarter on one line.
          %1$s = "Day 260 · Week 38 of 52", %2$s = "Q3". -->
     <string name="today_day_week_quarter">%1$s · %2$s</string>
+
+    <!-- Month pager (FEATURES C1, C7) -->
+
+    <!-- Title of the app bar above the swipeable month grid; the month itself is the grid's heading. -->
+    <string name="month_screen_title">Calendar</string>
+
+    <!-- Label of the app-bar button that scrolls the pager back to the month containing today. Shown
+         only while another month is on screen. -->
+    <string name="month_today">Today</string>
+
+    <!-- Holiday names (FEATURES H2, H3) -->
+
+    <!-- A holiday shown on the weekday it is observed on instead of its real date, e.g. a Saturday
+         holiday observed on the Friday before. %1$s = the holiday's name. -->
+    <string name="holiday_observed">%1$s (observed)</string>
+
+    <!-- Placed between holiday names when one day has several, e.g. "Year Day, New Year’s Eve".
+           is a space; keep a separator that works between names in your language. -->
+    <string name="holiday_list_separator">, </string>
+
+    <!-- Day detail sheet (FEATURES C5) -->
+
+    <!-- Spoken description of the progress spinner shown until the day's details are ready. -->
+    <string name="day_loading">Loading the day</string>
+
+    <!-- Spoken description of the button that closes the day detail sheet. -->
+    <string name="day_close">Close</string>
+
+    <!-- The Gregorian equivalent of the shown IFC date, labelled so it is never confused with the IFC
+         date above it. %1$s = the full Gregorian date with its weekday, e.g. "Thursday, December 31, 2026". -->
+    <string name="day_gregorian">Gregorian: %1$s</string>
+
+    <!-- Joins the day-and-week text with the quarter on one line.
+         %1$s = "Day 260 · Week 38 of 52", %2$s = "Q3". -->
+    <string name="day_day_week_quarter">%1$s · %2$s</string>
+
+    <!-- Badge shown on the day detail when the shown day is the real today. -->
+    <string name="day_today">Today</string>
+
+    <!-- Heading above the list of holidays that fall on the shown day. Not shown when there are none. -->
+    <string name="day_holidays">Holidays</string>
 
 </resources>

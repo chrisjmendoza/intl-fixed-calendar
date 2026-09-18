@@ -60,6 +60,10 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - The app is named **Yearal** (ROADMAP decision #1); applicationId and package base
   `io.github.chrisjmendoza.yearal` (decision #2). Name availability research is in
   [docs/competitive-analysis.md](docs/competitive-analysis.md) §8.
+- Calendar tab (M2 T7, T8; FEATURES C1, C3, C5, C7): a swipeable month grid over IFC 1583–9999 with the
+  Leap Day / Year Day bands, holiday marks from the enabled packs and a Today action. Tapping any day, the
+  bands included, opens a day-detail sheet with both dates, both labelled weekdays, day/week/quarter and the
+  day's holidays.
 - `:core:data` (M2 T3; FEATURES W1, W2, H5): `UserSettings` persisted as JSON in a typed DataStore
   (`filesDir/datastore/user_settings.json`, inside the Auto Backup include set) behind `SettingsRepository`,
   with a forward/backward-compatible serializer and corruption fallback to the defaults.

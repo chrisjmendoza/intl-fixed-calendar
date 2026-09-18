@@ -357,7 +357,7 @@ Holidays are computed, never stored.
   [adr/0004-holiday-pack-format.md](adr/0004-holiday-pack-format.md).
 - Evaluation per year takes microseconds and is memoised.
 - Enabled set IDs live in DataStore.
-- The IFC observances set and the US pack are enabled by default; any set, the IFC one included, may be switched off in Settings (`UserSettings.enabledHolidaySets`). Version 1 ships the "IFC observances" set (Year Day, Leap Day, Sol 1) and the US pack (federal holidays plus common observances). Lunisolar tables are a 1.0 stretch goal that can slip to 1.1 without affecting the engine. More sets are data-only PRs.
+- `HolidayEngine` is bound in `:feature:calendar` (`di/HolidayModule`) and `HolidayPackLoader` in `:feature:settings`; both move to `:app` if a third module needs them. The IFC observances set and the US pack are enabled by default; any set, the IFC one included, may be switched off in Settings (`UserSettings.enabledHolidaySets`). Version 1 ships the "IFC observances" set (Year Day, Leap Day, Sol 1) and the US pack (federal holidays plus common observances). Lunisolar tables are a 1.0 stretch goal that can slip to 1.1 without affecting the engine. More sets are data-only PRs.
 - Device calendars (M7) are a read-only overlay through `CalendarContract.Instances`, queried on the same Gregorian range. The feature is opt-in and the `READ_CALENDAR` prompt appears in context.
 
 ### 3.4 Month-grid query
@@ -383,8 +383,8 @@ The pager keeps three months warm with `beyondViewportPageCount = 1`. The Year v
 - **Intent routing:** widget and notification taps send explicit intents with extras. `IntentRouter` in `:app` builds the back stack, for example `[MonthKey, DayKey]`. No URI deep links are needed until Nav3 1.2 is stable.
 - **Screen behaviors:**
   - **Today:** the hero IFC date, the Gregorian equivalent, both weekdays, year progress, today's agenda, and the next intercalary day or holiday.
-  - **Month:** a `HorizontalPager` of months. Tapping the title zooms out to **Year**, which is 13 mini-months in a `LazyVerticalGrid(Adaptive(160.dp))`. On a two-column phone, Year Day takes the 14th slot.
-  - **Day detail:** a bottom sheet on compact widths and a pane on expanded widths. It shows both dates, both weekdays and the day's events, with "Add event" and "Open in converter" actions.
+  - **Month:** a `HorizontalPager` of months (done: "Calendar" app bar with a Today action; each page's `MonthGrid` carries the month heading; holidays come from `HolidayCatalog`, which evaluates the enabled packs with `HolidayEngine` for the visible page ±1). Tapping the title zooms out to **Year**, which is 13 mini-months in a `LazyVerticalGrid(Adaptive(160.dp))`. On a two-column phone, Year Day takes the 14th slot.
+  - **Day detail:** a bottom sheet on compact widths (done: a material3 `ModalBottomSheet` inside the Nav3 entry — Nav3 1.1.7 has no sheet scene, only `DialogSceneStrategy`) and a pane on expanded widths (M3 T4). It shows both dates, both weekdays and the day's events, with "Add event" and "Open in converter" actions.
 
 ### State management
 
