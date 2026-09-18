@@ -1,0 +1,33 @@
+# Published dates for the Easter-family pack. Fetched: 2026-09-17 (WebFetch).
+# - Easter Sunday (USA): https://www.officeholidays.com/holidays/usa/easter-sunday
+#   "2024 USA Sun, Mar 31", "2025 USA Sun, Apr 20", "2026 USA Sun, Apr 5", "2027 USA Sun, Mar 28"
+# - Good Friday (USA): https://www.officeholidays.com/holidays/usa/good-friday
+#   2024 "Fri, Mar 29", 2025 "Fri, Apr 18", 2026 "Fri, Apr 3", 2027 "Fri, Mar 26"
+# - Mardi Gras (Louisiana): https://www.officeholidays.com/holidays/usa/louisiana/mardi-gras
+#   2024 "Tue, Feb 13", 2025 "Tue, Mar 4", 2026 "Tue, Feb 17", 2027 "Tue, Feb 9"
+# - Ash Wednesday: https://www.officeholidays.com/holidays/ash-wednesday
+#   2024 "Wed, Feb 14", 2025 "Wed, Mar 5", 2026 "Wed, Feb 18", 2027 "Wed, Feb 10"
+# - Orthodox Easter Day (Greece): https://www.officeholidays.com/countries/greece/<year>
+#   2024 "Sunday | May 05", 2025 "Sunday | Apr 20", 2026 "Sunday | Apr 12", 2027 "Sunday | May 02"
+# Palm Sunday has no fetched source and is deliberately absent.
+date,holiday_id
+2024-03-31,x.easter
+2025-04-20,x.easter
+2026-04-05,x.easter
+2027-03-28,x.easter
+2024-03-29,x.good_friday
+2025-04-18,x.good_friday
+2026-04-03,x.good_friday
+2027-03-26,x.good_friday
+2024-02-13,x.mardi_gras
+2025-03-04,x.mardi_gras
+2026-02-17,x.mardi_gras
+2027-02-09,x.mardi_gras
+2024-02-14,x.ash_wednesday
+2025-03-05,x.ash_wednesday
+2026-02-18,x.ash_wednesday
+2027-02-10,x.ash_wednesday
+2024-05-05,x.orthodox_easter
+2025-04-20,x.orthodox_easter
+2026-04-12,x.orthodox_easter
+2027-05-02,x.orthodox_easter

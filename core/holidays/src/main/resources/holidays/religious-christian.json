@@ -1,0 +1,35 @@
+{
+  "schema": 1,
+  "id": "religious-christian",
+  "name": { "en": "Christian (Easter family)" },
+  "sources": [
+    "Western Easter: Gregorian computus (Meeus/Jones/Butcher), docs/holidays-and-import.md §2.2 rule 5",
+    "Orthodox Easter: Julian computus (Meeus) shifted to the Gregorian calendar, docs/holidays-and-import.md §2.2 rule 5",
+    "docs/holidays-and-import.md §2.5 (religious / cultural sets)"
+  ],
+  "holidays": [
+    { "id": "x.mardi_gras", "name": { "en": "Mardi Gras" },
+      "rule": { "type": "easter", "calendar": "western", "offset": -47 },
+      "category": "religious" },
+
+    { "id": "x.ash_wednesday", "name": { "en": "Ash Wednesday" },
+      "rule": { "type": "easter", "calendar": "western", "offset": -46 },
+      "category": "religious" },
+
+    { "id": "x.palm_sunday", "name": { "en": "Palm Sunday" },
+      "rule": { "type": "easter", "calendar": "western", "offset": -7 },
+      "category": "religious" },
+
+    { "id": "x.good_friday", "name": { "en": "Good Friday" },
+      "rule": { "type": "easter", "calendar": "western", "offset": -2 },
+      "category": "religious" },
+
+    { "id": "x.easter", "name": { "en": "Easter Sunday" },
+      "rule": { "type": "easter", "calendar": "western", "offset": 0 },
+      "category": "religious" },
+
+    { "id": "x.orthodox_easter", "name": { "en": "Orthodox Easter" },
+      "rule": { "type": "easter", "calendar": "orthodox", "offset": 0 },
+      "category": "religious" }
+  ]
+}

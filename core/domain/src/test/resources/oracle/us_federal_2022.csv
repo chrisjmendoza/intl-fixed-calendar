@@ -1,0 +1,16 @@
+# U.S. federal holidays for 2022 as listed by OPM (the day treated as the holiday for pay and leave, i.e. the
+# observed day where 5 U.S.C. 6103(b) / E.O. 11582 shift a weekend date). Fetched 2026-09-17 from
+# https://www.opm.gov/policy-data-oversight/pay-leave/federal-holidays/ (tab "2022"; years before 2024 are under "Historical Data").
+# Cross-checked against OPM's https://www.opm.gov/policy-data-oversight/pay-leave/federal-holidays/holidays.ics (tab 2022): identical.
+holiday,date
+New Year's Day,2021-12-31
+Birthday of Martin Luther King, Jr.,2022-01-17
+Washington's Birthday,2022-02-21
+Memorial Day,2022-05-30
+Juneteenth National Independence Day,2022-06-20
+Independence Day,2022-07-04
+Labor Day,2022-09-05
+Columbus Day,2022-10-10
+Veterans Day,2022-11-11
+Thanksgiving Day,2022-11-24
+Christmas Day,2022-12-26

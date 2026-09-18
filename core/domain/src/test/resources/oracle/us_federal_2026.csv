@@ -1,0 +1,16 @@
+# U.S. federal holidays for 2026 as listed by OPM (the day treated as the holiday for pay and leave, i.e. the
+# observed day where 5 U.S.C. 6103(b) / E.O. 11582 shift a weekend date). Fetched 2026-09-17 from
+# https://www.opm.gov/policy-data-oversight/pay-leave/federal-holidays/ (tab "2026"; years before 2024 are under "Historical Data").
+# Cross-checked against OPM's https://www.opm.gov/policy-data-oversight/pay-leave/federal-holidays/holidays.ics (tab 2026): identical.
+holiday,date
+New Year's Day,2026-01-01
+Birthday of Martin Luther King, Jr.,2026-01-19
+Washington's Birthday,2026-02-16
+Memorial Day,2026-05-25
+Juneteenth National Independence Day,2026-06-19
+Independence Day,2026-07-03
+Labor Day,2026-09-07
+Columbus Day,2026-10-12
+Veterans Day,2026-11-11
+Thanksgiving Day,2026-11-26
+Christmas Day,2026-12-25

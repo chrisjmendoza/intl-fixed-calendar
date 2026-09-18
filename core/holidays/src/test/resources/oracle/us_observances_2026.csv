@@ -1,0 +1,18 @@
+# Second published source for the 2026 observances (docs/holidays-and-import.md section 2.5).
+# Fetched: 2026-09-17 (WebFetch). One source URL per row.
+# - NIST, "Daylight Saving Time (DST)": "During 2026, daylight saving time is in effect from March 8
+#   at 2 a.m. (local time) to November 1 at 2 a.m. (local time)."
+#   https://www.nist.gov/pml/time-and-frequency-division/popular-links/daylight-saving-time-dst
+# - Wikipedia, "2026 United States elections": elections scheduled for November 3, 2026.
+#   https://en.wikipedia.org/wiki/2026_United_States_elections
+# - officeholidays.com, USA 2026: "Sunday | May 10 | Mother's Day", "Sunday | Jun 21 | Father's Day",
+#   "Thursday | Nov 26 | Thanksgiving", "Friday | Nov 27 | Day after Thanksgiving".
+#   https://www.officeholidays.com/countries/usa/2026
+date,holiday_id,source
+2026-03-08,us.dst_begins,nist.gov
+2026-11-01,us.dst_ends,nist.gov
+2026-11-03,us.election,en.wikipedia.org
+2026-05-10,us.mothers_day,officeholidays.com
+2026-06-21,us.fathers_day,officeholidays.com
+2026-11-26,us.thanksgiving,officeholidays.com
+2026-11-27,us.black_friday,officeholidays.com

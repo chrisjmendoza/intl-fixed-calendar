@@ -1,0 +1,22 @@
+{
+  "schema": 1,
+  "id": "ifc",
+  "name": { "en": "International Fixed Calendar" },
+  "sources": [
+    "docs/calendar-spec.md §2 (Year Day, Leap Day, Sol)",
+    "docs/holidays-and-import.md §5 (IFC-native holidays)"
+  ],
+  "holidays": [
+    { "id": "ifc.year_day", "name": { "en": "Year Day" },
+      "rule": { "type": "ifc", "special": "YEAR_DAY" },
+      "category": "ifc" },
+
+    { "id": "ifc.leap_day", "name": { "en": "Leap Day" },
+      "rule": { "type": "ifc", "special": "LEAP_DAY" },
+      "category": "ifc" },
+
+    { "id": "ifc.sol_1", "name": { "en": "Sol Day" },
+      "rule": { "type": "ifc", "month": 7, "day": 1 },
+      "category": "ifc" }
+  ]
+}

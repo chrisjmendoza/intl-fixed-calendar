@@ -1,0 +1,16 @@
+# U.S. federal holidays for 2024 as listed by OPM (the day treated as the holiday for pay and leave, i.e. the
+# observed day where 5 U.S.C. 6103(b) / E.O. 11582 shift a weekend date). Fetched 2026-09-17 from
+# https://www.opm.gov/policy-data-oversight/pay-leave/federal-holidays/ (tab "2024"; years before 2024 are under "Historical Data").
+# Cross-checked against OPM's https://www.opm.gov/policy-data-oversight/pay-leave/federal-holidays/holidays.ics (tab 2024): identical.
+holiday,date
+New Year's Day,2024-01-01
+Birthday of Martin Luther King, Jr.,2024-01-15
+Washington's Birthday,2024-02-19
+Memorial Day,2024-05-27
+Juneteenth National Independence Day,2024-06-19
+Independence Day,2024-07-04
+Labor Day,2024-09-02
+Columbus Day,2024-10-14
+Veterans Day,2024-11-11
+Thanksgiving Day,2024-11-28
+Christmas Day,2024-12-25

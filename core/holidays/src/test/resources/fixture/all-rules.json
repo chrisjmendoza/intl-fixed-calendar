@@ -1,0 +1,67 @@
+{
+  "schema": 1,
+  "id": "fixture",
+  "region": "ZZ",
+  "name": { "en": "Fixture", "de": "Testdaten" },
+  "sources": ["hand-written for HolidayPackLoaderTest"],
+  "holidays": [
+    { "id": "f.fixed", "name": { "en": "Fixed", "fr": "Fixe" },
+      "rule": { "type": "fixed", "month": 7, "day": 4 },
+      "observed": "us_federal", "category": "public" },
+
+    { "id": "f.nth", "name": { "en": "Nth weekday" },
+      "rule": { "type": "nthWeekday", "month": 11, "weekday": "THU", "n": 4 },
+      "since": 1942, "category": "public" },
+
+    { "id": "f.last", "name": { "en": "Last weekday" },
+      "rule": { "type": "nthWeekday", "month": 5, "weekday": "MON", "n": -1 },
+      "since": 1971, "until": 2099, "category": "bank" },
+
+    { "id": "f.relative", "name": { "en": "Weekday relative" },
+      "rule": { "type": "weekdayRelative", "weekday": "MON", "month": 5, "day": 24, "direction": "onOrBefore" },
+      "observed": "next_monday", "category": "public" },
+
+    { "id": "f.relative_after", "name": { "en": "Weekday relative after" },
+      "rule": { "type": "weekdayRelative", "weekday": "SAT", "month": 6, "day": 20, "direction": "onOrAfter" },
+      "category": "observance" },
+
+    { "id": "f.offset", "name": { "en": "Offset" },
+      "rule": { "type": "offset", "days": 1,
+                "base": { "type": "nthWeekday", "month": 11, "weekday": "MON", "n": 1 } },
+      "yearFilter": { "mod": 2, "eq": 0 }, "category": "observance" },
+
+    { "id": "f.nested_offset", "name": { "en": "Nested offset" },
+      "rule": { "type": "offset", "days": -1,
+                "base": { "type": "offset", "days": -1, "base": { "type": "fixed", "month": 1, "day": 1 } } },
+      "category": "observance" },
+
+    { "id": "f.easter", "name": { "en": "Easter" },
+      "rule": { "type": "easter", "calendar": "western" },
+      "category": "religious" },
+
+    { "id": "f.orthodox", "name": { "en": "Orthodox offset" },
+      "rule": { "type": "easter", "calendar": "orthodox", "offset": -2 },
+      "category": "religious" },
+
+    { "id": "f.table", "name": { "en": "Table" },
+      "rule": { "type": "table", "dates": { "2024": "2024-11-01", "2025": "2025-10-20" } },
+      "approximate": true, "startsEveBefore": true, "durationDays": 8, "category": "religious" },
+
+    { "id": "f.ifc_regular", "name": { "en": "Sol Day" },
+      "rule": { "type": "ifc", "month": 7, "day": 1 },
+      "category": "ifc" },
+
+    { "id": "f.ifc_year_day", "name": { "en": "Year Day" },
+      "rule": { "type": "ifc", "special": "YEAR_DAY" },
+      "category": "ifc" },
+
+    { "id": "f.ifc_leap_day", "name": { "en": "Leap Day" },
+      "rule": { "type": "ifc", "special": "LEAP_DAY" },
+      "category": "ifc" },
+
+    { "id": "f.sunday_to_monday", "name": { "en": "Inauguration" },
+      "rule": { "type": "fixed", "month": 1, "day": 20 },
+      "since": 1937, "yearFilter": { "mod": 4, "eq": 1 },
+      "observed": "sunday_to_monday", "category": "observance" }
+  ]
+}

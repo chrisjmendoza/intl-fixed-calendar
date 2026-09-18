@@ -1,0 +1,9 @@
+# Source: U.S. Office of Personnel Management, "Federal Holidays", 2025 tab and the 2029 note
+#   https://www.opm.gov/policy-data-oversight/pay-leave/federal-holidays/
+# Fetched: 2026-09-17 (WebFetch).
+# 2025: "Monday, January 20 - Inauguration Day" (Washington, DC area).
+# 2029: "Inauguration Day, January 20, 2029, falls on a Saturday. ... Only employees scheduled to work
+#   on Saturday, January 20th, may be excused from duty" - i.e. no shift for a Saturday.
+year,date,holiday_id
+2025,2025-01-20,us.inauguration
+2029,2029-01-20,us.inauguration

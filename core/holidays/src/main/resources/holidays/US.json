@@ -1,0 +1,137 @@
+{
+  "schema": 1,
+  "id": "us",
+  "region": "US",
+  "name": { "en": "United States" },
+  "sources": [
+    "5 U.S.C. § 6103 (federal holidays and the Saturday/Sunday observance rule, § 6103(b))",
+    "U.S. Office of Personnel Management, Federal Holidays, https://www.opm.gov/policy-data-oversight/pay-leave/federal-holidays/",
+    "15 U.S.C. § 260a as amended by the Energy Policy Act of 2005 (daylight saving time since 2007)",
+    "2 U.S.C. § 7 (Election Day: the Tuesday after the first Monday in November of even years)",
+    "docs/holidays-and-import.md §2.5"
+  ],
+  "holidays": [
+    { "id": "us.new_year", "name": { "en": "New Year's Day" },
+      "rule": { "type": "fixed", "month": 1, "day": 1 },
+      "observed": "us_federal", "category": "public" },
+
+    { "id": "us.mlk", "name": { "en": "Martin Luther King Jr. Day" },
+      "rule": { "type": "nthWeekday", "month": 1, "weekday": "MON", "n": 3 },
+      "since": 1986, "category": "public" },
+
+    { "id": "us.presidents_day", "name": { "en": "Washington's Birthday (Presidents' Day)" },
+      "rule": { "type": "nthWeekday", "month": 2, "weekday": "MON", "n": 3 },
+      "since": 1971, "category": "public" },
+
+    { "id": "us.memorial", "name": { "en": "Memorial Day" },
+      "rule": { "type": "nthWeekday", "month": 5, "weekday": "MON", "n": -1 },
+      "since": 1971, "category": "public" },
+
+    { "id": "us.juneteenth", "name": { "en": "Juneteenth National Independence Day" },
+      "rule": { "type": "fixed", "month": 6, "day": 19 },
+      "since": 2021, "observed": "us_federal", "category": "public" },
+
+    { "id": "us.independence", "name": { "en": "Independence Day" },
+      "rule": { "type": "fixed", "month": 7, "day": 4 },
+      "observed": "us_federal", "category": "public" },
+
+    { "id": "us.labor", "name": { "en": "Labor Day" },
+      "rule": { "type": "nthWeekday", "month": 9, "weekday": "MON", "n": 1 },
+      "category": "public" },
+
+    { "id": "us.columbus", "name": { "en": "Columbus Day / Indigenous Peoples' Day" },
+      "rule": { "type": "nthWeekday", "month": 10, "weekday": "MON", "n": 2 },
+      "since": 1971, "category": "public" },
+
+    { "id": "us.veterans", "name": { "en": "Veterans Day" },
+      "rule": { "type": "fixed", "month": 11, "day": 11 },
+      "observed": "us_federal", "category": "public" },
+
+    { "id": "us.thanksgiving", "name": { "en": "Thanksgiving Day" },
+      "rule": { "type": "nthWeekday", "month": 11, "weekday": "THU", "n": 4 },
+      "since": 1942, "category": "public" },
+
+    { "id": "us.christmas", "name": { "en": "Christmas Day" },
+      "rule": { "type": "fixed", "month": 12, "day": 25 },
+      "observed": "us_federal", "category": "public" },
+
+    { "id": "us.inauguration", "name": { "en": "Inauguration Day" },
+      "rule": { "type": "fixed", "month": 1, "day": 20 },
+      "since": 1937, "yearFilter": { "mod": 4, "eq": 1 },
+      "observed": "sunday_to_monday", "category": "observance" },
+
+    { "id": "us.groundhog", "name": { "en": "Groundhog Day" },
+      "rule": { "type": "fixed", "month": 2, "day": 2 },
+      "category": "observance" },
+
+    { "id": "us.valentines", "name": { "en": "Valentine's Day" },
+      "rule": { "type": "fixed", "month": 2, "day": 14 },
+      "category": "observance" },
+
+    { "id": "us.dst_begins", "name": { "en": "Daylight Saving Time begins" },
+      "rule": { "type": "nthWeekday", "month": 3, "weekday": "SUN", "n": 2 },
+      "since": 2007, "category": "observance" },
+
+    { "id": "us.st_patricks", "name": { "en": "St. Patrick's Day" },
+      "rule": { "type": "fixed", "month": 3, "day": 17 },
+      "category": "observance" },
+
+    { "id": "us.earth_day", "name": { "en": "Earth Day" },
+      "rule": { "type": "fixed", "month": 4, "day": 22 },
+      "category": "observance" },
+
+    { "id": "us.cinco_de_mayo", "name": { "en": "Cinco de Mayo" },
+      "rule": { "type": "fixed", "month": 5, "day": 5 },
+      "category": "observance" },
+
+    { "id": "us.mothers_day", "name": { "en": "Mother's Day" },
+      "rule": { "type": "nthWeekday", "month": 5, "weekday": "SUN", "n": 2 },
+      "category": "observance" },
+
+    { "id": "us.flag_day", "name": { "en": "Flag Day" },
+      "rule": { "type": "fixed", "month": 6, "day": 14 },
+      "category": "observance" },
+
+    { "id": "us.fathers_day", "name": { "en": "Father's Day" },
+      "rule": { "type": "nthWeekday", "month": 6, "weekday": "SUN", "n": 3 },
+      "category": "observance" },
+
+    { "id": "us.patriot_day", "name": { "en": "Patriot Day" },
+      "rule": { "type": "fixed", "month": 9, "day": 11 },
+      "since": 2002, "category": "observance" },
+
+    { "id": "us.halloween", "name": { "en": "Halloween" },
+      "rule": { "type": "fixed", "month": 10, "day": 31 },
+      "category": "observance" },
+
+    { "id": "us.dst_ends", "name": { "en": "Daylight Saving Time ends" },
+      "rule": { "type": "nthWeekday", "month": 11, "weekday": "SUN", "n": 1 },
+      "since": 2007, "category": "observance" },
+
+    { "id": "us.election", "name": { "en": "Election Day" },
+      "rule": { "type": "offset", "days": 1,
+                "base": { "type": "nthWeekday", "month": 11, "weekday": "MON", "n": 1 } },
+      "yearFilter": { "mod": 2, "eq": 0 }, "category": "observance" },
+
+    { "id": "us.black_friday", "name": { "en": "Black Friday" },
+      "rule": { "type": "offset", "days": 1,
+                "base": { "type": "nthWeekday", "month": 11, "weekday": "THU", "n": 4 } },
+      "since": 1942, "category": "observance" },
+
+    { "id": "us.pearl_harbor", "name": { "en": "Pearl Harbor Remembrance Day" },
+      "rule": { "type": "fixed", "month": 12, "day": 7 },
+      "category": "observance" },
+
+    { "id": "us.christmas_eve", "name": { "en": "Christmas Eve" },
+      "rule": { "type": "fixed", "month": 12, "day": 24 },
+      "category": "observance" },
+
+    { "id": "us.kwanzaa", "name": { "en": "Kwanzaa" },
+      "rule": { "type": "fixed", "month": 12, "day": 26 },
+      "since": 1966, "durationDays": 7, "category": "observance" },
+
+    { "id": "us.new_years_eve", "name": { "en": "New Year's Eve" },
+      "rule": { "type": "fixed", "month": 12, "day": 31 },
+      "category": "observance" }
+  ]
+}

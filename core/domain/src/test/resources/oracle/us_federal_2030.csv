@@ -1,0 +1,16 @@
+# U.S. federal holidays for 2030 as listed by OPM (the day treated as the holiday for pay and leave, i.e. the
+# observed day where 5 U.S.C. 6103(b) / E.O. 11582 shift a weekend date). Fetched 2026-09-17 from
+# https://www.opm.gov/policy-data-oversight/pay-leave/federal-holidays/ (tab "2030"; years before 2024 are under "Historical Data").
+# Cross-checked against OPM's https://www.opm.gov/policy-data-oversight/pay-leave/federal-holidays/holidays.ics (tab 2030): identical.
+holiday,date
+New Year's Day,2030-01-01
+Birthday of Martin Luther King, Jr.,2030-01-21
+Washington's Birthday,2030-02-18
+Memorial Day,2030-05-27
+Juneteenth National Independence Day,2030-06-19
+Independence Day,2030-07-04
+Labor Day,2030-09-02
+Columbus Day,2030-10-14
+Veterans Day,2030-11-11
+Thanksgiving Day,2030-11-28
+Christmas Day,2030-12-25

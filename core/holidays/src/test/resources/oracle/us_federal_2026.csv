@@ -1,0 +1,18 @@
+# Source: U.S. Office of Personnel Management, "Federal Holidays", 2026 tab
+#   https://www.opm.gov/policy-data-oversight/pay-leave/federal-holidays/
+# Fetched: 2026-09-17 (WebFetch). Rows are the dates OPM lists, i.e. the day most federal employees
+# get off: the observed date when 5 U.S.C. 6103(b) shifts a weekend holiday (marked observed=true).
+# Inauguration Day (2025) is on OPM's list but is not a federal holiday of 6103(a); it lives in
+# us_inauguration.csv. The pack's Washington's Birthday is OPM's row of the same name.
+date,holiday_id,observed
+2026-01-01,us.new_year,false
+2026-01-19,us.mlk,false
+2026-02-16,us.presidents_day,false
+2026-05-25,us.memorial,false
+2026-06-19,us.juneteenth,false
+2026-07-03,us.independence,true
+2026-09-07,us.labor,false
+2026-10-12,us.columbus,false
+2026-11-11,us.veterans,false
+2026-11-26,us.thanksgiving,false
+2026-12-25,us.christmas,false

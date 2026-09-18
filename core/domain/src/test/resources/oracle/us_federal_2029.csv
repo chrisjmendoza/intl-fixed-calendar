@@ -1,0 +1,17 @@
+# U.S. federal holidays for 2029 as listed by OPM (the day treated as the holiday for pay and leave, i.e. the
+# observed day where 5 U.S.C. 6103(b) / E.O. 11582 shift a weekend date). Fetched 2026-09-17 from
+# https://www.opm.gov/policy-data-oversight/pay-leave/federal-holidays/ (tab "2029"; years before 2024 are under "Historical Data").
+# Cross-checked against OPM's https://www.opm.gov/policy-data-oversight/pay-leave/federal-holidays/holidays.ics (tab 2029): identical.
+# OPM lists no Inauguration Day for 2029: January 20, 2029 is a Saturday and 6103(c) substitutes only for a Sunday.
+holiday,date
+New Year's Day,2029-01-01
+Birthday of Martin Luther King, Jr.,2029-01-15
+Washington's Birthday,2029-02-19
+Memorial Day,2029-05-28
+Juneteenth National Independence Day,2029-06-19
+Independence Day,2029-07-04
+Labor Day,2029-09-03
+Columbus Day,2029-10-08
+Veterans Day,2029-11-12
+Thanksgiving Day,2029-11-22
+Christmas Day,2029-12-25
