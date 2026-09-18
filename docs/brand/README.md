@@ -16,6 +16,7 @@ The app does **not** ship these PNGs. The adaptive icon in `app/src/main/res` is
 (`drawable/ic_launcher_foreground.xml`, `drawable/ic_launcher_monochrome.xml`, colour
 `ic_launcher_background`) that map the 512 canvas 1:1 onto the 108 dp adaptive-icon canvas, so every
 density and launcher shape is rendered by the system. Edit the SVG, then regenerate the two `pathData`
-strings the same way (the dot grid is `cx ∈ {154 … 358 step 34}`, `cy ∈ {178 … 280 step 34}`, `r = 11`;
-the pill is `222,322 68 × 22 rx 11`). The brand colours are resources in
+strings the same way (the designer's 512 canvas scaled by 1.12 about the glyph centre so it fills more of the launcher
+mask while every corner dot stays inside the 66 dp safe zone: the dot grid is `cx ∈ {141.8 … 370.2 step 38.1}`,
+`cy ∈ {168.7 … 282.9 step 38.1}`, `r = 12.3`; the pill is `217.9,330.0 76.2 × 24.6 rx 12.3`). The brand colours are resources in
 `app/src/main/res/values/ic_launcher_background.xml`.
