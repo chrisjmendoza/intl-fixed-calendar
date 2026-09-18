@@ -25,3 +25,8 @@ and the project uses [Semantic Versioning](https://semver.org/).
   `plusYears`/`minusYears` (IFC pseudo-fields with `java.time`-style clamping of day 29 to 28). Arithmetic
   overflow and results outside years 1–9999 throw `DateTimeException`, never `ArithmeticException`
   (`docs/adr/0002-ifc-date-arithmetic.md`).
+- `:core:domain` (M1 T7, `docs/calendar-spec.md` §7.8): `ZoneProvider` (the current zone, read fresh
+  rather than cached) and `DateTicker` (`Flow<LocalDate>` that re-emits at every local midnight,
+  DST-safe), plus `RealDateTicker`. Neither calls `LocalDate.now()` directly (FEATURES Q2).
+- `:core:testing` — hand-written fakes for the above: `MutableClock` (a settable/advanceable fake
+  `java.time.Clock`), `FakeZoneProvider`, and `FakeDateTicker`.

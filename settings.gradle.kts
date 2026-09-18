@@ -24,3 +24,5 @@ dependencyResolutionManagement {
 rootProject.name = "intl-fixed-calendar"
 
 include(":core:calendar")
+include(":core:domain")
+include(":core:testing")
