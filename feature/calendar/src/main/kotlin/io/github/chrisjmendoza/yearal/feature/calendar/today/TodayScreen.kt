@@ -95,7 +95,8 @@ private fun LoadedContent(
     ) {
         Text(
             text = state.heroDate,
-            style = MaterialTheme.typography.displayMedium,
+            // displaySmall keeps "September 28, 2026" on one line at 360 dp; displayMedium wrapped the year.
+            style = MaterialTheme.typography.displaySmall,
             modifier = Modifier.semantics { heading() },
         )
         Text(

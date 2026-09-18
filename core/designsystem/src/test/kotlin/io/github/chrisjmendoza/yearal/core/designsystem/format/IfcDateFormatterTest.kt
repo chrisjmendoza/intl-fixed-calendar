@@ -5,12 +5,15 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.chrisjmendoza.yearal.core.calendar.IfcDate
 import io.github.chrisjmendoza.yearal.core.calendar.IfcMonth
+import io.github.chrisjmendoza.yearal.core.calendar.IfcYearMonth
 import io.github.chrisjmendoza.yearal.core.designsystem.format.IfcDateFormatter.MonthNameStyle
+import io.github.chrisjmendoza.yearal.core.designsystem.format.IfcDateFormatter.WeekdayNameStyle
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.matchers.shouldBe
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.util.Locale
 
@@ -205,5 +208,85 @@ class IfcDateFormatterTest {
         french.monthName(IfcMonth.SEPTEMBER) shouldBe "septembre"
         french.monthName(IfcMonth.SOL) shouldBe "Sol"
         french.formatNumeric(september8) shouldBe "IFC 2026-10-08"
+    }
+
+    @Test
+    fun `Gregorian medium date includes the real weekday`() {
+        formatter.formatGregorianMedium(LocalDate.of(2026, 12, 31)) shouldBe "Thu, Dec 31, 2026"
+        formatter.formatGregorianMedium(LocalDate.of(2028, 6, 17)) shouldBe "Sat, Jun 17, 2028"
+    }
+
+    @Test
+    fun `Gregorian month and day omit the year and follow the locale's order`() {
+        formatter.formatGregorianMonthDay(LocalDate.of(2026, 6, 18)) shouldBe "Jun 18"
+        val british = IfcDateFormatter(ApplicationProvider.getApplicationContext<Context>().resources, Locale.UK)
+        british.formatGregorianMonthDay(LocalDate.of(2026, 6, 18)) shouldBe "18 Jun"
+    }
+
+    // Month grid (docs/ARCHITECTURE.md §4; spec §7.2)
+
+    @Test
+    fun `month title is the month name and the year`() {
+        formatter.monthTitle(IfcYearMonth(2028, IfcMonth.SOL)) shouldBe "Sol 2028"
+        formatter.monthTitle(IfcYearMonth(2026, IfcMonth.SEPTEMBER)) shouldBe "September 2026"
+    }
+
+    @Test
+    fun `a day within its month, and the intercalary names`() {
+        formatter.formatDay(sol8) shouldBe "Sol 8"
+        formatter.formatDay(september8) shouldBe "September 8"
+        formatter.formatDay(leapDay2024) shouldBe "Leap Day"
+        formatter.formatDay(yearDay2026) shouldBe "Year Day"
+    }
+
+    @Test
+    fun `weekday names in both lengths`() {
+        formatter.weekdayName(DayOfWeek.THURSDAY) shouldBe "Thursday"
+        formatter.weekdayName(DayOfWeek.THURSDAY, WeekdayNameStyle.SHORT) shouldBe "Thu"
+    }
+
+    @Test
+    fun `bare day numbers`() {
+        formatter.formatNumber(13) shouldBe "13"
+        formatter.formatNumber(1) shouldBe "1"
+    }
+
+    @Test
+    fun `Gregorian span of a month`() {
+        formatter.gregorianSpan(IfcYearMonth(2026, IfcMonth.SOL).gregorianRange) shouldBe "Jun 18 – Jul 15"
+        formatter.gregorianSpan(IfcYearMonth(2027, IfcMonth.JUNE).gregorianRange) shouldBe "May 21 – Jun 17"
+    }
+
+    @Test
+    fun `intercalary band subtitle has the Gregorian date and the no-weekday note`() {
+        formatter.intercalarySubtitle(yearDay2026) shouldBe "Thu, Dec 31, 2026 · no IFC weekday"
+        formatter.intercalarySubtitle(IfcDate.LeapDay(2028)) shouldBe "Sat, Jun 17, 2028 · no IFC weekday"
+    }
+
+    // The cell description in exactly the docs/ARCHITECTURE.md §4 "Accessibility" form.
+
+    @Test
+    fun `day description of the ARCHITECTURE example cell`() {
+        val sol13 = IfcDate.Regular(2026, IfcMonth.SOL, 13)
+        formatter.dayDescription(sol13, eventCount = 2, holidayName = "Canada Day") shouldBe
+            "Sol 13, IFC Friday. Gregorian Tuesday, June 30, 2026. 2 events. Holiday: Canada Day."
+    }
+
+    @Test
+    fun `day description omits events and holiday when absent and adds Today when today`() {
+        val sol13 = IfcDate.Regular(2026, IfcMonth.SOL, 13)
+        formatter.dayDescription(sol13) shouldBe "Sol 13, IFC Friday. Gregorian Tuesday, June 30, 2026."
+        formatter.dayDescription(sol13, eventCount = 1) shouldBe
+            "Sol 13, IFC Friday. Gregorian Tuesday, June 30, 2026. 1 event."
+        formatter.dayDescription(sol13, isToday = true) shouldBe
+            "Sol 13, IFC Friday. Gregorian Tuesday, June 30, 2026. Today."
+    }
+
+    @Test
+    fun `day description of intercalary days says no IFC weekday`() {
+        formatter.dayDescription(yearDay2026) shouldBe
+            "Year Day, no IFC weekday. Gregorian Thursday, December 31, 2026."
+        formatter.dayDescription(leapDay2024, holidayName = "Leap Day") shouldBe
+            "Leap Day, no IFC weekday. Gregorian Monday, June 17, 2024. Holiday: Leap Day."
     }
 }

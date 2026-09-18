@@ -1,12 +1,14 @@
 package io.github.chrisjmendoza.yearal.core.designsystem.format
 
 import android.content.res.Resources
+import android.text.format.DateFormat
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalResources
 import io.github.chrisjmendoza.yearal.core.calendar.IfcDate
 import io.github.chrisjmendoza.yearal.core.calendar.IfcMonth
+import io.github.chrisjmendoza.yearal.core.calendar.IfcYearMonth
 import io.github.chrisjmendoza.yearal.core.designsystem.R
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -42,8 +44,123 @@ class IfcDateFormatter(
         SHORT,
     }
 
+    /** Length of a weekday name, as in [java.time.format.TextStyle]. */
+    enum class WeekdayNameStyle {
+        /** "Thursday". */
+        FULL,
+
+        /** "Thu" — the grid's column headers. */
+        SHORT,
+    }
+
     /** The marker word ("IFC") that precedes numeric dates and labels IFC text next to Gregorian text (§7.3). */
     val marker: String get() = resources.getString(R.string.ifc_marker)
+
+    /**
+     * The localized standalone name of a weekday, unlabelled. **Trap:** the caller must say which
+     * kind of weekday it is showing — [IfcDate.nominalDayOfWeek] or [IfcDate.actualDayOfWeek] — with
+     * a label or header (§4.1 items 3–4); prefer [nominalWeekday] and [actualWeekday] for body text.
+     */
+    fun weekdayName(
+        day: DayOfWeek,
+        style: WeekdayNameStyle = WeekdayNameStyle.FULL,
+    ): String =
+        when (style) {
+            WeekdayNameStyle.FULL -> day.getDisplayName(TextStyle.FULL_STANDALONE, locale)
+            WeekdayNameStyle.SHORT -> day.getDisplayName(TextStyle.SHORT_STANDALONE, locale)
+        }
+
+    /**
+     * A bare day number in the locale's digits (`13`; Arabic-Indic digits under an `ar` locale), for
+     * grid cells where the month is given by the heading. Never for a whole date: those go through
+     * the styles of §7.3 so the `IFC` marker and field order are right.
+     */
+    fun formatNumber(value: Int): String = String.format(locale, "%d", value)
+
+    /** The month grid's heading: the full month name and the year, `Sol 2028`. */
+    fun monthTitle(month: IfcYearMonth): String = format(R.string.month_title, monthName(month.month), month.year)
+
+    /**
+     * A day named within its month, without the year: `Sol 13`, `Leap Day`, `Year Day`. The first
+     * element of a day cell's spoken description (docs/ARCHITECTURE.md §4 "Accessibility").
+     */
+    fun formatDay(date: IfcDate): String =
+        when (date) {
+            is IfcDate.Regular -> format(R.string.date_month_day, monthName(date.month), date.dayOfMonth)
+            is IfcDate.LeapDay -> leapDayName()
+            is IfcDate.YearDay -> yearDayName()
+        }
+
+    /**
+     * The merged accessibility description of a day cell or intercalary band, in the form fixed by
+     * docs/ARCHITECTURE.md §4 "Accessibility": `Sol 13, IFC Friday. Gregorian Tuesday, June 30, 2026.
+     * 2 events. Holiday: Canada Day.` — each sentence its own resource, joined in this order:
+     *
+     * 1. the day and its labelled IFC weekday (`Year Day, no IFC weekday.` for intercalary days, §4.1
+     *    item 5);
+     * 2. the Gregorian date with its real weekday;
+     * 3. the event count, only when [eventCount] is above zero;
+     * 4. `Holiday: <name>.`, only when [holidayName] is not null;
+     * 5. `Today.`, only when [isToday] — the visual today mark is a ring a screen reader cannot see.
+     *
+     * The real weekday comes from [IfcDate.actualDayOfWeek] and the IFC one from
+     * [IfcDate.nominalDayOfWeek]; nothing is derived from the other (§4.1).
+     */
+    fun dayDescription(
+        date: IfcDate,
+        isToday: Boolean = false,
+        eventCount: Int = 0,
+        holidayName: String? = null,
+    ): String {
+        val dayAndWeekday =
+            when (val nominal = date.nominalDayOfWeek) {
+                null -> {
+                    format(
+                        R.string.day_description_intercalary,
+                        formatDay(date),
+                        resources.getString(R.string.weekday_nominal_none),
+                    )
+                }
+
+                else -> {
+                    format(R.string.day_description_regular, formatDay(date), weekdayName(nominal))
+                }
+            }
+        val sentences =
+            listOfNotNull(
+                dayAndWeekday,
+                format(R.string.day_description_gregorian, formatGregorianLong(date.toLocalDate())),
+                eventCount.takeIf { it > 0 }?.let { count ->
+                    String.format(locale, resources.getQuantityString(R.plurals.day_description_events, count), count)
+                },
+                holidayName?.let { format(R.string.day_description_holiday, it) },
+                resources.getString(R.string.day_description_today).takeIf { isToday },
+            )
+        return sentences.joinToString(SENTENCE_SEPARATOR)
+    }
+
+    /**
+     * The intercalary band's second line (spec §7.2): the Gregorian date with its real weekday and
+     * the `no IFC weekday` note, `Thu, Dec 31, 2026 · no IFC weekday`.
+     */
+    fun intercalarySubtitle(date: IfcDate): String =
+        format(
+            R.string.intercalary_band_subtitle,
+            formatGregorianMedium(date.toLocalDate()),
+            resources.getString(R.string.weekday_nominal_none),
+        )
+
+    /**
+     * The Gregorian dates a month covers, `Jun 18 – Jul 15`, for the reserved band slot of months
+     * without an intercalary day (spec §7.2). The range comes from [IfcYearMonth.gregorianRange]; an
+     * IFC month never crosses a Gregorian year boundary, so the year is omitted.
+     */
+    fun gregorianSpan(range: ClosedRange<LocalDate>): String =
+        format(
+            R.string.gregorian_span,
+            formatGregorianMonthDay(range.start),
+            formatGregorianMonthDay(range.endInclusive),
+        )
 
     /**
      * The localized name of [month]: the Gregorian namesake's standalone name for the twelve shared
@@ -187,7 +304,21 @@ class IfcDateFormatter(
     fun formatGregorianLong(date: LocalDate): String =
         DateTimeFormatter.ofLocalizedDate(FormatStyle.FULL).withLocale(locale).format(date)
 
-    private fun weekdayName(day: DayOfWeek): String = day.getDisplayName(TextStyle.FULL, locale)
+    /**
+     * The Gregorian date in a medium style **with** its real weekday, in the locale's field order:
+     * `Thu, Dec 31, 2026`. Used where space is short (the intercalary band). Safe unlabelled for
+     * the same reason as [formatGregorianLong].
+     */
+    fun formatGregorianMedium(date: LocalDate): String = skeletonFormatter(SKELETON_WEEKDAY_MONTH_DAY_YEAR).format(date)
+
+    /** The Gregorian month and day without the year, in the locale's field order: `Jun 18`. */
+    fun formatGregorianMonthDay(date: LocalDate): String = skeletonFormatter(SKELETON_MONTH_DAY).format(date)
+
+    // `java.time` has no year-less or weekday-plus-medium localized style below Java 19, so the
+    // pattern comes from the platform's ICU skeleton resolver (API 18+), which orders and punctuates
+    // the fields for the locale ("MMM d" in en-US, "d MMM" in en-GB, "M月d日" in ja).
+    private fun skeletonFormatter(skeleton: String): DateTimeFormatter =
+        DateTimeFormatter.ofPattern(DateFormat.getBestDateTimePattern(locale, skeleton), locale)
 
     private fun leapDayName(): String = resources.getString(R.string.intercalary_leap_day)
 
@@ -206,6 +337,11 @@ class IfcDateFormatter(
         const val WEEKS_PER_YEAR: Int = 52
 
         private const val PERCENT = 100
+
+        // Sentences of a spoken description are whole resources; only the joining space is fixed.
+        private const val SENTENCE_SEPARATOR = " "
+        private const val SKELETON_WEEKDAY_MONTH_DAY_YEAR = "EEEMMMdy"
+        private const val SKELETON_MONTH_DAY = "MMMd"
 
         /** The fraction of the year elapsed at [date], 0 < value ≤ 1: day of year over the year's length. */
         fun yearProgressFraction(date: IfcDate): Float = date.dayOfYear.toFloat() / date.toLocalDate().lengthOfYear()

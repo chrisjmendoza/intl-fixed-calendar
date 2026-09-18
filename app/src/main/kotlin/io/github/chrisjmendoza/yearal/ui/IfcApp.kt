@@ -16,15 +16,20 @@ import androidx.lifecycle.viewmodel.navigation3.rememberViewModelStoreNavEntryDe
 import androidx.navigation3.runtime.entryProvider
 import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.NavDisplay
+import io.github.chrisjmendoza.yearal.BuildConfig
 import io.github.chrisjmendoza.yearal.MainViewModel
+import io.github.chrisjmendoza.yearal.R
 import io.github.chrisjmendoza.yearal.core.calendar.IfcYearMonth
 import io.github.chrisjmendoza.yearal.core.calendar.toIfcDate
 import io.github.chrisjmendoza.yearal.core.navigation.ConverterKey
 import io.github.chrisjmendoza.yearal.core.navigation.EventListKey
 import io.github.chrisjmendoza.yearal.core.navigation.MonthKey
 import io.github.chrisjmendoza.yearal.core.navigation.MoreKey
+import io.github.chrisjmendoza.yearal.core.navigation.SettingsKey
 import io.github.chrisjmendoza.yearal.core.navigation.TodayKey
 import io.github.chrisjmendoza.yearal.feature.calendar.today.TodayRoute
+import io.github.chrisjmendoza.yearal.feature.settings.more.MoreRoute
+import io.github.chrisjmendoza.yearal.feature.settings.settings.SettingsRoute
 import io.github.chrisjmendoza.yearal.ui.navigation.rememberTabBackStacks
 
 /**
@@ -73,7 +78,14 @@ fun IfcApp(viewModel: MainViewModel = hiltViewModel()) {
                     entry<MonthKey> { TabPlaceholder(TopLevelDestination.CALENDAR) }
                     entry<EventListKey> { TabPlaceholder(TopLevelDestination.EVENTS) }
                     entry<ConverterKey> { TabPlaceholder(TopLevelDestination.CONVERT) }
-                    entry<MoreKey> { TabPlaceholder(TopLevelDestination.MORE) }
+                    entry<MoreKey> {
+                        MoreRoute(
+                            navigator = tabs,
+                            appName = stringResource(R.string.app_name),
+                            versionName = BuildConfig.VERSION_NAME,
+                        )
+                    }
+                    entry<SettingsKey> { SettingsRoute(navigator = tabs) }
                 },
         )
     }

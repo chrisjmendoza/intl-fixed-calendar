@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The intercalary-day icon: a fragment of the week's dot row with the day as a pill beneath it,
+     outside the row — the launcher glyph's "Year Day under the grid" motif (docs/brand/README.md).
+     Tinted with the current content colour; a shape mark so the band never relies on colour alone
+     (docs/ARCHITECTURE.md §4 "Accessibility"). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M5,7.5a1.7,1.7 0 1,0 3.4,0a1.7,1.7 0 1,0 -3.4,0z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M10.3,7.5a1.7,1.7 0 1,0 3.4,0a1.7,1.7 0 1,0 -3.4,0z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M15.6,7.5a1.7,1.7 0 1,0 3.4,0a1.7,1.7 0 1,0 -3.4,0z" />
+    <path
+        android:fillColor="@android:color/white"
+        android:pathData="M8,13.5h8a2.25,2.25 0 0,1 0,4.5h-8a2.25,2.25 0 0,1 0,-4.5z" />
+</vector>

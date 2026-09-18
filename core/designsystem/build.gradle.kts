@@ -11,4 +11,7 @@ android {
 
 dependencies {
     api(project(":core:calendar"))
+    // WeekdayDisplay drives the grid's header rows (docs/ARCHITECTURE.md §4); it is part of the
+    // public signature of WeekdayHeaders and MonthGrid, hence `api`.
+    api(project(":core:domain"))
 }

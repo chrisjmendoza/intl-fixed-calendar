@@ -73,4 +73,48 @@
         <item quantity="other">%1$d days until %2$s</item>
     </plurals>
 
+    <!-- ===== Month grid (docs/ARCHITECTURE.md §4 "Intercalary days in a 7-column grid",
+         "Accessibility"; spec §7.2; FEATURES C1–C4) ===== -->
+
+    <!-- The month grid's heading, e.g. "Sol 2028". %1$s = full month name, %2$d = year. -->
+    <string name="month_title">%1$s %2$d</string>
+    <!-- A day within its month, without the year, e.g. "Sol 13" (the first part of a cell's spoken
+         description). %1$s = full month name, %2$d = day of month (1–28). -->
+    <string name="date_month_day">%1$s %2$d</string>
+
+    <!-- Accessibility label of the header row that shows the perpetual IFC weekday names (spec §4.1
+         item 3). -->
+    <string name="weekday_header_nominal">IFC weekdays</string>
+    <!-- Accessibility label of the header row that shows the real weekdays of the month's seven
+         columns (spec §4.1 item 3). -->
+    <string name="weekday_header_actual">Actual weekdays</string>
+
+    <!-- Spoken description of a regular day cell, first sentence: "Sol 13, IFC Friday."
+         %1$s = date_month_day, %2$s = the IFC weekday name. The "IFC" label is mandatory (§4.1 item 7). -->
+    <string name="day_description_regular">%1$s, IFC %2$s.</string>
+    <!-- Spoken description of an intercalary day, first sentence: "Year Day, no IFC weekday."
+         %1$s = intercalary_leap_day or intercalary_year_day, %2$s = weekday_nominal_none. -->
+    <string name="day_description_intercalary">%1$s, %2$s.</string>
+    <!-- Spoken description, second sentence: the Gregorian date with its real weekday, e.g.
+         "Gregorian Tuesday, June 30, 2026." %1$s = the locale's full Gregorian date. -->
+    <string name="day_description_gregorian">Gregorian %1$s.</string>
+    <!-- Spoken description, optional sentence when the day has events. %1$d = number of events. -->
+    <plurals name="day_description_events">
+        <item quantity="one">%1$d event.</item>
+        <item quantity="other">%1$d events.</item>
+    </plurals>
+    <!-- Spoken description, optional sentence when the day is a holiday. %1$s = the holiday's name. -->
+    <string name="day_description_holiday">Holiday: %1$s.</string>
+    <!-- Spoken description, optional last sentence when the day is today; the visual mark is a ring,
+         which a screen reader cannot see. -->
+    <string name="day_description_today">Today.</string>
+
+    <!-- The intercalary band's second line: the Gregorian date and the "no IFC weekday" note, e.g.
+         "Thu, Dec 31, 2026 · no IFC weekday" (spec §7.2). %1$s = Gregorian date with its real
+         weekday, %2$s = weekday_nominal_none. -->
+    <string name="intercalary_band_subtitle">%1$s · %2$s</string>
+    <!-- The Gregorian dates a month covers, shown in the reserved band slot of months that have no
+         intercalary day (spec §7.2), e.g. "Jun 18 – Jul 15". %1$s = first day, %2$s = last day. -->
+    <string name="gregorian_span">%1$s – %2$s</string>
+
 </resources>

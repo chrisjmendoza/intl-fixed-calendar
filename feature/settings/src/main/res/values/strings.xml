@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strings of the More hub and the Settings screen (docs/FEATURES.md W1, W2, H5). -->
+<resources>
+
+    <!-- ===== More hub (the "More" tab) ===== -->
+
+    <!-- Title of the More tab's hub screen. Matches the tab label. -->
+    <string name="more_title">More</string>
+
+    <!-- Row that opens the Settings screen. -->
+    <string name="more_settings">Settings</string>
+
+    <!-- Supporting line under the Settings row, listing what can be changed there. -->
+    <string name="more_settings_detail">Weekday headers, theme, holidays</string>
+
+    <!-- Supporting line of the About row. %1$s = the app's version name, e.g. "0.1.0". -->
+    <string name="more_version">Version %1$s</string>
+
+    <!-- ===== Settings screen ===== -->
+
+    <!-- Title of the Settings screen. -->
+    <string name="settings_title">Settings</string>
+
+    <!-- Spoken description of the back arrow in the top app bar. -->
+    <string name="settings_back">Back</string>
+
+    <!-- Spoken description of the progress spinner shown until the stored settings arrive. -->
+    <string name="settings_loading">Loading settings</string>
+
+    <!-- Section heading for the weekday-header preference (FEATURES W1). -->
+    <string name="settings_section_weekdays">Weekday headers</string>
+
+    <!-- Explains why the choice exists: the IFC's own weekdays are not the real ones (calendar-spec §4.1).
+         Shown once at the top of the section. -->
+    <string name="settings_weekday_info">IFC weekdays are not the real weekdays. In most years an IFC Sunday falls on a different real weekday, so the calendar always uses the real weekday for today, events and reminders.</string>
+
+    <!-- Option: show both header rows. The default. -->
+    <string name="settings_weekday_both">Both</string>
+
+    <!-- One-line explanation of the "Both" option. -->
+    <string name="settings_weekday_both_detail">IFC weekdays with the real weekdays underneath</string>
+
+    <!-- Option: show only the real weekdays. -->
+    <string name="settings_weekday_actual">Actual only</string>
+
+    <!-- One-line explanation of the "Actual only" option. -->
+    <string name="settings_weekday_actual_detail">Only the real weekdays of each month</string>
+
+    <!-- Option: show only the IFC's perpetual weekday names. -->
+    <string name="settings_weekday_nominal">IFC only</string>
+
+    <!-- One-line explanation of the "IFC only" option. -->
+    <string name="settings_weekday_nominal_detail">Only the perpetual IFC weekday names, identical every month</string>
+
+    <!-- Section heading for the theme preferences (FEATURES W2). -->
+    <string name="settings_section_theme">Theme</string>
+
+    <!-- Theme option: follow the device's light/dark setting. -->
+    <string name="settings_theme_system">System default</string>
+
+    <!-- Theme option: always light. -->
+    <string name="settings_theme_light">Light</string>
+
+    <!-- Theme option: always dark. -->
+    <string name="settings_theme_dark">Dark</string>
+
+    <!-- Switch: derive the colour scheme from the wallpaper (Material You). -->
+    <string name="settings_dynamic_color">Dynamic colour</string>
+
+    <!-- Supporting line of the dynamic-colour switch on devices that support it. -->
+    <string name="settings_dynamic_color_detail">Use wallpaper colours (Android 12+)</string>
+
+    <!-- Supporting line of the dynamic-colour switch on devices below Android 12, where it is disabled. -->
+    <string name="settings_dynamic_color_unavailable">Not available on this device</string>
+
+    <!-- Section heading for the holiday-set switches (FEATURES H5). -->
+    <string name="settings_section_holidays">Holidays</string>
+
+    <!-- Explains what the holiday switches do. Shown once at the top of the section. -->
+    <string name="settings_holidays_info">Enabled sets are shown on the calendar and in agendas.</string>
+
+    <!-- Supporting line under a regional holiday set. %1$s = the country name, e.g. "United States". -->
+    <string name="settings_holiday_region">Region: %1$s</string>
+
+</resources>

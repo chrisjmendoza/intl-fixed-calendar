@@ -13,14 +13,20 @@ android {
     defaultConfig {
         applicationId = "io.github.chrisjmendoza.yearal"
     }
+    buildFeatures {
+        // BuildConfig.VERSION_NAME feeds the About row; AGP 9 turns BuildConfig off by default.
+        buildConfig = true
+    }
 }
 
 dependencies {
     implementation(project(":core:calendar"))
+    implementation(project(":core:data"))
     implementation(project(":core:designsystem"))
     implementation(project(":core:domain"))
     implementation(project(":core:navigation"))
     implementation(project(":feature:calendar"))
+    implementation(project(":feature:settings"))
 
     implementation(libs.findLibrary("androidx-core-ktx").get())
     implementation(libs.findLibrary("androidx-activity-compose").get())
