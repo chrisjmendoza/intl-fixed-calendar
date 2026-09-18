@@ -21,8 +21,9 @@ goes, and the docs stay true. These rules bind every contributor — human or LL
   either "merge" for a specific branch, or a blanket permission for the current session. No pull request
   is needed (this is a two-person project); the owner reviews the branch and the completion report (§6)
   in the conversation, then the agent fast-forwards or squashes it onto `main` and deletes the branch.
-  The gate is run **before every push**, so every branch tip and `main` are always green; CI on `main` is
-  the backstop, and a red CI run is fixed before anything else. Parallel local agents use separate git
+  The gate is run **before every push**, so every branch tip and `main` are always green; CI runs on
+  every branch as the backstop, and a red CI run is fixed before anything else. Merges are
+  fast-forwards, so the commit that reaches `main` is the same one CI already passed. Parallel local agents use separate git
   worktrees, one branch each.
 - **Cloud work** (scheduled routines and any agent the owner cannot watch): work on a branch named
   `cloud/<task>` and **open a pull request** so the owner can review it before it reaches `main`. Never

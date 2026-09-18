@@ -1,8 +1,9 @@
 name: CI
 
+# Runs on every branch so a local/<task> or cloud/<task> commit carries a passing check before it is
+# merged onto main (docs/WORKFLOW.md §1). pull_request covers Dependabot and cloud PRs.
 on:
   push:
-    branches: [main]
   pull_request:
 
 permissions:
