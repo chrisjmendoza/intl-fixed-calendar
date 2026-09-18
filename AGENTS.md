@@ -1,6 +1,6 @@
-# CLAUDE.md
+# AGENTS.md
 
-**Yearal** — Android app for the International Fixed Calendar (IFC; the owner also says "FC"): 13 months × 28 days,
+Android app for the International Fixed Calendar (IFC; the owner also says "FC"): 13 months × 28 days,
 the month Sol, plus Year Day and Leap Day. Solo developer working with AI agents.
 
 **Status:** M0 and M1 done, M2 in progress. Pure-JVM: `:core:calendar`, `:core:domain` (clock/ticker,

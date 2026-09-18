@@ -1,8 +1,8 @@
 # Architecture
 
-Status: **planning baseline** (2026-09-17). Nothing here is built yet. Version numbers were checked on
-the web on that date; items that could not be confirmed are flagged in §1 and are settled by the M0
-toolchain spike (see [ROADMAP.md](ROADMAP.md)), whose outcome is recorded in `docs/adr/`.
+Status: **current as of M0 and M1 complete, M2 in progress** (2026-09-17). The toolchain is settled by
+[adr/0001-toolchain.md](adr/0001-toolchain.md); [`gradle/libs.versions.toml`](../gradle/libs.versions.toml)
+is the authority for versions and §1 explains the choices. Progress per task is in [ROADMAP.md](ROADMAP.md).
 
 ## How the planning docs fit together
 
@@ -85,9 +85,9 @@ Found on the development machine on 2026-09-17:
 
 - Android Studio 2026.1.2 (Quail 2) with bundled JBR (OpenJDK 21.0.10) at
   `C:\Program Files\Android\Android Studio\jbr`. Quail 2 supports AGP up to 9.3.
-- SDK at `%LOCALAPPDATA%\Android\Sdk` with platforms 35 and 36. **Missing:** `platforms;android-37`
-  (required by current Compose) and `cmdline-tools` (needed for `sdkmanager`). Install both from the
-  Android Studio SDK Manager before M0.
+- SDK at `%LOCALAPPDATA%\Android\Sdk` with platforms 35, 36 and 37 (37 was installed by AGP itself during
+  the M0 spike — the licence is accepted on the machine, so a missing platform is fetched on first build).
+  `cmdline-tools` are not installed and the build does not need them.
 - `JAVA_HOME` and `ANDROID_HOME` are not set and `java` is not on `PATH`.
 
 Command-line Gradle needs a JDK to launch the wrapper. Either set the variables once at user level:
@@ -175,6 +175,11 @@ declare Java toolchains of their own, so compilation never triggers JDK provisio
 
 ### Flagged as unverified, to be settled by the M0 spike
 
+**Settled on 2026-09-17 by [adr/0001-toolchain.md](adr/0001-toolchain.md)** — items 1–3 and 5 verified
+by a real build (Kotlin 2.4.20 passed the Room/KSP spike but is not adopted yet); item 4's
+`lifecycle-viewmodel-navigation3` exists at lifecycle 2.11.0; `adaptive-navigation3`, lib-recur and the
+Android 17 behaviour review remain open for M3/M4. The original list is kept for the record:
+
 1. **Kotlin 2.4.20 with KSP 2.3.12, Room 3 and Hilt.** Evidence is mixed. KSP2 is decoupled from the compiler, but its own "Upgrade to Kotlin 2.4.0" issue is open and third parties report lock-out. The plan is to start on 2.3.21, try 2.4.20 on the scaffold, and bump only if it is green.
 2. **Kotlin 2.3.21.** The exact patch was inferred from the Dagger 2.60 release notes. 2.3.20 is known good with AGP 9.3 on this machine, so fall back to it if 2.3.21 does not resolve.
 3. **Hilt, Room 3 and Roborazzi Gradle plugins under AGP 9 defaults** (`android.newDsl=true`, built-in Kotlin).
@@ -201,7 +206,7 @@ D:\Dev\intl-fixed-calendar
 │   ├─ domain        [JVM]       Event/Reminder/Holiday models, IfcRecurrence + RecurrenceExpander, HolidayRule engine,
 │   │                            repository interfaces, use cases (ObserveAgenda), Clock/Zone/DateTicker, WidgetUpdater +
 │   │                            ReminderScheduler interfaces. Depends on :core:calendar, coroutines-core, lib-recur
-│   ├─ holidays      [JVM]       Bundled holiday-set JSON (resources) + loader (kotlinx-serialization). Depends on :core:domain
+│   ├─ holidays      [JVM]       Bundled holiday-set JSON packs (schema 1, ADR 0004) + strict loader (HolidayPackLoader). Depends on :core:domain
 │   ├─ data          [Android]   Room3 DB/DAOs/mappers, DataStore, repository impls, ICS import/export, Hilt modules
 │   ├─ devicecalendar[Android]   CalendarContract read-only overlay (M7), isolated because it owns a permission
 │   ├─ scheduling    [Android]   AlarmManager day-rollover + reminder scheduling, receivers, notifications
@@ -209,7 +214,7 @@ D:\Dev\intl-fixed-calendar
 │   ├─ designsystem  [Android]   Theme, dynamic color, MonthGrid, DayCell, IntercalaryBand, DualDateText, IfcDateFormatter (resources)
 │   └─ testing       [JVM+Android split if needed] fakes, fixtures, golden vectors, MainDispatcherRule
 ├─ feature/
-│   ├─ calendar                  Today, Month, Year, Day detail
+│   ├─ calendar                  Today (done), Month, Year, Day detail
 │   ├─ converter
 │   ├─ events                    list + editor
 │   ├─ holidays
@@ -231,7 +236,7 @@ Three pure-JVM modules hold all the logic that must be correct. They build and t
 
 ### Package naming
 
-Working base: `io.github.chrisjmendoza.fixedcal`. The final applicationId follows the app-name decision and must be fixed before the first Play upload (M2), because it can never change afterwards.
+Base: `io.github.chrisjmendoza.yearal` (the app is **Yearal**, ROADMAP.md decision #1, 2026-09-18). This is also the applicationId, which can never change after the first Play upload.
 
 - A GitHub-derived reverse domain is legitimate, free, and matches a public repo.
 - The namespace for each module is `<base>.core.calendar`, `<base>.feature.events`, and so on.
@@ -241,14 +246,16 @@ Working base: `io.github.chrisjmendoza.fixedcal`. The final applicationId follow
 
 Yes, add it, but keep it minimal. With about 17 modules, copy-pasted `android {}` blocks are the top source of agent drift.
 
-- Six plugins, modelled on Now in Android and written against the AGP 9 new-DSL `CommonExtension`:
-  - `ifc.jvm.library`: Kotlin JVM, Jupiter, Kotest, `explicitApi()`.
-  - `ifc.android.library`
-  - `ifc.android.compose`
-  - `ifc.android.feature`: library, compose and hilt, plus the standard dependencies, the Robolectric and Roborazzi test setup, and the dependency rule check.
-  - `ifc.android.application`
-  - `ifc.hilt`
-- Spotless is configured once at the root.
+- Plugins, modelled on Now in Android and written against the AGP 9 new-DSL `CommonExtension`
+  (shared code in `IfcAndroid.kt`; the API-shape rules are in [adr/0001-toolchain.md](adr/0001-toolchain.md)):
+  - `ifc.jvm.library`: Kotlin JVM, Jupiter, Kotest, `explicitApi()`, Dokka KDoc gate.
+  - `ifc.android.library`: SDK levels from the catalog, Java 17, lint as an error gate, JUnit4 + Robolectric.
+  - `ifc.android.compose`: Compose compiler, BOM dependencies, Roborazzi.
+  - `ifc.android.feature`: library, compose and hilt, plus the standard `:core:*` dependencies, Turbine, and the dependency rule check (fails on `:feature:*` → `:feature:*` or `:core:data`).
+  - `ifc.android.application`: target SDK and the SemVer `versionCode`.
+  - `ifc.hilt`: Hilt + KSP.
+  - `ifc.kotlin.serialization` and `ifc.room`: the compiler plugins must be applied from `build-logic`'s classpath (ADR 0001, decision 3).
+- Spotless is configured per module by the convention plugins (ktlint from the catalog).
 - Do not write custom tasks beyond these.
 
 ## 3. Domain model
@@ -342,7 +349,11 @@ reminders(id PK, event_id FK CASCADE, minutes_before INT, UNIQUE(event_id, minut
 Holidays are computed, never stored.
 
 - The rule types, modifiers, and the bundled JSON format are specified in [holidays-and-import.md](holidays-and-import.md): `fixed`, `nthWeekday` (negative n = last), `offset`, `easter` (western and orthodox), `table` (pre-generated lunisolar dates), and `ifc`, with `observed` policies and `since/until` bounds. In code this is a `sealed HolidayRule` hierarchy in `:core:domain`.
-- A set is `HolidaySet(id, nameRes/title, region, rules)`, stored as JSON resources in `:core:holidays`.
+- A set is `HolidaySet(id, region, name, sources, holidays)`, loaded from JSON resources in `:core:holidays`
+  by `HolidayPackLoader`; the engine is `HolidayEngine` in `:core:domain`. Decisions the spec left open
+  (rule year vs anchor year, observed entries, memoisation key, the `SUNDAY_TO_MONDAY` policy) are in
+  [adr/0003-holiday-rule-model.md](adr/0003-holiday-rule-model.md); the schema decisions in
+  [adr/0004-holiday-pack-format.md](adr/0004-holiday-pack-format.md).
 - Evaluation per year takes microseconds and is memoised.
 - Enabled set IDs live in DataStore.
 - Version 1 ships the "IFC observances" set (Year Day, Leap Day, Sol 1) and the US pack (federal holidays plus common observances). Lunisolar tables are a 1.0 stretch goal that can slip to 1.1 without affecting the engine. More sets are data-only PRs.
@@ -365,7 +376,8 @@ The pager keeps three months warm with `beyondViewportPageCount = 1`. The Year v
 ### Screens and navigation
 
 - **Bottom bar / rail:** the top-level destinations, via `NavigationSuiteScaffold`, are **Today | Calendar | Events | Convert | More**. "More" holds Holidays, Settings and Learn/About.
-- **Nav keys** live in `:core:navigation`: `TodayKey`, `MonthKey(year, month)`, `YearKey(year)`, `DayKey(epochDay)`, `ConverterKey(prefillEpochDay?)`, `EventListKey`, `EventEditorKey(eventId?, prefillEpochDay?)`, `HolidaysKey`, `SettingsKey`, `LearnKey`.
+- **Nav keys** live in `:core:navigation`: `TodayKey`, `MonthKey(year, month)`, `YearKey(year)`, `DayKey(epochDay)`, `ConverterKey(prefillEpochDay?)`, `EventListKey`, `EventEditorKey(eventId?, prefillEpochDay?)`, `MoreKey` (the hub tab), `HolidaysKey`, `SettingsKey`, `LearnKey`.
+- **Per-tab back stacks** are `TabBackStacks` in `:app`: one `NavBackStack` per tab, the Today root prefixed when another tab is shown so that back from a tab root returns to Today; the Calendar tab's root `MonthKey` is resolved from `DateTicker` when the tab is first opened.
 - **Entry providers:** each feature exposes `fun EntryProviderScope<NavKey>.xEntries(navigator: Navigator)`. `:app` owns the per-tab back stacks (the Nav3 "top-level back stack" recipe) and the `NavDisplay`.
 - **Intent routing:** widget and notification taps send explicit intents with extras. `IntentRouter` in `:app` builds the back stack, for example `[MonthKey, DayKey]`. No URI deep links are needed until Nav3 1.2 is stable.
 - **Screen behaviors:**
@@ -413,7 +425,10 @@ Use plain unidirectional data flow with no MVI framework.
 ### Localization
 
 - All strings are in resources from day one, including the 13 month names with "Sol".
-- The IFC date pattern is a positional string resource, `%1$s %2$d, %3$d`, so locales can reorder it.
+- The IFC date pattern is a positional string resource, `%1$s %2$d, %3$d`, so locales can reorder it
+  (`date_long_regular`, `date_long_intercalary`, `date_medium_*` in `:core:designsystem`; `IfcDateFormatter`
+  formats them with its own `Locale` via `String.format`, not `Resources.getString(id, args)`, so the
+  numerals follow the formatter's locale).
 - Gregorian dates use `DateTimeFormatter.ofLocalizedDate`.
 - Weekday names come from `DayOfWeek.getDisplayName`.
 - Numerals are formatted with the locale.
@@ -477,7 +492,7 @@ Never update a widget per minute. The widgets show dates, not clocks.
 | | Parse/format round trip, invalid construction, and ordering. | |
 | `:core:domain` | Property tests for the recurrence expander. For every IFC rule, each occurrence converts back to a matching `IfcDate`, and Leap Day rules fire only in leap years. | JUnit 6 |
 | | DST edge cases with fixed zones. | |
-| | Holiday rules against published tables (US Federal 2020 to 2035, Easter 1900 to 2100). | |
+| | Holiday rules against published tables: `HolidayOracleTest` (Easter 1900–2100 Western and Orthodox, OPM federal holidays 2020–2030) in `:core:domain`; `UsPackOracleTest` / `BundledPacksTest` (OPM 2024–2028, 2026 observances, Easter family) in `:core:holidays`. Oracle CSVs carry their source URL and fetch date. | |
 | | Agenda bucketing. | |
 | `:core:data` | Room 3 DAO tests on the JVM with `BundledSQLiteDriver` in memory. No emulator is needed. | JUnit4 (plus Robolectric only where a Context is needed) |
 | | Range-query correctness against a naive filter (property test). | |
@@ -485,7 +500,7 @@ Never update a widget per minute. The widgets show dates, not clocks.
 | | DataStore serializer round trip and corruption fallback. | |
 | | ICS parser fixtures. | |
 | ViewModels | Fakes from `:core:testing`, a fake `Clock` and `DateTicker`, Turbine, and `runTest`. Include a test that advances the clock across midnight. | JUnit4 |
-| Compose UI | Stateless `XScreen` tests under Robolectric. Cover semantics (content descriptions, selection) and the intercalary band in June 2028 and in December. | JUnit4 plus Robolectric 4.17 |
+| Compose UI | Stateless `XScreen` tests under Robolectric. Cover semantics (content descriptions, selection) and the intercalary band in June 2028 and in December. Library modules pin `sdk=36` in `src/test/resources/robolectric.properties`: without a `targetSdk` in the test manifest Robolectric picks its newest SDK, where the Compose test rule's input injection breaks. | JUnit4 plus Robolectric 4.17 |
 | Screenshots | Roborazzi. The preview scanner auto-captures every `@Preview` in `:core:designsystem` and the features. | `verifyRoborazziDebug` |
 | | Explicit matrices for MonthGrid: {normal, June-leap, December} x {light, dark} x {font 1.0, 2.0} x {compact, expanded} x {LTR, RTL}. | |
 | | Glance widgets through glance-appwidget-testing or previews. | |
@@ -500,15 +515,16 @@ Robolectric native-graphics output differs between Windows and Linux, so CI (Lin
 
 ### CI gate per push
 
-`spotlessCheck`, `lint`, `test` (all JVM and Robolectric tests), `verifyRoborazziDebug`, and `:app:assembleDebug`.
+`check` (per module: `spotlessCheck`, `lint` on Android modules, `test` — JVM and Robolectric —, the Dokka KDoc
+gate on JVM modules) and `:app:assembleDebug`; `verifyRoborazziDebug` joins once the first goldens are recorded (M2 T10).
 
 ## 7. CI/CD (GitHub Actions)
 
 - **`ci.yml`**
   - Triggers: pushes to `main`, and pull requests (cloud agents and Dependabot; see WORKFLOW.md §1).
   - Setup: ubuntu-latest, `actions/setup-java` (temurin 21), and `gradle/actions/setup-gradle` with caching.
-  - Steps: `./gradlew spotlessCheck lint test verifyRoborazziDebug :app:assembleDebug`.
-  - Artifacts: upload test, lint and Roborazzi diff reports.
+  - Steps: `./gradlew check :app:assembleDebug` (plus `verifyRoborazziDebug` once goldens exist).
+  - Artifacts: the debug APK on every run; test, lint and Roborazzi diff reports on failure.
   - Add concurrency cancellation.
   - Optional: a separate fast job that runs `:core:calendar:test :core:domain:test :core:holidays:test`. It finishes in under a minute and gives agents early feedback.
 - **`record-screenshots.yml`:** manual dispatch. See section 6.

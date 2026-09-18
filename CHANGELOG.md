@@ -31,3 +31,32 @@ and the project uses [Semantic Versioning](https://semver.org/).
   DST-safe), plus `RealDateTicker`. Neither calls `LocalDate.now()` directly (FEATURES Q2).
 - `:core:testing` — hand-written fakes for the above: `MutableClock` (a settable/advanceable fake
   `java.time.Clock`), `FakeZoneProvider`, and `FakeDateTicker`.
+- Toolchain (M0 T3, [docs/adr/0001-toolchain.md](docs/adr/0001-toolchain.md)): AGP 9.3.3 with built-in
+  Kotlin 2.3.21, KSP 2.3.12, Hilt 2.60.1, Room 3.0.3, Compose BOM 2026.09.00, Navigation 3 1.1.7, Robolectric
+  4.17 and Roborazzi 1.74.0, verified by a real build; the Android convention plugins
+  (`ifc.android.library` / `.compose` / `.feature` / `.application`, `ifc.hilt`, `ifc.room`,
+  `ifc.kotlin.serialization`) with lint as an error gate.
+- `:app` (M0 T5, M2 T2): Hilt application, single edge-to-edge activity, the five top-level tabs
+  (Today | Calendar | Events | Convert | More) in a `NavigationSuiteScaffold` with per-tab Navigation 3 back
+  stacks, the real `Clock`/`ZoneProvider`/`DateTicker` bindings, encrypted-only Auto Backup rules, and an
+  adaptive launcher icon. `:core:navigation` holds every `NavKey` and the `Navigator` interface.
+- Holiday rule engine in `:core:domain` (M1 T8; FEATURES H1, H3; [docs/adr/0003-holiday-rule-model.md](docs/adr/0003-holiday-rule-model.md)):
+  `HolidayEngine` and the sealed `HolidayRule` (`fixed`, `nthWeekday`, `weekdayRelative`, `offset`, `easter`
+  western/orthodox, `table`, `ifc`) with the `since`/`until`/`yearFilter`/`observed`/`durationDays`
+  modifiers and the `US_FEDERAL`, `NEXT_MONDAY`, `SUNDAY_TO_MONDAY` observed policies. Holidays are computed
+  per year and memoised, never stored; range queries evaluate neighbouring years so New Year observed on
+  Dec 31 and Kwanzaa's January tail are found. Verified against published tables (Easter 1900–2100, OPM
+  federal holidays 2020–2030).
+- `:core:holidays` (M1 T9; FEATURES H2, H3; [docs/adr/0004-holiday-pack-format.md](docs/adr/0004-holiday-pack-format.md)):
+  the schema-1 JSON pack format, `HolidayPackLoader`, and the bundled `ifc`, `US` (federal + common
+  observances) and `religious-christian` (Easter family) packs, checked against OPM 2024–2028.
+- `:core:designsystem` (M2 T1, T5): `IfcTheme` (dynamic colour on API 31+) and `IfcDateFormatter`
+  implementing calendar-spec §7.3–7.6 (long/medium/numeric styles, labelled nominal vs actual weekday,
+  day/week/quarter text, "Sol" and the intercalary names as resources).
+- `:feature:calendar` (M2 T6; FEATURES T1, T2, T3, T4, T6): the Today screen — hero IFC date, Gregorian
+  equivalent, both weekdays clearly labelled, day/week/quarter, year progress and the countdown to the next
+  Year Day / Leap Day, driven by `DateTicker` so it rolls over at midnight.
+- CI builds and uploads the debug APK on every push.
+- The app is named **Yearal** (ROADMAP decision #1); applicationId and package base
+  `io.github.chrisjmendoza.yearal` (decision #2). Name availability research is in
+  [docs/competitive-analysis.md](docs/competitive-analysis.md) §8.

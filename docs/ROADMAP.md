@@ -1,6 +1,6 @@
 # Roadmap
 
-Status: **planning baseline** (2026-09-17). Milestones sequence the work described in
+Status: **current as of M0 complete, M1 complete, M2 in progress** (2026-09-17). Milestones sequence the work described in
 [FEATURES.md](FEATURES.md) using the structure in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Release map
@@ -21,11 +21,13 @@ Updated in the push that finishes each item ([WORKFLOW.md](WORKFLOW.md) §4.2).
 | Milestone | Task | State |
 |---|---|---|
 | M0 | T1 repo, `.gitignore`, Gradle wrapper 9.7.1 | ✅ done |
-| M0 | T1 owner setup: SDK Platform 37, cmdline-tools, `JAVA_HOME`, 2FA, repo security settings | ⬜ owner |
-| M0 | T2 `settings.gradle.kts`, version catalog, `build-logic` — JVM convention plugin only | 🟡 partial: the five Android convention plugins follow the T3 spike |
-| M0 | T3 toolchain spike + ADR 0001 | ⬜ blocked on SDK Platform 37 |
-| M0 | T6 Spotless/ktlint, `.editorconfig` | ✅ done for JVM modules; Android Lint config follows T3 |
-| M0 | T7 `ci.yml` (SHA-pinned, read-only token, wrapper validation), Dependabot | 🟡 partial: manifest permission allow-list check follows the first Android module |
+| M0 | T1 owner setup: `JAVA_HOME`, 2FA, repo security settings | ⬜ owner (SDK Platform 37 was installed by AGP during T3; cmdline-tools are not needed by the build) |
+| M0 | T2 `settings.gradle.kts`, version catalog, `build-logic` — all convention plugins | ✅ done: `ifc.jvm.library`, `ifc.android.library`, `ifc.android.compose`, `ifc.hilt`, `ifc.android.application`, `ifc.android.feature`, plus `ifc.kotlin.serialization` and `ifc.room` |
+| M0 | T3 toolchain spike + ADR 0001 | ✅ done ([adr/0001-toolchain.md](adr/0001-toolchain.md)); the Kotlin 2.4 bump is a follow-up task |
+| M0 | T4 module stubs plus the dependency rule check | 🟡 partial: `:app`, `:core:designsystem`, `:core:navigation`, `:feature:calendar` exist; the rule check is in `ifc.android.feature`; remaining modules are created by the task that first needs them |
+| M0 | T5 `:app` shell (Hilt application, MainActivity, edge-to-edge, Nav3 with 5 tabs) | ✅ done: per-tab back stacks, `NavigationSuiteScaffold`, debug APK builds |
+| M0 | T6 Spotless/ktlint, `.editorconfig`, Android Lint config | ✅ done (lint `warningsAsErrors`, version-nag checks off) |
+| M0 | T7 `ci.yml` (SHA-pinned, read-only token, wrapper validation), Dependabot | 🟡 partial: builds and uploads the debug APK; manifest permission allow-list check still to come |
 | M0 | T8 `CLAUDE.md`, workflow rules, ADR template, CHANGELOG | ✅ done; `SECURITY.md` and LICENSE pending owner decisions |
 | M1 | T1 `IfcMonth`, `IfcDate`, conversion | ✅ done |
 | M1 | T2 independent definitional oracle (years 1–9999) | ✅ done |
@@ -35,11 +37,15 @@ Updated in the push that finishes each item ([WORKFLOW.md](WORKFLOW.md) §4.2).
 | M1 | T6 KDoc gate | ✅ done; `docs/contracts/Calendar.md` is written when the API is frozen at the end of M1 |
 | M1 | T6b date arithmetic on `IfcDate` (plus/minus days, weeks, months, years; calendar-spec §7.7) | ✅ done |
 | M1 | T7 `Clock`/`ZoneProvider`/`DateTicker` interfaces plus fakes (`:core:domain`, `:core:testing`) | ✅ done |
-| M1 | T8–T9 holiday rule engine, holiday JSON packs (`:core:domain`, `:core:holidays`) | ⬜ next |
+| M1 | T8 holiday rule engine (`:core:domain`) | ✅ done ([adr/0003-holiday-rule-model.md](adr/0003-holiday-rule-model.md)); reviewed independently with published-table oracles (Easter 1900–2100, OPM 2020–2030) |
+| M1 | T9 holiday JSON packs and loader (`:core:holidays`: IFC, US, Easter family) | ✅ done ([adr/0004-holiday-pack-format.md](adr/0004-holiday-pack-format.md)); lunisolar `calendar` rules are H4 |
+| M2 | T1 `:core:designsystem` theme | 🟡 partial: `IfcTheme` (dynamic colour, baseline fallback); typography and the brand seed wait on open decision #10 |
+| M2 | T2 `:core:navigation` keys, `Navigator`, tab back stacks in `:app` | ✅ done |
+| M2 | T5 `IfcDateFormatter` and string resources | ✅ done |
+| M2 | T6 Today | 🟡 partial: hero date, both weekdays, day/week/quarter, year progress, countdown; agenda and next-holiday follow M4/M6 |
 
-Before M0 can start, the owner needs to: install `platforms;android-37` and `cmdline-tools` from the
-Android Studio SDK Manager, set `JAVA_HOME` / `ANDROID_HOME` (ARCHITECTURE.md → Development
-environment), and ideally update Android Studio to Quail 4. Turning on 2FA/passkeys for the GitHub
+Owner setup still open: set `JAVA_HOME` / `ANDROID_HOME` at user level (ARCHITECTURE.md → Development
+environment) and ideally update Android Studio to Quail 4. Turning on 2FA/passkeys for the GitHub
 and Google Play accounts is the one security task that should happen now.
 
 **Conventions:** each task is one agent session (committed straight to `main`; no pull requests) and names the module it owns, so parallel agents never share a module. Tasks sharing a group letter run in parallel. Use git worktrees, one per agent. Effort is in focused days for the owner plus agents, not calendar dates.
@@ -246,8 +252,8 @@ blocks M0 or M1.
 
 | # | Decision | Recommendation | Needed by |
 |---|---|---|---|
-| 1 | **App name.** "13 Month Fixed Calendar" is taken twice on Play and "International Fixed Calendar" is used on iOS (competitive-analysis.md). | A short brand plus a descriptor, e.g. **"Sol28 – 13-Month Calendar"** or **"Yearal – 13-Month Calendar"**; keep "International Fixed Calendar (IFC)" in the short description for search. Trademark and domain checks not done yet. | M2 (store listing) |
-| 2 | **applicationId.** Permanent once uploaded to Play. | `io.github.chrisjmendoza.<brand>` — free, legitimate, matches the public repo. Use an owned domain instead if there is one. | M2 (first Play upload) |
+| 1 | **App name.** ✅ **Decided 2026-09-18: Yearal**, store title "Yearal: 13-Month Calendar". Availability of 20 candidates checked ([competitive-analysis.md](competitive-analysis.md) §8). | Still owed by the owner: register `yearal.com` and `yearal.app`; run a manual USPTO/EUIPO search before the first upload. | M2 (store listing) |
+| 2 | **applicationId.** ✅ **Decided 2026-09-18: `io.github.chrisjmendoza.yearal`** (also the code package base). | Permanent once uploaded; if the owner would rather ship under `app.yearal`, change it in `app/build.gradle.kts` before the first upload — never after. | M2 (first Play upload) |
 | 3 | **License.** The repo is public with no license yet, which means all rights reserved. | MIT or Apache-2.0 if reuse is welcome; GPL-3.0 if Play-store clones are a worry. Deliberately left unset until decided. | Before accepting outside contributions |
 | 4 | **Play developer account type.** Personal accounts created after 2023-11-13 must run a closed test with ≥12 testers for 14 continuous days before production. | Check now; if it applies, start recruiting testers at M5. | M5 |
 | 5 | **Weekday display default.** | `BOTH` (nominal headers + actual weekdays beneath). Validate with internal testers. | M2 |

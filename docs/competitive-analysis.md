@@ -291,7 +291,26 @@ Tags: **MVP** = first public release; **v1.x** = fast-follow; **Later** = only i
 7. **Evenmonth** — "Evenmonth: 13×28 Calendar". Echoes the historical "Equal Month calendar" name; Play search showed no match.
 8. **Fixed Thirteen** — "Fixed Thirteen Calendar". Keeps both top keywords in the brand while not duplicating the incumbent string.
 
-Recommendation: **Sol28** or **Yearal** as brand + "13-Month Calendar" descriptor; put "International Fixed Calendar (IFC)" in the short description and first line of the long description for search.
+**Availability check (2026-09-17, two independent research passes plus spot-checks).** Play/iOS by store search (iTunes Search API; Play search page), domains by registry RDAP (404 = unregistered), trademarks by web search only — **USPTO TESS/EUIPO were not machine-searchable and must be run by hand before the first Play upload.** Title length is "Name: 13-Month Calendar" against Play's 30-character limit.
+
+| Name | Play | iOS | .com | .app | Marks / other collisions | Title | Verdict |
+|---|---|---|---|---|---|---|---|
+| **Yearal** | none | none | **free** | **free** | none; only Cotsworth's 1912 book *The Fixed "Yearal"* | 25 | **CLEAR** |
+| Sol28 | none (a Japanese Play *developer* account "GMO-SOL28" exists) | none | taken (Apr 2026, no site) | free | teaspoon, coffee shop, damper part — non-software | 24 | RISKY |
+| Cotsworth | none | none | taken since 2001 | free | surname with living bearers; misread as "Cotswold" | 28 | CLEAR but weak |
+| Tredecim (Latin 13) | none (a Play developer account "Tredecim" exists) | none | taken | free | apparel-only US mark; IP law firm; EDM artist | 27 | RISKY-low |
+| Tridecal | none | none | taken (enterprise-software firm) | free | none | 27 | RISKY |
+| Fixedcal | none | none | free | free | @FixedCal IFC advocacy handle; PyryL/fixedcal library; Fixcal.io tax SaaS one letter away | 27 | CLEAR but descriptive |
+| Year Day | none exact; "Day of Year" utilities crowd the search | many "year progress" apps | taken | free | generic, unprotectable | 27 | RISKY |
+| Solmonth / Month of Sol | none | none | taken (Shanghai firm) | free | "Month of Sol" is the generic descriptor; 31 chars | 27 / 31 | RISKY |
+| Fixed Thirteen | none | none | free | free | descriptive; near-identical to the incumbents | 33 | RISKY |
+| Evenmonth | — | — | taken | free | **live AI budgeting app "EvenMonth" (2026), iOS + Android** | 28 | TAKEN |
+| Thirteen28 | none | none | taken | taken | THIRTEEN28 LIMITED, active UK company | 29 | TAKEN |
+| Tredici / Trece / Treize / Kalenda / Perpetua / Sunfirst / Solday | apps or live marks exist | | | | Perpetua: live class-9 software mark | | TAKEN |
+
+Also found: an iOS app titled exactly *International Fixed Calendar* (Darren Maxwell, id1107327564) is live, which rules out that descriptive title on both platforms.
+
+Recommendation: **Yearal** — "Yearal: 13-Month Calendar" — the only candidate clear in every column, the inventor's own name for the system, two syllables, a six-letter widget label; register yearal.com and yearal.app at once, then run a manual USPTO/EUIPO search. Fallback: **Sol28** with the `.app` domain if the owner prefers a self-explaining brand. Put "International Fixed Calendar (IFC)" in the short description and first line of the long description for search.
 
 ---
 

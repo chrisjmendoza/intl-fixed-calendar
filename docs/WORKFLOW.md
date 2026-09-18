@@ -47,10 +47,14 @@ python scripts\check_docs.py # doc link and reference check
 | `compileKotlin` | `explicitApi()` and **all warnings as errors** **[gate]** |
 | `test` | JUnit 6 + Kotest, including the spec-driven and exhaustive tests **[gate]** |
 | `spotlessCheck` | ktlint formatting (`.\gradlew.bat spotlessApply` fixes it) **[gate]** |
-| `dokkaGenerate` | **KDoc on every public declaration** — an undocumented one fails the build **[gate]** |
+| `dokkaGenerate` | **KDoc on every public declaration** (pure-JVM modules) — an undocumented one fails the build **[gate]**; Android modules are review-enforced until Dokka is added there (ADR 0001) |
+| `lint` | Android modules: Android Lint with `warningsAsErrors` **[gate]** |
+| `testDebugUnitTest` | Android modules: JUnit4 + Robolectric (+ Roborazzi `compare`, never `verify`, locally) **[gate]** |
 
-CI (`.github/workflows/ci.yml`) runs the same gate on every push to `main`. Android modules will add
-`lint`, Robolectric tests, and `verifyRoborazziDebug` when they land (ARCHITECTURE.md §6).
+CI (`.github/workflows/ci.yml`) runs the same gate on every branch plus `:app:assembleDebug`, and uploads
+the debug APK as an artifact. `verifyRoborazziDebug` joins once the first goldens are recorded (M2 T10).
+A Kotest `checkAll` inside an expression-bodied test (`fun x() = runBlocking { checkAll(...) }`) returns a
+non-`Unit` value and Jupiter silently skips it — use a block body and check the test-results XML counts.
 
 ## 3. Definition of Done
 

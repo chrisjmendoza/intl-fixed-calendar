@@ -1,4 +1,4 @@
-# International Fixed Calendar for Android
+# Yearal — the International Fixed Calendar for Android
 
 An Android app for the [International Fixed Calendar](https://en.wikipedia.org/wiki/International_Fixed_Calendar)
 (IFC): 13 months of exactly 28 days, a month called **Sol** between June and July, and two "floating"
