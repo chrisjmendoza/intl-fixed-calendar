@@ -34,13 +34,23 @@ jobs:
         with:
           validate-wrappers: true
 
+      # The ubuntu runner ships the Android SDK with licences accepted; AGP installs any missing platform.
       - name: Gate
-        run: ./gradlew check --console=plain
+        run: ./gradlew check :app:assembleDebug --console=plain
 
-      - name: Upload test reports
+      - name: Upload debug APK
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: app-debug-apk
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+
+      - name: Upload test and lint reports
         if: failure()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: test-reports
-          path: "**/build/reports/tests/"
+          name: reports
+          path: |
+            **/build/reports/tests/
+            **/build/reports/lint-results-*.html
           retention-days: 7

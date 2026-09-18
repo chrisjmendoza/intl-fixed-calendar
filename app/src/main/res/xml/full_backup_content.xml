@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Legacy backup rules read by devices on API 30 and below (docs/security-and-privacy.md "Backups").
+     Mirrors data_extraction_rules.xml: back up only when the client can encrypt. -->
+<full-backup-content>
+    <include domain="database" path="." requireFlags="clientSideEncryption" />
+    <include domain="file" path="datastore/" requireFlags="clientSideEncryption" />
+</full-backup-content>

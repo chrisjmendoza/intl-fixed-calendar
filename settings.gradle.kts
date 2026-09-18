@@ -23,7 +23,11 @@ dependencyResolutionManagement {
 
 rootProject.name = "intl-fixed-calendar"
 
+include(":app")
 include(":core:calendar")
+include(":core:designsystem")
 include(":core:domain")
 include(":core:holidays")
+include(":core:navigation")
 include(":core:testing")
+include(":feature:calendar")

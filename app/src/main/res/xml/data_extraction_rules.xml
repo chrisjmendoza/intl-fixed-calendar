@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Backup rules for API 31+ (docs/security-and-privacy.md "Backups"): cloud backup only when the
+     device can encrypt it client-side; device-to-device transfer carries everything user-generated.
+     Caches live in cacheDir / noBackupFilesDir, so their exclusion is structural. -->
+<data-extraction-rules>
+    <cloud-backup disableIfNoEncryptionCapabilities="true">
+        <include domain="database" path="." />
+        <include domain="file" path="datastore/" />
+    </cloud-backup>
+    <device-transfer>
+        <include domain="database" path="." />
+        <include domain="file" path="datastore/" />
+    </device-transfer>
+</data-extraction-rules>

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strings of the Today screen (docs/FEATURES.md T1–T4, T6). Calendar terms and date patterns live in
+     :core:designsystem, not here. -->
+<resources>
+
+    <!-- Spoken description of the progress spinner shown until the first date tick arrives. -->
+    <string name="today_loading">Loading today’s date</string>
+
+    <!-- The Gregorian equivalent of today's IFC date, labelled so it is never confused with the IFC date
+         above it. %1$s = the full Gregorian date with its weekday, e.g. "Thursday, September 17, 2026". -->
+    <string name="today_gregorian">Gregorian: %1$s</string>
+
+    <!-- Joins the day-and-week text with the quarter on one line.
+         %1$s = "Day 260 · Week 38 of 52", %2$s = "Q3". -->
+    <string name="today_day_week_quarter">%1$s · %2$s</string>
+
+</resources>

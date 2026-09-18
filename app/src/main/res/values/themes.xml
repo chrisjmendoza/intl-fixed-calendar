@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Window-level theme only; the Compose theme (IfcTheme) supplies all colours. Material (not
+         AppCompat) because the app is Compose-only and minSdk is 26. -->
+    <style name="Theme.Ifc" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>

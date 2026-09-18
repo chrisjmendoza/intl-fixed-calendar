@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Every user-visible calendar term and every IFC date pattern (docs/calendar-spec.md §7.3, §7.4, §7.5,
+  §7.6; CLAUDE.md rule 9). Patterns are positional so a locale can reorder the fields; they are never
+  assembled by concatenation. The twelve Gregorian-named months and the weekday names are NOT here:
+  they come from java.time's localized names (§7.6).
+-->
+<resources>
+
+    <!-- The 7th IFC month, Latin for "sun". A proper noun, conventionally left untranslated; transliterate
+         for non-Latin scripts. Full form, used in the long date and headers (§7.6). -->
+    <string name="month_sol">Sol</string>
+    <!-- Abbreviated form of Sol, used next to abbreviated Gregorian month names ("Sep", "Sol"). Keep it
+         about three characters. Never a single letter (§7.6). -->
+    <string name="month_sol_short">Sol</string>
+
+    <!-- The intercalary day after June 28 in leap years (Gregorian June 17). Belongs to no month and no
+         week (§2.4). -->
+    <string name="intercalary_leap_day">Leap Day</string>
+    <!-- The intercalary day after December 28, the last day of every year (Gregorian December 31). -->
+    <string name="intercalary_year_day">Year Day</string>
+
+    <!-- The marker that distinguishes an IFC date from a Gregorian one wherever the two could be confused
+         (share text, widgets, notifications). Keep it short; it precedes numeric dates ("IFC 2026-10-08"). -->
+    <string name="ifc_marker">IFC</string>
+
+    <!-- Long date for a regular day, e.g. "September 8, 2026".
+         %1$s = full month name, %2$d = day of month (1–28), %3$d = year. Reorder freely for the locale
+         (e.g. en-GB: "%2$d %1$s %3$d"). -->
+    <string name="date_long_regular">%1$s %2$d, %3$d</string>
+    <!-- Long date for an intercalary day, e.g. "Leap Day, 2024" or "Year Day, 2026".
+         %1$s = intercalary_leap_day or intercalary_year_day, %2$d = year. -->
+    <string name="date_long_intercalary">%1$s, %2$d</string>
+    <!-- Medium date for a regular day, e.g. "Sep 8, 2026" or "Sol 8, 2026".
+         %1$s = abbreviated month name, %2$d = day of month (1–28), %3$d = year. -->
+    <string name="date_medium_regular">%1$s %2$d, %3$d</string>
+    <!-- Medium date for an intercalary day, e.g. "Leap Day 2024" or "Year Day 2026".
+         %1$s = intercalary_leap_day or intercalary_year_day, %2$d = year. -->
+    <string name="date_medium_intercalary">%1$s %2$d</string>
+
+    <!-- The weekday the IFC assigns to a date, labelled so it can never be mistaken for the real one
+         (§4.1). %1$s = localized weekday name, e.g. "IFC weekday: Sunday". -->
+    <string name="weekday_nominal_labelled">IFC weekday: %1$s</string>
+    <!-- Shown in place of the IFC weekday for Leap Day and Year Day, which belong to no week (§4.1 item 5).
+         Never blank, never "Sunday". -->
+    <string name="weekday_nominal_none">no IFC weekday</string>
+    <!-- The real-world weekday of a date, labelled (§4.1). %1$s = localized weekday name,
+         e.g. "Actual weekday: Thursday". -->
+    <string name="weekday_actual_labelled">Actual weekday: %1$s</string>
+    <!-- Spoken (accessibility) form of both weekdays for a regular day (§4.1 item 7).
+         %1$s = IFC weekday name, %2$s = actual weekday name, e.g. "IFC Sunday, actual Thursday". -->
+    <string name="weekdays_description">IFC %1$s, actual %2$s</string>
+    <!-- Spoken (accessibility) form of both weekdays for an intercalary day.
+         %1$s = actual weekday name, e.g. "no IFC weekday, actual Thursday". -->
+    <string name="weekdays_description_intercalary">no IFC weekday, actual %1$s</string>
+
+    <!-- Day of year and IFC week for a regular day (§7.4). %1$d = day of year (1–366),
+         %2$d = IFC week (1–52), %3$d = weeks in the year (always 52). -->
+    <string name="day_and_week">Day %1$d · Week %2$d of %3$d</string>
+    <!-- Day of year for an intercalary day, which has no week number (§7.4). %1$d = day of year. -->
+    <string name="day_outside_weeks">Day %1$d · outside the weeks</string>
+    <!-- The 13-week quarter (§7.5). %1$d = quarter number 1–4. -->
+    <string name="quarter">Q%1$d</string>
+
+    <!-- How much of the year has elapsed, day of year over the year's length. %1$d = whole percent (0–100);
+         "%%" is a literal percent sign. -->
+    <string name="year_progress">%1$d%% of the year</string>
+
+    <!-- Countdown to a later date (FEATURES T4). %1$d = number of days (never 0),
+         %2$s = the target day's name, e.g. "105 days until Year Day", "1 day until Leap Day". -->
+    <plurals name="days_until">
+        <item quantity="one">%1$d day until %2$s</item>
+        <item quantity="other">%1$d days until %2$s</item>
+    </plurals>
+
+</resources>

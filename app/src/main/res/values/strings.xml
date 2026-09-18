@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The brand (ROADMAP.md decision #1, 2026-09-18). The IFC descriptor lives in the store listing. -->
+    <string name="app_name">Yearal</string>
+
+    <!-- Top-level tabs (docs/ARCHITECTURE.md §4) -->
+    <string name="tab_today">Today</string>
+    <string name="tab_calendar">Calendar</string>
+    <string name="tab_events">Events</string>
+    <string name="tab_convert">Convert</string>
+    <string name="tab_more">More</string>
+</resources>

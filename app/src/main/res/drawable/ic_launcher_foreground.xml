@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Launcher foreground: the 4 x 7 IFC month grid with the intercalary band beneath it. Placeholder
+     until ROADMAP.md open decision #10 (brand colour and icon). -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M27,36 h6 v6 h-6 z M35,36 h6 v6 h-6 z M43,36 h6 v6 h-6 z M51,36 h6 v6 h-6 z M59,36 h6 v6 h-6 z M67,36 h6 v6 h-6 z M75,36 h6 v6 h-6 z M27,44 h6 v6 h-6 z M35,44 h6 v6 h-6 z M43,44 h6 v6 h-6 z M51,44 h6 v6 h-6 z M59,44 h6 v6 h-6 z M67,44 h6 v6 h-6 z M75,44 h6 v6 h-6 z M27,52 h6 v6 h-6 z M35,52 h6 v6 h-6 z M43,52 h6 v6 h-6 z M51,52 h6 v6 h-6 z M59,52 h6 v6 h-6 z M67,52 h6 v6 h-6 z M75,52 h6 v6 h-6 z M27,60 h6 v6 h-6 z M35,60 h6 v6 h-6 z M43,60 h6 v6 h-6 z M51,60 h6 v6 h-6 z M59,60 h6 v6 h-6 z M67,60 h6 v6 h-6 z M75,60 h6 v6 h-6 z" />
+    <path
+        android:fillColor="#FFB2DFDB"
+        android:pathData="M27,68 h54 v4 h-54 z" />
+</vector>
