@@ -261,6 +261,6 @@ blocks M0 or M1.
 | 7 | **Monday-first option.** | No — it breaks the "13th is always Friday" identity. | M2 |
 | 8 | **Holiday scope for 1.0.** | IFC observances + US pack (federal + common observances). Lunisolar tables are a stretch goal; other countries are post-1.0 data-only changes. | M6 |
 | 9 | **Android Studio update to Quail 4.** | Yes, before M0 — allows AGP 9.4 from day one and avoids an early bump. | M0 |
-| 10 | **Brand colour and icon.** Dynamic colour covers API 31+; older devices and the launcher icon need a seed colour and a design. | Pick a seed colour at M2; commission or design the icon before M8. | M2 / M8 |
+| 10 | **Brand colour and icon.** ✅ **Icon decided 2026-09-18** — the "perfect month" glyph, teal `#123F3D` / cream `#F4ECDA` / accent `#F28C28` ([docs/brand/](brand/README.md)); adaptive + themed layers ship in `:app`. | Still open: seed the Compose fallback palette (below API 31) from `#123F3D` in `IfcTheme` — a small M2 T1 follow-up. | M2 |
 | 11 | **Monetisation.** | Free, no ads, no billing in 1.0. Optional tip jar later (note: Play Billing would complicate F-Droid). | After 1.0 |
 | 12 | **Distribution beyond Play.** | Play only at 1.0; F-Droid afterwards (it builds from source with its own key). No APKs on GitHub Releases. | After 1.0 |

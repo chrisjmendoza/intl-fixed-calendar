@@ -60,3 +60,5 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - The app is named **Yearal** (ROADMAP decision #1); applicationId and package base
   `io.github.chrisjmendoza.yearal` (decision #2). Name availability research is in
   [docs/competitive-analysis.md](docs/competitive-analysis.md) §8.
+- Launcher icon: the "perfect month" glyph (28-day grid with Year Day beneath) as vector adaptive-icon
+  layers with a themed (monochrome) variant; sources and the Play-listing PNG in [docs/brand/](docs/brand/README.md).

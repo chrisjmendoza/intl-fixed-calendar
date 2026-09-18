@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- Brand palette from the launcher icon (ROADMAP.md decision #10). The Compose theme's fallback
+     scheme (below API 31) will be seeded from brand_teal; until then these are icon-only. -->
 <resources>
-    <color name="ic_launcher_background">#00695C</color>
+    <color name="brand_teal">#123F3D</color>
+    <color name="brand_cream">#F4ECDA</color>
+    <color name="brand_accent">#F28C28</color>
+    <color name="brand_ink">#244338</color>
+    <color name="ic_launcher_background">@color/brand_teal</color>
 </resources>
