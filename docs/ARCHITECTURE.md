@@ -505,7 +505,7 @@ Robolectric native-graphics output differs between Windows and Linux, so CI (Lin
 ## 7. CI/CD (GitHub Actions)
 
 - **`ci.yml`**
-  - Triggers: pushes to `main` (and Dependabot's pull requests).
+  - Triggers: pushes to `main`, and pull requests (cloud agents and Dependabot; see WORKFLOW.md §1).
   - Setup: ubuntu-latest, `actions/setup-java` (temurin 21), and `gradle/actions/setup-gradle` with caching.
   - Steps: `./gradlew spotlessCheck lint test verifyRoborazziDebug :app:assembleDebug`.
   - Artifacts: upload test, lint and Roborazzi diff reports.

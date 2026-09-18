@@ -14,7 +14,19 @@ goes, and the docs stay true. These rules bind every contributor — human or LL
 5. **Run the gate** (§2) locally and read the output.
 6. **Self-review** against the Definition of Done (§3), then write the completion report (§6).
 
-**No pull requests.** This is a two-person project (the owner and an AI agent), so work is committed straight to `main` in small, signed commits — one task, one owning module per commit series. The gate is run **before every push**, so `main` is always green; CI on `main` is the backstop, and a red CI run is fixed before anything else. Parallel agents still work in separate git worktrees and their work is fast-forwarded onto `main` once the gate passes. The only pull requests in this repo are Dependabot's.
+**Where commits go depends on who made them.**
+
+- **Local work** (the owner, or an agent running on the owner's machine with the owner present): commit
+  straight to `main` in small, signed commits — no branches, no pull requests. This is a two-person
+  project and a PR would be an extra step. The gate is run **before every push**, so `main` is always
+  green; CI on `main` is the backstop, and a red CI run is fixed before anything else. Parallel local
+  agents still use separate git worktrees, fast-forwarded onto `main` once the gate passes.
+- **Cloud work** (scheduled routines and any agent the owner cannot watch): work on a branch named
+  `cloud/<task>` and **open a pull request** so the owner can review it before it reaches `main`. Never
+  push to `main` from the cloud. The PR description is the completion report (§6). The reviewer runs the
+  gate locally, checks the tests against the spec independently (the cloud agent wrote both), and merges
+  by fast-forward or squash.
+- Dependabot's PRs are handled like cloud PRs.
 
 ## 2. The gate
 

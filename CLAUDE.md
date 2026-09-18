@@ -89,9 +89,11 @@ This project is on newer library lines than most training data:
 
 ## Working conventions
 
-- **No pull requests** — commit straight to `main` in small signed commits, and run the gate before every
-  push. One task = one module owner. Parallel agents never share a module; use a git
-  worktree each. Commits are GPG-signed; never bypass signing.
+- **Local work: no branches, no pull requests** — commit straight to `main` in small signed commits, and
+  run the gate before every push. **Cloud work (scheduled routines): branch `cloud/<task>` and open a
+  PR** for the owner's review; never push to `main` from the cloud. One task = one module owner.
+  Parallel agents never share a module; use a git worktree each. Local commits are GPG-signed; never
+  bypass signing.
 - Contract-first: interfaces and fakes (`:core:testing`) land before implementations, and frozen
   contracts are documented in `docs/contracts/`.
 - Tests use hand-written fakes, not a mocking library. Inject a fake `Clock`; include a
