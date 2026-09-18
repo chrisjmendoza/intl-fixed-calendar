@@ -39,10 +39,13 @@ Updated in the push that finishes each item ([WORKFLOW.md](WORKFLOW.md) §4.2).
 | M1 | T7 `Clock`/`ZoneProvider`/`DateTicker` interfaces plus fakes (`:core:domain`, `:core:testing`) | ✅ done |
 | M1 | T8 holiday rule engine (`:core:domain`) | ✅ done ([adr/0003-holiday-rule-model.md](adr/0003-holiday-rule-model.md)); reviewed independently with published-table oracles (Easter 1900–2100, OPM 2020–2030) |
 | M1 | T9 holiday JSON packs and loader (`:core:holidays`: IFC, US, Easter family) | ✅ done ([adr/0004-holiday-pack-format.md](adr/0004-holiday-pack-format.md)); lunisolar `calendar` rules are H4 |
-| M2 | T1 `:core:designsystem` theme | 🟡 partial: `IfcTheme` (dynamic colour, baseline fallback); typography and the brand seed wait on open decision #10 |
+| M2 | T1 `:core:designsystem` theme | ✅ done: `IfcTheme` with dynamic colour (API 31+, user-switchable) and the brand palette (teal / cream / amber) as the fallback |
+| M2 | T3 `:core:data`: settings (`UserSettings` in a typed DataStore + `SettingsRepository`) | ✅ done |
+| M2 | T4 `MonthGrid`, `DayCell`, `IntercalaryBand`, dual headers, previews | ✅ done; goldens are recorded by T10 |
 | M2 | T2 `:core:navigation` keys, `Navigator`, tab back stacks in `:app` | ✅ done |
 | M2 | T5 `IfcDateFormatter` and string resources | ✅ done |
 | M2 | T6 Today | 🟡 partial: hero date, both weekdays, day/week/quarter, year progress, countdown; agenda and next-holiday follow M4/M6 |
+| M2 | T9 `:feature:settings` (weekday display, theme, dynamic colour, holiday packs) and the More hub | ✅ done |
 
 Owner setup still open: set `JAVA_HOME` / `ANDROID_HOME` at user level (ARCHITECTURE.md → Development
 environment) and ideally update Android Studio to Quail 4. Turning on 2FA/passkeys for the GitHub
@@ -256,11 +259,11 @@ blocks M0 or M1.
 | 2 | **applicationId.** ✅ **Decided 2026-09-18: `io.github.chrisjmendoza.yearal`** (also the code package base). | Permanent once uploaded; if the owner would rather ship under `app.yearal`, change it in `app/build.gradle.kts` before the first upload — never after. | M2 (first Play upload) |
 | 3 | **License.** The repo is public with no license yet, which means all rights reserved. | MIT or Apache-2.0 if reuse is welcome; GPL-3.0 if Play-store clones are a worry. Deliberately left unset until decided. | Before accepting outside contributions |
 | 4 | **Play developer account type.** Personal accounts created after 2023-11-13 must run a closed test with ≥12 testers for 14 continuous days before production. | Check now; if it applies, start recruiting testers at M5. | M5 |
-| 5 | **Weekday display default.** | `BOTH` (nominal headers + actual weekdays beneath). Validate with internal testers. | M2 |
+| 5 | **Weekday display default.** ✅ Shipped as `BOTH` (nominal headers + actual weekdays beneath), user-switchable in Settings. | Validate with internal testers. | M2 |
 | 6 | **Intercalary day labelling.** | Named days ("Leap Day", "Year Day") everywhere; `06-29` / `13-29` only in the numeric form. | M2 |
 | 7 | **Monday-first option.** | No — it breaks the "13th is always Friday" identity. | M2 |
 | 8 | **Holiday scope for 1.0.** | IFC observances + US pack (federal + common observances). Lunisolar tables are a stretch goal; other countries are post-1.0 data-only changes. | M6 |
 | 9 | **Android Studio update to Quail 4.** | Yes, before M0 — allows AGP 9.4 from day one and avoids an early bump. | M0 |
-| 10 | **Brand colour and icon.** ✅ **Icon decided 2026-09-18** — the "perfect month" glyph, teal `#123F3D` / cream `#F4ECDA` / accent `#F28C28` ([docs/brand/](brand/README.md)); adaptive + themed layers ship in `:app`. | Still open: seed the Compose fallback palette (below API 31) from `#123F3D` in `IfcTheme` — a small M2 T1 follow-up. | M2 |
+| 10 | **Brand colour and icon.** ✅ **Closed 2026-09-18** — the "perfect month" glyph, teal `#123F3D` / cream `#F4ECDA` / accent `#F28C28` ([docs/brand/](brand/README.md)); adaptive + themed layers ship in `:app`. | Done: the Compose fallback palette is seeded from the icon (`core/designsystem/.../theme/Color.kt`). | M2 |
 | 11 | **Monetisation.** | Free, no ads, no billing in 1.0. Optional tip jar later (note: Play Billing would complicate F-Droid). | After 1.0 |
 | 12 | **Distribution beyond Play.** | Play only at 1.0; F-Droid afterwards (it builds from source with its own key). No APKs on GitHub Releases. | After 1.0 |

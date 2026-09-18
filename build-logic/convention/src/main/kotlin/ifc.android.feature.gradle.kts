@@ -1,7 +1,7 @@
 // Convention for :feature:* modules: an Android library with Compose and Hilt, the standard core
 // dependencies, and the module-boundary check from docs/ARCHITECTURE.md §2 "Dependency direction":
-// a feature may depend on :core:domain, :core:designsystem, :core:navigation, :core:calendar and
-// :core:testing, never on :core:data or on another feature (CLAUDE.md rule 10).
+// a feature may depend on :core:domain, :core:designsystem, :core:navigation, :core:calendar,
+// :core:holidays and :core:testing, never on :core:data or on another feature (CLAUDE.md rule 10).
 
 plugins {
     id("ifc.android.library")

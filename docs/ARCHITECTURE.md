@@ -207,14 +207,15 @@ D:\Dev\intl-fixed-calendar
 │   │                            repository interfaces, use cases (ObserveAgenda), Clock/Zone/DateTicker, WidgetUpdater +
 │   │                            ReminderScheduler interfaces. Depends on :core:calendar, coroutines-core, lib-recur
 │   ├─ holidays      [JVM]       Bundled holiday-set JSON packs (schema 1, ADR 0004) + strict loader (HolidayPackLoader). Depends on :core:domain
-│   ├─ data          [Android]   Room3 DB/DAOs/mappers, DataStore, repository impls, ICS import/export, Hilt modules
+│   ├─ data          [Android]   DataStore UserSettings + SettingsRepository (done); Room3 DB/DAOs/mappers, ICS import/export, Hilt modules
 │   ├─ devicecalendar[Android]   CalendarContract read-only overlay (M7), isolated because it owns a permission
 │   ├─ scheduling    [Android]   AlarmManager day-rollover + reminder scheduling, receivers, notifications
 │   ├─ navigation    [Android-light] all @Serializable NavKeys + Navigator interface (so features never depend on each other)
-│   ├─ designsystem  [Android]   Theme, dynamic color, MonthGrid, DayCell, IntercalaryBand, DualDateText, IfcDateFormatter (resources)
+│   ├─ designsystem  [Android]   Theme + brand palette, MonthGrid, DayCell, IntercalaryBand, WeekdayHeaders, IfcDateFormatter (resources). Depends on :core:domain (api, for WeekdayDisplay)
 │   └─ testing       [JVM+Android split if needed] fakes, fixtures, golden vectors, MainDispatcherRule
 ├─ feature/
 │   ├─ calendar                  Today (done), Month, Year, Day detail
+│   ├─ settings                  Settings + More hub (done); Learn/About
 │   ├─ converter
 │   ├─ events                    list + editor
 │   ├─ holidays
@@ -225,7 +226,7 @@ D:\Dev\intl-fixed-calendar
 
 ### Dependency direction
 
-Dependencies are strictly one-way: `feature:*` and `widget` depend on `core:designsystem`, `core:navigation` and `core:domain`, and `core:domain` depends on `core:calendar`.
+Dependencies are strictly one-way: `feature:*` and `widget` depend on `core:designsystem`, `core:navigation`, `core:domain` and the pure-JVM `core:holidays`; `core:designsystem` depends on `core:domain`; `core:domain` depends on `core:calendar`.
 
 - Features depend on `:core:domain` interfaces and never on `:core:data`.
 - Only `:app` depends on `:core:data`, `:core:scheduling`, `:core:devicecalendar` and `:widget`. It needs them to put the Hilt bindings on the classpath.
@@ -356,7 +357,7 @@ Holidays are computed, never stored.
   [adr/0004-holiday-pack-format.md](adr/0004-holiday-pack-format.md).
 - Evaluation per year takes microseconds and is memoised.
 - Enabled set IDs live in DataStore.
-- Version 1 ships the "IFC observances" set (Year Day, Leap Day, Sol 1) and the US pack (federal holidays plus common observances). Lunisolar tables are a 1.0 stretch goal that can slip to 1.1 without affecting the engine. More sets are data-only PRs.
+- The IFC observances set and the US pack are enabled by default; any set, the IFC one included, may be switched off in Settings (`UserSettings.enabledHolidaySets`). Version 1 ships the "IFC observances" set (Year Day, Leap Day, Sol 1) and the US pack (federal holidays plus common observances). Lunisolar tables are a 1.0 stretch goal that can slip to 1.1 without affecting the engine. More sets are data-only PRs.
 - Device calendars (M7) are a read-only overlay through `CalendarContract.Instances`, queried on the same Gregorian range. The feature is opt-in and the `READ_CALENDAR` prompt appears in context.
 
 ### 3.4 Month-grid query
@@ -403,6 +404,7 @@ Use plain unidirectional data flow with no MVI framework.
   - It is one full-width pill spanning all seven columns.
   - It shows a label ("Leap Day" or "Year Day"), the Gregorian date and the real weekday.
   - It uses the tertiary-container color plus an icon, and it is tappable like any other day.
+  - The slot height is measured from real text (`intercalarySlotHeight()`), because non-linear font scaling breaks any "line height × N" estimate; months without a band show the month's Gregorian span in the placeholder.
 - Spanning every column makes "belongs to no week" visible. No weekday header aligns with it.
 - The same component serves the Year view as a thin bar, and the widget.
 - A `WeekdayDisplay { NOMINAL, ACTUAL, BOTH }` setting drives the headers. `BOTH` is the default: nominal IFC weekdays with the actual weekdays in a second header row.
@@ -417,7 +419,7 @@ Use plain unidirectional data flow with no MVI framework.
 ### Accessibility
 
 - Cells are at least 48dp. Seven columns at 360dp gives 51dp.
-- Each cell has a merged description, for example "Sol 13, IFC Friday. Gregorian Tuesday, June 30, 2026. 2 events. Holiday: …".
+- Each cell has a merged description, for example "Sol 13, IFC Friday. Gregorian Tuesday, June 30, 2026. 2 events. Holiday: …", with "Today." appended on the current date.
 - Use `selected` and `Role.Button` semantics, a heading on the month title, and traversal groups on the grid.
 - Today, holidays and intercalary days are never encoded by color alone. Each also has a shape or icon.
 - Screenshot tests run at font scale 2.0. Respect the reduced-motion setting.
@@ -500,7 +502,7 @@ Never update a widget per minute. The widgets show dates, not clocks.
 | | DataStore serializer round trip and corruption fallback. | |
 | | ICS parser fixtures. | |
 | ViewModels | Fakes from `:core:testing`, a fake `Clock` and `DateTicker`, Turbine, and `runTest`. Include a test that advances the clock across midnight. | JUnit4 |
-| Compose UI | Stateless `XScreen` tests under Robolectric. Cover semantics (content descriptions, selection) and the intercalary band in June 2028 and in December. Library modules pin `sdk=36` in `src/test/resources/robolectric.properties`: without a `targetSdk` in the test manifest Robolectric picks its newest SDK, where the Compose test rule's input injection breaks. | JUnit4 plus Robolectric 4.17 |
+| Compose UI | Stateless `XScreen` tests under Robolectric (`@GraphicsMode(NATIVE)` for any test that depends on text metrics — legacy mode fakes every Text at one height). Cover semantics (content descriptions, selection) and the intercalary band in June 2028 and in December. Library modules pin `sdk=36` in `src/test/resources/robolectric.properties`: without a `targetSdk` in the test manifest Robolectric picks its newest SDK, where the Compose test rule's input injection breaks. | JUnit4 plus Robolectric 4.17 |
 | Screenshots | Roborazzi. The preview scanner auto-captures every `@Preview` in `:core:designsystem` and the features. | `verifyRoborazziDebug` |
 | | Explicit matrices for MonthGrid: {normal, June-leap, December} x {light, dark} x {font 1.0, 2.0} x {compact, expanded} x {LTR, RTL}. | |
 | | Glance widgets through glance-appwidget-testing or previews. | |
@@ -557,7 +559,7 @@ gate on JVM modules) and `:app:assembleDebug`; `verifyRoborazziDebug` joins once
 
 [security-and-privacy.md](security-and-privacy.md) holds the threat model and the full decision table. The points that shape the code:
 
-- **Data at rest:** app-private storage only, relying on the app sandbox and file-based encryption. **No SQLCipher** — it only helps against root/forensic attackers (out of scope), and an auth-gated key would break widgets, reminders and workers. Caches go in `cacheDir` / `noBackupFilesDir`. Device-calendar data is read live and never copied into Room.
+- **Data at rest:** app-private storage only (settings are plain JSON at `filesDir/datastore/user_settings.json`, inside the backup include set), relying on the app sandbox and file-based encryption. **No SQLCipher** — it only helps against root/forensic attackers (out of scope), and an auth-gated key would break widgets, reminders and workers. Caches go in `cacheDir` / `noBackupFilesDir`. Device-calendar data is read live and never copied into Room.
 - **No network:** no `INTERNET` permission until URL subscriptions (1.3). This is a verifiable privacy claim and means a compromised dependency cannot exfiltrate anything. No analytics, ads, crash SDK, Firebase or Play Services; Play Console vitals only.
 - **Logging:** no event content in release logs, ever. A "Delete all data" action ships in 1.0.
 - **Notifications:** reminders use `VISIBILITY_PRIVATE` with a redacted public version. No full-screen intents.

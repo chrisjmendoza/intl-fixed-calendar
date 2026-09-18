@@ -204,7 +204,7 @@ Suggested file split: `US.json` (civil), `religious-christian.json`, `religious-
 | Lunar New Year | `calendar` chinese | month 1 day 1 |
 | Diwali, Holi | `table` | curated, approximate |
 
-**IFC set** (always on, the app's signature): Year Day, Leap Day, Sol 1, optionally "IFC month begins" markers and Friday the 13th jokes (every IFC month has one). See section 5.
+**IFC set** (enabled by default and switchable like any other set; the app's signature): Year Day, Leap Day, Sol 1, optionally "IFC month begins" markers and Friday the 13th jokes (every IFC month has one). See section 5.
 
 Deferred: solstices/equinoxes (need an astronomical routine or a `table`), state holidays (`subdivisions`), Tax Day policy.
 

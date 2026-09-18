@@ -5,7 +5,8 @@ the month Sol, plus Year Day and Leap Day. Solo developer working with AI agents
 
 **Status:** M0 and M1 done, M2 in progress. Pure-JVM: `:core:calendar`, `:core:domain` (clock/ticker,
 holiday engine), `:core:holidays` (JSON packs), `:core:testing`. Android: `:app` (Hilt, 5-tab Nav3 shell),
-`:core:designsystem`, `:core:navigation`, `:feature:calendar` (Today). `docs/ROADMAP.md` has the ledger.
+`:core:designsystem` (theme, `MonthGrid`), `:core:navigation`, `:core:data` (settings DataStore), `:feature:calendar` (Today),
+`:feature:settings` (Settings + More hub). `docs/ROADMAP.md` has the ledger.
 Toolchain decisions are frozen in `docs/adr/0001-toolchain.md` — read it before touching build-logic.
 
 ## Workflow — mandatory

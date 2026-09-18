@@ -60,5 +60,18 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - The app is named **Yearal** (ROADMAP decision #1); applicationId and package base
   `io.github.chrisjmendoza.yearal` (decision #2). Name availability research is in
   [docs/competitive-analysis.md](docs/competitive-analysis.md) §8.
+- `:core:data` (M2 T3; FEATURES W1, W2, H5): `UserSettings` persisted as JSON in a typed DataStore
+  (`filesDir/datastore/user_settings.json`, inside the Auto Backup include set) behind `SettingsRepository`,
+  with a forward/backward-compatible serializer and corruption fallback to the defaults.
+- `:feature:settings` (M2 T9): the Settings screen — weekday-header mode (Both / Actual only / IFC only),
+  theme (System / Light / Dark), dynamic colour (Android 12+), one switch per bundled holiday pack — and the
+  More hub with Settings and About rows. The app applies the theme settings live.
+- `MonthGrid`, `DayCell`, `IntercalaryBand`/`IntercalaryPlaceholder` and `WeekdayHeaders` in
+  `:core:designsystem` (M2 T4; FEATURES C1–C4): the perpetual 4 × 7 grid with the IFC number large and the
+  Gregorian day in the corner, nominal/actual/both weekday headers (Sunday first, always), a tappable Leap
+  Day / Year Day band whose slot is reserved in every month, today ring, selection, event dots and holiday
+  markers, merged TalkBack descriptions, and previews for the screenshot matrix.
+- `IfcTheme` (M2 T1): the non-dynamic palette is seeded from the brand icon (teal primary, cream surfaces,
+  amber tertiary container for the intercalary band); dynamic colour is now a user setting.
 - Launcher icon: the "perfect month" glyph (28-day grid with Year Day beneath) as vector adaptive-icon
   layers with a themed (monochrome) variant; sources and the Play-listing PNG in [docs/brand/](docs/brand/README.md).
