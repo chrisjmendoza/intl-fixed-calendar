@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Normal (install-time) permission, needed to receive BOOT_COMPLETED: a reboot drops every alarm.
+         docs/security-and-privacy.md §5.1. The exact-alarm permissions are deliberately NOT declared
+         here; they arrive with reminders in M6 (docs/ARCHITECTURE.md "Reconciled decisions" 11). -->
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <application>
+
+        <!-- Target of the app's own explicit, immutable midnight PendingIntent. No intent filter, not
+             exported: nothing outside the app can reach it (docs/security-and-privacy.md §6.3, §6.4). -->
+        <receiver
+            android:name="io.github.chrisjmendoza.yearal.core.scheduling.DayRolloverAlarmReceiver"
+            android:exported="false" />
+
+        <!-- Layer 2 of docs/ARCHITECTURE.md §5 "Midnight rollover (layered)". A manifest receiver may
+             only listen for these because TIME_SET, TIMEZONE_CHANGED, LOCALE_CHANGED and BOOT_COMPLETED
+             are on the implicit-broadcast exemption list, and MY_PACKAGE_REPLACED is not implicit at
+             all (the system addresses it to this package only). DATE_CHANGED is not exempt and must
+             not be added. Every one of the five is a protected broadcast sent by the system, which
+             reaches non-exported receivers, so exported="false" costs nothing and shuts out every
+             other app. -->
+        <receiver
+            android:name="io.github.chrisjmendoza.yearal.core.scheduling.SystemEventReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.TIME_SET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.LOCALE_CHANGED" />
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+    </application>
+
+</manifest>

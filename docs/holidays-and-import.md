@@ -333,6 +333,13 @@ Recurrence
         interval, until/count)
 ```
 
+> **Superseded in part (2026-09-18).** The storage columns and the rule text below were a sketch. The data
+> model is owned by [ARCHITECTURE.md](ARCHITECTURE.md) §3.2 and frozen in
+> [contracts/Events.md](contracts/Events.md): columns `recurrence_type` / `rrule` / `ifc_rule`, text
+> `IFC;FREQ=…` (`IfcRuleText`), and the Leap Day policy names `SKIP | JUNE_28 | SOL_1` for
+> `OMIT | BACKWARD | FORWARD`. The text is exported as `X-IFC-RRULE` next to the §5.5 fallback `RRULE`. See
+> [adr/0005-events-contract.md](adr/0005-events-contract.md).
+
 Room columns: `recurrence_basis` (`GREG`/`IFC`) + `recurrence_rule` (text). For the IFC rule text, mirror [RFC 7529](https://www.rfc-editor.org/rfc/rfc7529) (the standard for non-Gregorian recurrence: `RSCALE` + `SKIP`) with a private scale, e.g. `RSCALE=X-IFC;FREQ=YEARLY;BYMONTH=7;BYMONTHDAY=1;SKIP=OMIT`. This is internal storage only — never exported verbatim, because no other client knows `X-IFC`. How Year Day / Leap Day are addressed inside the rule (special tokens vs. the common "June 29 / December 29" convention) must follow whatever the calendar-core doc chooses for `IfcDate`.
 
 Expansion is trivial and lives in the core: for each year, build the `IfcDate`, convert to `LocalDate`, apply skip policy. IFC-`MONTHLY` ("the 1st of every IFC month") yields 13 occurrences per year; Year Day and Leap Day belong to no month and are never produced by a monthly rule.

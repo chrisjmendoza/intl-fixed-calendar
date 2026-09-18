@@ -31,6 +31,7 @@ import io.github.chrisjmendoza.yearal.core.navigation.TodayKey
 import io.github.chrisjmendoza.yearal.feature.calendar.day.DayRoute
 import io.github.chrisjmendoza.yearal.feature.calendar.month.MonthRoute
 import io.github.chrisjmendoza.yearal.feature.calendar.today.TodayRoute
+import io.github.chrisjmendoza.yearal.feature.converter.ConverterRoute
 import io.github.chrisjmendoza.yearal.feature.settings.more.MoreRoute
 import io.github.chrisjmendoza.yearal.feature.settings.settings.SettingsRoute
 import io.github.chrisjmendoza.yearal.ui.navigation.rememberTabBackStacks
@@ -81,7 +82,7 @@ fun IfcApp(viewModel: MainViewModel = hiltViewModel()) {
                     entry<MonthKey> { key -> MonthRoute(key = key, navigator = tabs) }
                     entry<DayKey> { key -> DayRoute(key = key, navigator = tabs) }
                     entry<EventListKey> { TabPlaceholder(TopLevelDestination.EVENTS) }
-                    entry<ConverterKey> { TabPlaceholder(TopLevelDestination.CONVERT) }
+                    entry<ConverterKey> { key -> ConverterRoute(key = key, navigator = tabs) }
                     entry<MoreKey> {
                         MoreRoute(
                             navigator = tabs,

@@ -20,6 +20,7 @@ import java.time.Year
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.time.format.DateTimeParseException
+import java.util.Locale
 
 // Verifies spec §3.3 (V1–V6), the §6.5 negative vectors and positive counterparts, §7.3 numeric form, §7.8 now().
 class IfcDateValidationTest {
@@ -279,6 +280,29 @@ class IfcDateValidationTest {
             IfcDate.Regular(1, IfcMonth.JANUARY, 1).toNumericString() shouldBe "0001-01-01"
             IfcDate.Regular(33, IfcMonth.SOL, 9).toPrefixedString() shouldBe "IFC 0033-07-09"
             IfcDate.NUMERIC_PREFIX shouldBe "IFC "
+        }
+    }
+
+    @Test
+    fun `numeric strings use ASCII digits whatever the default locale is - section 7_6`() {
+        // calendar-spec 7.6: "the canonical numeric form always uses ASCII digits". These locales format
+        // %d with their own digits (Arabic-Indic, Devanagari, Persian), which parse() would then reject.
+        val saved = Locale.getDefault()
+        try {
+            listOf("ar-EG", "hi-IN-u-nu-deva", "fa-IR").forEach { tag ->
+                Locale.setDefault(Locale.forLanguageTag(tag))
+                withClue(tag) {
+                    assertSoftly {
+                        IfcDate.Regular(2026, IfcMonth.SEPTEMBER, 8).toNumericString() shouldBe "2026-10-08"
+                        IfcDate.LeapDay(2024).toPrefixedString() shouldBe "IFC 2024-06-29"
+                        IfcDate.YearDay(2026).toNumericString() shouldBe "2026-13-29"
+                        IfcDate.Regular(33, IfcMonth.SOL, 9).toNumericString() shouldBe "0033-07-09"
+                        IfcDate.parse(IfcDate.YearDay(9999).toPrefixedString()) shouldBe IfcDate.YearDay(9999)
+                    }
+                }
+            }
+        } finally {
+            Locale.setDefault(saved)
         }
     }
 

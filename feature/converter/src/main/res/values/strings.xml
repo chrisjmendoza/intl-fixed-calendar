@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strings of the converter (docs/FEATURES.md D1, D2, D4). Calendar terms, date patterns and the date
+     pickers' own strings live in :core:designsystem, not here. -->
+<resources>
+
+    <!-- Title of the converter's app bar. -->
+    <string name="converter_title">Convert</string>
+    <!-- Spoken description of the progress spinner shown until the first date tick arrives. -->
+    <string name="converter_loading">Loading the converter</string>
+    <!-- App-bar button that makes both inputs follow today's date again. Shown only after a date was chosen. -->
+    <string name="converter_today">Today</string>
+
+    <!-- Heading above the two direction options. -->
+    <string name="converter_direction_heading">Direction</string>
+    <!-- Direction option: pick a Gregorian date, get the IFC date. Words, not an arrow, so it reads the
+         same aloud and in right-to-left layouts. -->
+    <string name="converter_direction_gregorian_to_ifc">Gregorian to IFC</string>
+    <!-- Direction option: pick an IFC date, get the Gregorian date. -->
+    <string name="converter_direction_ifc_to_gregorian">IFC to Gregorian</string>
+
+    <!-- Heading above the button that opens the Gregorian date picker. -->
+    <string name="converter_gregorian_input_heading">Gregorian date</string>
+    <!-- Spoken description of that button. %1$s = the current date, e.g. "Thursday, September 17, 2026". -->
+    <string name="converter_gregorian_input_description">Gregorian date, %1$s. Change date</string>
+    <!-- Heading above the IFC date picker. -->
+    <string name="converter_ifc_input_heading">IFC date</string>
+
+    <!-- Heading above the conversion result. -->
+    <string name="converter_result_heading">Result</string>
+    <!-- The IFC side of the result, labelled because it stands next to a Gregorian date (spec §7.3).
+         %1$s = the long IFC date, e.g. "September 8, 2026" or "Year Day, 2026". -->
+    <string name="converter_result_ifc">IFC: %1$s</string>
+    <!-- The Gregorian side of the result. %1$s = the full Gregorian date with its weekday. -->
+    <string name="converter_result_gregorian">Gregorian: %1$s</string>
+    <!-- Shown instead of a result while the active input is not a date in the supported range
+         (spec §7.1). %1$s = first year (1583), %2$s = last year (9999), already formatted: years are
+         names, not quantities, so no plural form is involved. -->
+    <string name="converter_invalid">Enter a date between the years %1$s and %2$s to convert it.</string>
+
+    <!-- The proleptic-calendar note (FEATURES D2; spec §7.1), shown under results up to the year 1923.
+         The three adoption years are the ones the spec gives; do not add others. -->
+    <string name="converter_proleptic_note">Dates before a country adopted the Gregorian calendar are proleptic: the calendar projected backwards. Many countries switched long after 1583 — Britain in 1752, Russia in 1918, Greece in 1923.</string>
+
+    <!-- Button: copy the conversion to the clipboard as text. -->
+    <string name="converter_copy">Copy</string>
+    <!-- Button: share the conversion as text through the system share sheet. -->
+    <string name="converter_share">Share</string>
+    <!-- Button: open the day-detail sheet of the converted day. -->
+    <string name="converter_open_day">Open day</string>
+    <!-- The text that is copied or shared. It must keep the word "IFC" so the date cannot be misread as
+         Gregorian (spec §7.3), and it always includes the Gregorian date (spec §7.9).
+         %1$s = long IFC date, %2$s = numeric IFC date with its "IFC " prefix, %3$s = full Gregorian date.
+         E.g. "IFC September 8, 2026 (IFC 2026-10-08) = Gregorian Thursday, September 17, 2026". -->
+    <string name="converter_share_text">IFC %1$s (%2$s) = Gregorian %3$s</string>
+    <!-- Label of the clipboard entry; shown by clipboard managers, not by this app. -->
+    <string name="converter_clip_label">Converted date</string>
+    <!-- Snackbar after copying, on Android 12 and older (newer versions show their own confirmation). -->
+    <string name="converter_copied">Copied</string>
+    <!-- Snackbar when no app on the device can receive shared text. -->
+    <string name="converter_share_unavailable">No app can share text on this device</string>
+
+</resources>

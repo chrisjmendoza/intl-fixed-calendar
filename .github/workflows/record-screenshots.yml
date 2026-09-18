@@ -1,0 +1,69 @@
+name: Record screenshots
+
+# Manual-only recorder for Roborazzi goldens (ROADMAP M2 T10; docs/ARCHITECTURE.md §6 "Goldens").
+# Robolectric's native-graphics output differs between Windows (local/agent dev machines) and Linux, so
+# CI on ubuntu-latest is the only place goldens are recorded; locally and in agent sessions, use
+# `compareRoborazziDebug`, which never blocks (docs/ARCHITECTURE.md §6, CLAUDE.md).
+#
+# This job does NOT commit the recorded images. Every commit in this repo is GPG-signed
+# (docs/WORKFLOW.md §1 "small signed commits"), and a bot running in
+# Actions cannot hold the owner's signing key, so a bot commit is not an option here. Instead the job
+# uploads the recorded images as a build artifact; the owner downloads it, reviews the diff, and commits
+# the goldens locally with a signed commit (docs/ARCHITECTURE.md §6 records this decision).
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: record-screenshots-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  record:
+    name: Record Roborazzi goldens
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # Actions are pinned by commit SHA (docs/security-and-privacy.md); same pins as ci.yml.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@9c971963bec38e04b3d30dcc455b5382be2fdbfb # v6.3.0
+        with:
+          validate-wrappers: true
+
+      # Runs recordRoborazziDebug in every module that has the task (Gradle's unqualified-task-name
+      # aggregation), the same way `./gradlew check` runs per module. As of 2026-09-18 no module has a
+      # captureRoboImage test yet (M2 T4/T7/T8/T9 shipped without screenshot coverage), so this step
+      # currently records zero images — it lands now so the first screenshot test in a future push has a
+      # working recorder immediately.
+      - name: Record screenshots
+        run: ./gradlew recordRoborazziDebug --console=plain
+
+      # Roborazzi's default output directory is <module>/build/outputs/roborazzi (verified against the
+      # 1.74.0 plugin, the version pinned in gradle/libs.versions.toml); no module configures a different
+      # `roborazzi { outputDir.set(...) }`. That default is under the gitignored build/ directory, so the
+      # first screenshot task must point goldens at a tracked directory (docs/ARCHITECTURE.md §6
+      # "Goldens") and broaden this glob to match.
+      - name: Upload recorded goldens
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: roborazzi-goldens
+          path: "**/build/outputs/roborazzi/**"
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload Roborazzi HTML report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: roborazzi-report
+          path: "**/build/reports/roborazzi/**"
+          if-no-files-found: ignore
+          retention-days: 14

@@ -25,7 +25,9 @@ dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:domain"))
     implementation(project(":core:navigation"))
+    implementation(project(":core:scheduling"))
     implementation(project(":feature:calendar"))
+    implementation(project(":feature:converter"))
     implementation(project(":feature:settings"))
 
     implementation(libs.findLibrary("androidx-core-ktx").get())

@@ -190,6 +190,23 @@ Worth doing because exports are the one copy of the data that leaves every platf
 
 ## 5. Permissions
 
+### Current release allow-list (checked by CI)
+
+The table below is the only machine-readable list in this doc: `scripts/check_manifest_permissions.py`
+reads it (between the HTML comment markers) and fails the build if the merged `:app:assembleDebug`
+manifest contains a `<uses-permission>` that isn't a row here (docs/WORKFLOW.md §4.2, "the permission
+allow-list vs the merged manifest"). It lists exactly what's allowed **today**; §5.1 below is the
+roadmap-wide picture, including permissions decided but not yet declared. Add a row in the same push
+that adds the permission to the manifest. `android.permission.INTERNET` must never appear here before
+1.3 (CLAUDE.md rule 7).
+
+<!-- permission-allowlist:begin -->
+| Permission | Release | Justification |
+|---|---|---|
+| `io.github.chrisjmendoza.yearal.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | 0.1 | Self-scoped custom permission that `androidx.core` injects at merge time (named after `applicationId`, `android:protectionLevel="signature"`); guards this app's own dynamically-registered broadcast receivers on API < 33. Both the `<permission>` definition and the matching `<uses-permission>` are expected in every merged manifest; it grants the app no capability beyond what it already has. |
+| `android.permission.RECEIVE_BOOT_COMPLETED` | 0.1 (added by M5 T2) | Normal, install-time, no prompt. Declared by the `:core:scheduling` library manifest so `SystemEventReceiver` gets `BOOT_COMPLETED` and can re-arm the midnight rollover alarm, which a reboot drops (§5.1, §6.3). |
+<!-- permission-allowlist:end -->
+
 ### 5.1 Permission inventory
 
 | Permission | Decision | Milestone | Type / UX | Notes |
@@ -197,7 +214,7 @@ Worth doing because exports are the one copy of the data that leaves every platf
 | `POST_NOTIFICATIONS` | Request | Ships with reminders (MVP if reminders are MVP) | Runtime (API 33+). Ask **when the user first adds a reminder**, never on first launch. If denied: keep the reminder, show an inline "notifications are off" chip linking to settings. | Below API 33 notifications are on by default. |
 | `USE_EXACT_ALARM` | Declare | Ships with reminders | Normal, install-time, not user-revocable (API 33+). | Play restricts it to apps whose core function needs precise timing; **"a calendar app that shows event notifications" is explicitly allowed**, and a **Play Console declaration is required** ([Play policy](https://support.google.com/googleplay/android-developer/answer/16558241?hl=en)). Do **not** declare it in a release that has no reminders — an unused restricted permission invites rejection. |
 | `SCHEDULE_EXACT_ALARM` with `android:maxSdkVersion="32"` | Declare | Ships with reminders | Special app access on API 31–32 (pre-granted there, user-revocable). | This is the manifest pattern Android recommends for calendar apps ([Android 14 exact-alarm change](https://developer.android.com/about/versions/14/changes/schedule-exact-alarms)). Always call `canScheduleExactAlarms()`; on `false`, fall back to `setWindow`/`setAndAllowWhileIdle` and surface a hint. Handle `ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` by rescheduling ([alarms docs](https://developer.android.com/develop/background-work/services/alarms)). |
-| `RECEIVE_BOOT_COMPLETED` | Declare | Ships with reminders / widgets | Normal. | Reschedule alarms after reboot; also reschedule on `MY_PACKAGE_REPLACED`, `TIME_SET`, `TIMEZONE_CHANGED`. WorkManager merges this in anyway. |
+| `RECEIVE_BOOT_COMPLETED` | **Declared** (M5 T2, in the `:core:scheduling` library manifest) | Ships with reminders / widgets | Normal, install-time; no prompt. | Needed to receive `BOOT_COMPLETED`: a reboot drops every alarm, so the day rollover (and from M6 the reminder alarm) is re-armed then; also on `MY_PACKAGE_REPLACED`, `TIME_SET`, `TIMEZONE_CHANGED`, `LOCALE_CHANGED`, which need no permission. It is the first platform permission in the merged manifest (the only other entry is androidx.core's own signature-level `<applicationId>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`), so the CI allow-list must contain it. WorkManager merges this in anyway. |
 | `READ_CALENDAR` | Request | v1.1 | Runtime, dangerous. **Just-in-time**: only when the user turns on "Show my device calendars". Precede the system dialog with a short rationale screen: what is read, that it is read-only, that it never leaves the device, how to turn it off. Handle denial, "don't ask again" (deep-link to app settings), later revocation, and auto-reset for unused apps — the overlay simply disappears; the rest of the app is unaffected. | Play treats it under the general personal-and-sensitive-data rules (runtime request + clear explanation); there is currently **no calendar-specific declaration form** comparable to SMS/Call Log or the new contacts policy (*inferred from the policy pages; not an explicit statement by Google*). The rationale screen doubles as the "prominent disclosure" should a reviewer want one. |
 | `WRITE_CALENDAR` | **NOT requested** | — | — | The app has its own event store. "Add to my Google calendar" uses an `ACTION_INSERT` intent to the calendar app, which needs no permission. Write access doubles the blast radius of any bug. |
 | `INTERNET` | **NOT requested until URL subscriptions ship** | v1.3 | Normal, install-time, invisible to users. | "No internet permission" is a verifiable privacy claim and neuters a compromised dependency (A5). Treat adding it as a product decision with its own review (§6.2), not a line in a PR. Consider whether subscriptions are worth giving it up at all. |
@@ -283,8 +300,8 @@ Target exported surface (everything else `android:exported="false"`):
 | Glance widget receivers | Yes (required by launchers) | Only ever re-render from our own DB; ignore unexpected extras. A spoofed `APPWIDGET_UPDATE` just causes a refresh. |
 | `.ics` import activity (v1.2) | Yes | `content://` + `text/calendar` only → preview screen → gate + confirm (§6.1). |
 | Widget configuration activity | **No** (*launchers start it via the app-widget service; verify on Pixel + Samsung launchers*) | Behind app lock. Validates the `appWidgetId` belongs to us. |
-| Boot / time-change / package-replaced receiver | **No** (system broadcasts still arrive; *verify in testing*) | Check `intent.action` against the expected set; do nothing else with the intent. |
-| Alarm + notification-action receivers | No | Reached only through our own explicit `PendingIntent`s. |
+| Boot / time-change / package-replaced receiver (`SystemEventReceiver` in `:core:scheduling`, done M5 T2) | **No** — `TIME_SET`, `TIMEZONE_CHANGED`, `LOCALE_CHANGED`, `BOOT_COMPLETED` and `MY_PACKAGE_REPLACED` are protected broadcasts that only the system can send, and the system reaches non-exported receivers (*verify on a device in the M5 T8 test matrix*) | Checks `intent.action` against exactly that set and reads nothing else from the intent; any other action is ignored. The first four are on the implicit-broadcast exemption list and `MY_PACKAGE_REPLACED` is addressed to the package, so a manifest receiver is allowed; `DATE_CHANGED` is not exempt and is not registered. |
+| Alarm + notification-action receivers (`DayRolloverAlarmReceiver`, done M5 T2; reminders M6) | No | Reached only through our own explicit `PendingIntent`s; no intent filter. The rollover `PendingIntent` is `FLAG_IMMUTABLE`, names the receiver class, and carries no extras. The receiver still checks the action. |
 | Providers merged by libraries (androidx.startup, WorkManager) | No | Review the merged manifest once per dependency bump (covered by the CI manifest diff if extended to components). |
 
 Also:
@@ -292,6 +309,10 @@ Also:
 - **No custom-scheme deep links or App Links at MVP** — in-app navigation from widgets/notifications uses explicit intents. If deep links are added later, treat all parameters as untrusted and route through the app-lock gate.
 - Add `android:intentMatchingFlags="enforceIntentFilter"` on the application (API 36+ opt-in).
 - Context-registered receivers use `RECEIVER_NOT_EXPORTED`.
+- **Outgoing text share and clipboard** (converter, done M3 T1; FEATURES D4, T8): a user-initiated `ACTION_SEND` of
+  `text/plain` behind the system chooser and a plain-text clipboard copy of a converted date are allowed. Implicit by
+  design; text only — no URI, file, component, or grant flags; nothing is logged. Event content is never shared this
+  way without its own review.
 - **Android Lint as the enforcement tool:** run lint in CI with the security category as errors (`ExportedReceiver`, `ExportedContentProvider`, `UnspecifiedImmutableFlag`, `MutableImplicitPendingIntent`, `UnsafeIntentLaunch`, `SetJavaScriptEnabled`, `TrustAllX509TrustManager`, …). It understands Android semantics better than generic SAST.
 - Room: parameterised queries only; no `@RawQuery` built by string concatenation; escape user text in any FTS `MATCH` expression.
 

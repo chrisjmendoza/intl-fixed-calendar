@@ -79,3 +79,38 @@ and the project uses [Semantic Versioning](https://semver.org/).
   amber tertiary container for the intercalary band); dynamic colour is now a user setting.
 - Launcher icon: the "perfect month" glyph (28-day grid with Year Day beneath) as vector adaptive-icon
   layers with a themed (monochrome) variant; sources and the Play-listing PNG in [docs/brand/](docs/brand/README.md).
+- Events contract (M4 T1): `Event`, `EventTiming`, `EventCalendar`, `Reminder`, `Recurrence` / `IfcRecurrence`
+  (with the Leap Day common-year policy `JUNE_28 | SKIP | SOL_1`), `Occurrence`, `DayAgenda`; the
+  `EventRepository`, `RecurrenceExpander` and `ObserveAgendaUseCase` interfaces; the canonical IFC rule text
+  (`IfcRuleText`: the `ifc_rule` column and `X-IFC-RRULE`); fakes and fixtures in `:core:testing`. Frozen in
+  [docs/contracts/Events.md](docs/contracts/Events.md); decisions in
+  [docs/adr/0005-events-contract.md](docs/adr/0005-events-contract.md), including a range-query zone-skew
+  padding of two days instead of one.
+- Converter tab (M3 T1; FEATURES D1, D2, D4): convert a date between the Gregorian calendar and the
+  International Fixed Calendar in either direction, for the years 1583–9999. Shows both dates in full, the
+  numeric `IFC YYYY-MM-DD` form, the IFC weekday and the actual weekday on separately labelled lines ("no IFC
+  weekday" on Leap Day and Year Day), the day of the year and week, and a proleptic-calendar note for early
+  years. Copy or share the result as text that always carries the "IFC" marker and the Gregorian date.
+- Reusable date pickers in `:core:designsystem`: `IfcDatePicker` (year, 13 months including Sol, days 1–28,
+  Year Day always and Leap Day only in leap years; a selected Leap Day moves to June 28 with a notice when
+  the year becomes a common year) and `GregorianDatePickerDialog` (Material 3, 1583–9999).
+- Day rollover scheduling (M5 T2, `:core:scheduling`; FEATURES S3 foundation): a once-a-day alarm for the
+  next local midnight (DST-safe, windowed — no exact-alarm permission), re-armed at app start and after
+  clock, time-zone and locale changes, reboot and app update through non-exported manifest receivers.
+  Widgets and reminders plug in through the new `DayRolloverListener` (`:core:domain`). Adds the
+  `RECEIVE_BOOT_COMPLETED` permission (normal, no prompt).
+- CI: a merged-manifest permission allow-list gate (`scripts/check_manifest_permissions.py`) that reads the
+  allow-list from `docs/security-and-privacy.md`, so a dependency cannot silently add a permission such as
+  `INTERNET`; and `record-screenshots.yml`, a manual job that records Roborazzi goldens on Linux and uploads
+  them as an artifact for the owner to commit with a signed commit.
+
+### Changed
+
+- The `IfcDateFormatter` Hilt binding moved from `:feature:calendar` to `:app`, because a second feature
+  injects it and features never depend on each other.
+
+### Fixed
+
+- `IfcDate.toNumericString()` / `toPrefixedString()` took their digits from the default locale, so a device
+  set to Arabic, Persian or Hindi produced a numeric IFC date that `IfcDate.parse` rejects. The canonical
+  form now always uses ASCII digits (`docs/calendar-spec.md` §7.6).

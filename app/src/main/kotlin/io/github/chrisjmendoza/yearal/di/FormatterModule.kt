@@ -1,4 +1,4 @@
-package io.github.chrisjmendoza.yearal.feature.calendar.di
+package io.github.chrisjmendoza.yearal.di
 
 import android.content.Context
 import dagger.Module
@@ -10,7 +10,9 @@ import io.github.chrisjmendoza.yearal.core.designsystem.format.IfcDateFormatter
 import java.util.Locale
 
 /**
- * Makes [IfcDateFormatter] injectable into ViewModels.
+ * Makes [IfcDateFormatter] injectable into ViewModels. Bound in `:app` because more than one feature
+ * injects it (`:feature:calendar`, `:feature:converter`) and features never depend on each other
+ * (CLAUDE.md rule 10).
  *
  * The locale is read once per provision, i.e. when the ViewModel that takes the formatter is created.
  * This app declares no `configChanges`, so a locale change recreates every activity, and a fresh

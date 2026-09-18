@@ -1,6 +1,6 @@
 # Roadmap
 
-Status: **current as of M0 complete, M1 complete, M2 in progress** (2026-09-17). Milestones sequence the work described in
+Status: **current as of M0 and M1 complete; M2, M3, M4 and M5 in progress** (2026-09-18). Milestones sequence the work described in
 [FEATURES.md](FEATURES.md) using the structure in [ARCHITECTURE.md](ARCHITECTURE.md).
 
 ## Release map
@@ -24,10 +24,10 @@ Updated in the push that finishes each item ([WORKFLOW.md](WORKFLOW.md) §4.2).
 | M0 | T1 owner setup: `JAVA_HOME`, 2FA, repo security settings | ⬜ owner (SDK Platform 37 was installed by AGP during T3; cmdline-tools are not needed by the build) |
 | M0 | T2 `settings.gradle.kts`, version catalog, `build-logic` — all convention plugins | ✅ done: `ifc.jvm.library`, `ifc.android.library`, `ifc.android.compose`, `ifc.hilt`, `ifc.android.application`, `ifc.android.feature`, plus `ifc.kotlin.serialization` and `ifc.room` |
 | M0 | T3 toolchain spike + ADR 0001 | ✅ done ([adr/0001-toolchain.md](adr/0001-toolchain.md)); the Kotlin 2.4 bump is a follow-up task |
-| M0 | T4 module stubs plus the dependency rule check | 🟡 partial: `:app`, `:core:designsystem`, `:core:navigation`, `:feature:calendar` exist; the rule check is in `ifc.android.feature`; remaining modules are created by the task that first needs them |
+| M0 | T4 module stubs plus the dependency rule check | 🟡 partial: `:app`, `:core:designsystem`, `:core:navigation`, `:core:scheduling`, `:feature:calendar`, `:feature:converter` exist; the rule check is in `ifc.android.feature`; remaining modules are created by the task that first needs them |
 | M0 | T5 `:app` shell (Hilt application, MainActivity, edge-to-edge, Nav3 with 5 tabs) | ✅ done: per-tab back stacks, `NavigationSuiteScaffold`, debug APK builds |
 | M0 | T6 Spotless/ktlint, `.editorconfig`, Android Lint config | ✅ done (lint `warningsAsErrors`, version-nag checks off) |
-| M0 | T7 `ci.yml` (SHA-pinned, read-only token, wrapper validation), Dependabot | 🟡 partial: builds and uploads the debug APK; manifest permission allow-list check still to come |
+| M0 | T7 `ci.yml` (SHA-pinned, read-only token, wrapper validation), Dependabot | ✅ done: builds and uploads the debug APK; `scripts/check_manifest_permissions.py` checks the merged debug manifest against the allow-list table in [security-and-privacy.md](security-and-privacy.md) §5 |
 | M0 | T8 `CLAUDE.md`, workflow rules, ADR template, CHANGELOG | ✅ done; `SECURITY.md` and LICENSE pending owner decisions |
 | M1 | T1 `IfcMonth`, `IfcDate`, conversion | ✅ done |
 | M1 | T2 independent definitional oracle (years 1–9999) | ✅ done |
@@ -48,6 +48,11 @@ Updated in the push that finishes each item ([WORKFLOW.md](WORKFLOW.md) §4.2).
 | M2 | T7 Month pager (`:feature:calendar`) | ✅ done: swipeable 1583–9999, holiday marks from the enabled packs, Today action; title→Year zoom is M3 T2 |
 | M2 | T8 Day detail | ✅ done as a compact bottom sheet (both dates, both weekdays, day/week/quarter, holidays); the expanded-width pane is M3 T4, "Add event"/"Open in converter" arrive with M4/M3 |
 | M2 | T9 `:feature:settings` (weekday display, theme, dynamic colour, holiday packs) and the More hub | ✅ done |
+| M2 | T10 `record-screenshots.yml` plus the first goldens | 🟡 partial: the workflow exists (`workflow_dispatch`, records on `ubuntu-latest`, uploads the goldens as an artifact for a signed local commit — never a bot commit). No screenshot test exists yet, so there are no goldens and no `verifyRoborazziDebug` gate; the first screenshot task also points `roborazzi.outputDir` at a tracked directory ([ARCHITECTURE.md](ARCHITECTURE.md) §6 "Goldens") |
+| M2 | T13 visual polish pass on Today, Month and Day detail | ⬜ after the foundation (owner, 2026-09-18: the first Month screen works but needs a design pass — for one, the grid floats mid-screen with dead space above it). Deliberately sequenced after events, converter and widgets |
+| M3 | T1 `:feature:converter` (D1, D2, D4) | ✅ done: two-way converter with a direction switch; Material date picker and the reusable `IfcDatePicker` in `:core:designsystem` (1583–9999, Year Day always, Leap Day only in leap years, clamps to June 28); proleptic note up to 1923; copy / share with the IFC marker; round-trips on property-generated dates in the ViewModel and through the screen. "Open in converter" from Day detail is T5 |
+| M4 | T1 Events contract: domain models, `EventRepository` / `RecurrenceExpander` / `ObserveAgendaUseCase` interfaces, IFC rule text, fakes | ✅ done: frozen in [contracts/Events.md](contracts/Events.md) ([adr/0005-events-contract.md](adr/0005-events-contract.md)); the expander implementation is T3. T2–T5 are unblocked and parallel |
+| M5 | T2 `:core:scheduling`: `DayRolloverScheduler`, alarm + system-event receivers, `DayRolloverListener` hook | ✅ done: one windowed (10 min) `RTC_WAKEUP` alarm at next local midnight + 1 s, re-armed at process start and by non-exported manifest receivers (TIME_SET, TIMEZONE_CHANGED, LOCALE_CHANGED, BOOT_COMPLETED, MY_PACKAGE_REPLACED); listeners are a Hilt `Set<DayRolloverListener>` (empty until M5 T1 / M6 T1); adds `RECEIVE_BOOT_COMPLETED`; the exact-alarm branch lands with the permission in M6 T3 |
 
 Owner setup still open: set `JAVA_HOME` / `ANDROID_HOME` at user level (ARCHITECTURE.md → Development
 environment) and ideally update Android Studio to Quail 4. Turning on 2FA/passkeys for the GitHub
@@ -122,6 +127,7 @@ and Google Play accounts is the one security task that should happen now.
   - T8: Day detail sheet.
 - **[C'] (parallel):** T9 `:feature:settings` (weekday display, theme), and T10 `record-screenshots.yml` plus the first goldens.
 - **T11:** `release.yml` (builds the tag, no signing key in CI), the offline upload key, Play App Signing and the Play Console app. Needs the app-name and applicationId decisions.
+- **T13:** visual polish pass on Today, Month and Day detail, after the foundation milestones (owner request, 2026-09-18).
 - **T12:** privacy policy on GitHub Pages, in-app Privacy screen, and the Data safety form. Play requires these before any track, including internal and closed testing.
 
 **Exit:**
@@ -198,7 +204,7 @@ Work contract-first. **T1 is serial:** the domain models, `EventRepository` and 
 - **[A]:**
   - T1: `ReminderScheduler` (next-alarm pattern), notification channel, in-context `POST_NOTIFICATIONS` request, and re-arm hooks.
   - T2 `:feature:holidays`: browse sets, toggle sets, a per-year list with both dates, and holidays merged into the agenda and the grid.
-  - T3: declare `USE_EXACT_ALARM` (plus `SCHEDULE_EXACT_ALARM` up to SDK 32) and write the Play Console exact-alarm declaration. Reminder notifications use `VISIBILITY_PRIVATE` with a redacted public version; no full-screen intents.
+  - T3: declare `USE_EXACT_ALARM` (plus `SCHEDULE_EXACT_ALARM` up to SDK 32) and write the Play Console exact-alarm declaration. In the same change, add the `canScheduleExactAlarms()` → `setExactAndAllowWhileIdle` branch to `DayRolloverScheduler.arm()` and handle `ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` (lint rejects the call before the permission is declared). Reminder notifications use `VISIBILITY_PRIVATE` with a redacted public version; no full-screen intents.
 
 **Exit:** a reminder fires within one minute of its target time in Doze, and holidays show on the grid and the widgets.
 

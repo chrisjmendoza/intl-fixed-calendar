@@ -68,10 +68,17 @@ public sealed interface IfcDate : Comparable<IfcDate> {
      * Returns the canonical numeric form `YYYY-MM-DD` with months `01`..`13`, Leap Day as `06-29` and
      * Year Day as `13-29`. It sorts correctly as text.
      *
+     * The digits are always ASCII, whatever the default locale is (`docs/calendar-spec.md` §7.6), so the
+     * result always round-trips through [parse].
+     *
      * This form is indistinguishable from an ISO date, so anything a user can see must use
      * [toPrefixedString] instead.
      */
-    public fun toNumericString(): String = "%04d-%02d-%02d".format(year, monthNumber, dayOfMonth)
+    public fun toNumericString(): String =
+        // Not String.format: %d takes its digits from the default locale (Arabic-Indic under ar-EG).
+        year.toString().padStart(YEAR_DIGITS, '0') + '-' +
+            monthNumber.toString().padStart(FIELD_DIGITS, '0') + '-' +
+            dayOfMonth.toString().padStart(FIELD_DIGITS, '0')
 
     /** Returns [toNumericString] with the mandatory user-visible marker, e.g. `IFC 2026-10-08`. */
     public fun toPrefixedString(): String = NUMERIC_PREFIX + toNumericString()
@@ -341,6 +348,8 @@ public sealed interface IfcDate : Comparable<IfcDate> {
         /** The marker that must precede the numeric form wherever a user can see it. */
         public const val NUMERIC_PREFIX: String = "IFC "
 
+        private const val YEAR_DIGITS = 4
+        private const val FIELD_DIGITS = 2
         private const val DAYS_PER_WEEK = 7
         private const val DAYS_PER_QUARTER = 91
         private const val LAST_REGULAR_DAY_BEFORE_LEAP_DAY = 168

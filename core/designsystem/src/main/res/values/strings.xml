@@ -117,4 +117,34 @@
          intercalary day (spec §7.2), e.g. "Jun 18 – Jul 15". %1$s = first day, %2$s = last day. -->
     <string name="gregorian_span">%1$s – %2$s</string>
 
+    <!-- ===== Date pickers (FEATURES D1, D2, E2; spec §7.1, §7.10) ===== -->
+
+    <!-- Label of the year field of the IFC date picker. The IFC year equals the Gregorian year (§2.1). -->
+    <string name="picker_year_label">IFC year</string>
+    <!-- Supporting text under the year field; turns into the error text while the typed year is not a
+         whole year in the range. %1$d = first year (1583), %2$d = last year (9999). -->
+    <string name="picker_year_range">Enter a year from %1$d to %2$d</string>
+    <!-- Heading above the 13 month options of the IFC date picker (Sol included). -->
+    <string name="picker_month_heading">Month</string>
+    <!-- Heading above the 28 day options of the IFC date picker. -->
+    <string name="picker_day_heading">Day</string>
+    <!-- Spoken description of one day option, so a screen reader does not read a bare number.
+         %1$d = day of month (1–28). -->
+    <string name="picker_day_description">Day %1$d</string>
+    <!-- Heading above the Leap Day / Year Day options of the IFC date picker: the two days that belong
+         to no month and no week (§2.4). -->
+    <string name="picker_intercalary_heading">Days outside the months</string>
+    <!-- Shown under the intercalary options when the chosen year is a common year, explaining why Leap
+         Day is not offered. %1$s = the year, already formatted (a year is a name, not a quantity, so it
+         never needs a plural form). -->
+    <string name="picker_leap_day_unavailable">%1$s is not a leap year, so it has no Leap Day.</string>
+    <!-- Announced when Leap Day was selected and the year was changed to a common year: the selection
+         moves to June 28 (§7.10). %1$s = the new year, already formatted, %2$s = "June 28"
+         (date_month_day). -->
+    <string name="picker_leap_day_clamped">%1$s has no Leap Day, so the date moved to %2$s.</string>
+    <!-- Confirm button of the Gregorian date picker dialog. -->
+    <string name="picker_confirm">OK</string>
+    <!-- Dismiss button of the Gregorian date picker dialog. -->
+    <string name="picker_cancel">Cancel</string>
+
 </resources>

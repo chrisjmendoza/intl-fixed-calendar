@@ -1,6 +1,6 @@
 # Architecture
 
-Status: **current as of M0 and M1 complete, M2 in progress** (2026-09-17). The toolchain is settled by
+Status: **current as of M0 and M1 complete; M2–M5 in progress** (2026-09-18). The toolchain is settled by
 [adr/0001-toolchain.md](adr/0001-toolchain.md); [`gradle/libs.versions.toml`](../gradle/libs.versions.toml)
 is the authority for versions and §1 explains the choices. Progress per task is in [ROADMAP.md](ROADMAP.md).
 
@@ -17,6 +17,7 @@ is the authority for versions and §1 explains the choices. Progress per task is
 | [ROADMAP.md](ROADMAP.md) | Milestones, task breakdown for parallel agents, open questions |
 | [WORKFLOW.md](WORKFLOW.md) | How work is done: the gate, Definition of Done, KDoc standard, anti-drift rules, rules for LLM agents |
 | `gradle/libs.versions.toml` | The dependency versions the build actually uses (§1 explains the choices) |
+| [contracts/](contracts/Events.md) | Frozen public APIs that parallel tasks build against (currently the events contract) |
 | [adr/](adr/) | Decisions made after this baseline |
 
 When two docs disagree, the doc that is authoritative for that topic wins, and the other gets fixed.
@@ -204,22 +205,23 @@ D:\Dev\intl-fixed-calendar
 ├─ core/
 │   ├─ calendar      [JVM]       IFC model + conversion + month/year layout. Depends on nothing (JDK java.time only).
 │   ├─ domain        [JVM]       Event/Reminder/Holiday models, IfcRecurrence + RecurrenceExpander, HolidayRule engine,
-│   │                            repository interfaces, use cases (ObserveAgenda), Clock/Zone/DateTicker, WidgetUpdater +
-│   │                            ReminderScheduler interfaces. Depends on :core:calendar, coroutines-core, lib-recur
+│   │                            repository interfaces, use cases (ObserveAgenda), Clock/Zone/DateTicker, DayRolloverListener
+│   │                            (done), WidgetUpdater + ReminderScheduler interfaces. Depends on :core:calendar, coroutines-core, lib-recur
 │   ├─ holidays      [JVM]       Bundled holiday-set JSON packs (schema 1, ADR 0004) + strict loader (HolidayPackLoader). Depends on :core:domain
 │   ├─ data          [Android]   DataStore UserSettings + SettingsRepository (done); Room3 DB/DAOs/mappers, ICS import/export, Hilt modules
 │   ├─ devicecalendar[Android]   CalendarContract read-only overlay (M7), isolated because it owns a permission
-│   ├─ scheduling    [Android]   AlarmManager day-rollover + reminder scheduling, receivers, notifications
+│   ├─ scheduling    [Android]   AlarmManager day rollover (done: DayRolloverScheduler, alarm + system-event receivers, the
+│   │                            DayRolloverListener multibinding; owns RECEIVE_BOOT_COMPLETED); reminder scheduling, notifications (M6)
 │   ├─ navigation    [Android-light] all @Serializable NavKeys + Navigator interface (so features never depend on each other)
-│   ├─ designsystem  [Android]   Theme + brand palette, MonthGrid, DayCell, IntercalaryBand, WeekdayHeaders, IfcDateFormatter (resources). Depends on :core:domain (api, for WeekdayDisplay)
+│   ├─ designsystem  [Android]   Theme + brand palette, MonthGrid, DayCell, IntercalaryBand, WeekdayHeaders, IfcDateFormatter (resources),
+│   │                            date pickers (IfcDatePicker, GregorianDatePickerDialog; `picker` package). Depends on :core:domain (api, for WeekdayDisplay)
 │   └─ testing       [JVM+Android split if needed] fakes, fixtures, golden vectors, MainDispatcherRule
 ├─ feature/
 │   ├─ calendar                  Today (done), Month, Year, Day detail
 │   ├─ settings                  Settings + More hub (done); Learn/About
-│   ├─ converter
+│   ├─ converter                 Gregorian ↔ IFC converter (done): direction switch, both pickers, copy / share
 │   ├─ events                    list + editor
-│   ├─ holidays
-│   └─ settings                  Settings + Learn/About
+│   └─ holidays
 ├─ widget                        Glance widgets, widget receivers, config activity, WidgetUpdater impl
 └─ baselineprofile               (M8)
 ```
@@ -303,29 +305,36 @@ data class IfcYearMonth(val year: Int, val month: IfcMonth) {
 
 Events are anchored to Gregorian wall-clock time. Instants are derived and never stored.
 
+The domain models, `EventRepository`, `RecurrenceExpander`, `ObserveAgendaUseCase`, the rule-text grammar
+and the fakes are **frozen in [contracts/Events.md](contracts/Events.md)** (M4 T1); the points this section
+left open are decided in [adr/0005-events-contract.md](adr/0005-events-contract.md).
+
 ```
-calendars(id PK, name, color_argb, source /*LOCAL|ICS*/, visible)          -- an ICS import becomes its own calendar
+calendars(id PK, name, color_argb, source /*LOCAL|ICS*/, visible)          -- an ICS import becomes its own calendar;
+                                                                           -- row 1 is the built-in local calendar (name may be empty)
 events(
   id PK AUTOINCREMENT, uid TEXT UNIQUE /*UUID, ICS round-trip*/, calendar_id FK,
   title, description, location, color_argb NULL, category /*EVENT|OBSERVANCE|BIRTHDAY*/,
   all_day INT,
   start_epoch_day INT NOT NULL,          -- local date in the event's zone
   start_minute_of_day INT NULL,          -- NULL iff all_day
-  duration_minutes INT NOT NULL,         -- all-day: N*1440
+  duration_minutes INT NOT NULL,         -- all-day: N*1440; timed: nominal wall-clock minutes
   end_epoch_day INT NOT NULL,            -- denormalised last local date of first occurrence (range index)
   zone_id TEXT NULL,                     -- NULL = floating (device zone); all-day is always floating
   recurrence_type INT NOT NULL,          -- 0 none | 1 Gregorian RRULE | 2 IFC rule
   rrule TEXT NULL,                       -- RFC 5545 string (lossless ICS)
-  ifc_rule TEXT NULL,                    -- e.g. IFC;FREQ=YEARLY;MONTH=7;DAY=13 | IFC;FREQ=YEARLY;INTERCALARY=YEAR_DAY | IFC;FREQ=MONTHLY;DAY=13;INTERVAL=1
-  recurrence_until_epoch_day INT NULL,   -- denormalised from UNTIL/COUNT for pruning
+  ifc_rule TEXT NULL,                    -- IfcRuleText, e.g. IFC;FREQ=YEARLY;MONTH=7;DAY=13 | IFC;FREQ=YEARLY;INTERCALARY=YEAR_DAY |
+                                         --   IFC;FREQ=YEARLY;INTERCALARY=LEAP_DAY;COMMONYEAR=JUNE_28 | IFC;FREQ=MONTHLY;DAY=13;INTERVAL=2
+  recurrence_until_epoch_day INT NULL,   -- RecurrenceExpander.recurrenceEndDate(event): last date of the last occurrence; NULL = unbounded
   created_at, updated_at)
   INDEX(start_epoch_day), INDEX(end_epoch_day), INDEX(recurrence_type, recurrence_until_epoch_day), INDEX(calendar_id)
-event_exdates(event_id FK CASCADE, epoch_day, PK(event_id, epoch_day))     -- "delete this occurrence"
+event_exdates(event_id FK CASCADE, epoch_day, PK(event_id, epoch_day))     -- "delete this occurrence"; the occurrence's own start date
 reminders(id PK, event_id FK CASCADE, minutes_before INT, UNIQUE(event_id, minutes_before))
 ```
 
-- **IFC recurrence** is modelled as `sealed IfcRecurrence { YearlyOnDate(month, day), YearlyOnIntercalary(kind), MonthlyOnDay(day) }`, plus `interval` and `until/count`.
-  - `YearlyOnIntercalary(LEAP_DAY)` carries a common-year policy, `JUNE_28 | SKIP | SOL_1`. User-created events default to `JUNE_28`, which keeps the Gregorian date at June 17 every year.
+- **IFC recurrence** is modelled as `sealed IfcRecurrence { YearlyOnDate(month, day), YearlyOnIntercalary(day), MonthlyOnDay(day) }`, plus `interval` and `until/count`.
+  - `YearlyOnIntercalary(LeapDay)` carries a common-year policy, `JUNE_28 | SKIP | SOL_1`. User-created events default to `JUNE_28`, which keeps the Gregorian date at June 17 every year. The rule text always spells the policy out (`COMMONYEAR=`).
+  - The event's start is occurrence 1 and must be a position of the rule; the text form (`ifc_rule`, `X-IFC-RRULE`) is implemented once, in `IfcRuleText` (grammar in [contracts/Events.md](contracts/Events.md) §3).
   - IFC rules expand in O(1) per year by direct construction, `IfcDate.Regular(y, m, d).toLocalDate()`, with no iteration.
   - Gregorian rules go through lib-recur with fast-forward.
   - There is no materialised occurrences table. `RecurrenceExpander` in `:core:domain` is pure and property-tested.
@@ -336,8 +345,8 @@ reminders(id PK, event_id FK CASCADE, minutes_before INT, UNIQUE(event_id, minut
   - ICS export writes `ifc_rule` as `X-IFC-RRULE` plus a Gregorian-approximate fallback.
 - **Time zones:**
   - A non-null `zone_id` keeps the wall time fixed in that zone. A null `zone_id` follows the device.
-  - Expansion yields `Occurrence(eventId, startLocal: LocalDateTime, zone, …)`.
-  - Bucketing by day converts each occurrence to the device zone.
+  - Expansion yields `Occurrence(eventId, startLocal, endLocal, zone, allDay)` with **nominal** wall-clock values.
+  - Bucketing by day converts each occurrence to the device zone (`Occurrence.dates(deviceZone)`); all-day occurrences are never shifted. A wall time in a DST gap happens later by the length of the gap, one in an overlap is the earlier instant; durations are nominal and ends exclusive (ADR 0005).
 - **Reminders** use a single next-alarm pattern: only the earliest upcoming reminder is scheduled, as one PendingIntent.
   - When it fires, the app posts the notification, then recomputes and reschedules.
   - It also recomputes on event writes, boot, time or zone changes, and app update.
@@ -364,13 +373,14 @@ Holidays are computed, never stored.
 
 1. `IfcYearMonth.gregorianRange` gives a contiguous `[start, end]` of 28 or 29 days.
 2. `ObserveAgendaUseCase(range): Flow<Map<LocalDate, DayAgenda>>` combines four sources:
-   - **Non-recurring events:** `WHERE recurrence_type=0 AND start_epoch_day <= :end+1 AND end_epoch_day >= :start-1`. The one-day padding covers zone skew. Filter exactly in Kotlin.
-   - **Recurring candidates:** `WHERE recurrence_type!=0 AND start_epoch_day <= :end AND (recurrence_until_epoch_day IS NULL OR >= :start)`. This is a small set. Expand it in memory and subtract exdates.
+   - **Non-recurring events:** `WHERE recurrence_type=0 AND start_epoch_day <= :end+2 AND end_epoch_day >= :start-2`. The two-day padding (`EventRepository.ZONE_SKEW_DAYS`) covers zone skew: offsets span UTC−12..UTC+14, so a zoned event can show two dates away from its own. Filter exactly in Kotlin.
+   - **Recurring candidates:** `WHERE recurrence_type!=0 AND start_epoch_day <= :end+2 AND (recurrence_until_epoch_day IS NULL OR >= :start-2)`. This is a small set. Expand it in memory and subtract exdates.
+   - Both come from `EventRepository.observeAgendaCandidates(range)`, restricted to visible calendars.
    - **Holidays:** `holidays(year, enabledSets)` filtered to the range.
    - **Device instances:** optional.
-3. Bucket the results by local date. The UI maps dates to cells through `IfcDate.from`.
+3. Bucket the results by local date. The UI maps dates to cells through `IfcDate.from`. The map holds only dates that have something on them.
 
-The pager keeps three months warm with `beyondViewportPageCount = 1`. The Year view issues one range query for the whole year and returns only a `Set<epochDay>` presence bitmap.
+The pager keeps three months warm with `beyondViewportPageCount = 1`. The Year view issues one range query for the whole year and returns only a presence bitmap (`ObserveAgendaUseCase.presence(range): Flow<Set<LocalDate>>`, event occurrences only).
 
 ## 4. UI architecture
 
@@ -384,6 +394,17 @@ The pager keeps three months warm with `beyondViewportPageCount = 1`. The Year v
 - **Screen behaviors:**
   - **Today:** the hero IFC date, the Gregorian equivalent, both weekdays, year progress, today's agenda, and the next intercalary day or holiday.
   - **Month:** a `HorizontalPager` of months (done: "Calendar" app bar with a Today action; each page's `MonthGrid` carries the month heading; holidays come from `HolidayCatalog`, which evaluates the enabled packs with `HolidayEngine` for the visible page ±1). Tapping the title zooms out to **Year**, which is 13 mini-months in a `LazyVerticalGrid(Adaptive(160.dp))`. On a two-column phone, Year Day takes the 14th slot.
+  - **Converter:** one chosen day and a direction switch (done). Gregorian → IFC picks the date in the Material 3
+    `DatePickerDialog`; IFC → Gregorian uses `IfcDatePicker`. Both live in `:core:designsystem` (`picker` package) so the
+    M4 event editor can reuse them, both are limited to `DatePickerRange` (1583–9999, reconciled decision 6), and the
+    Material picker's UTC-millisecond API is adapted to `LocalDate` inside the wrapper, with no millisecond arithmetic.
+    `IfcDatePicker` is stateless over an immutable `IfcDatePickerValue` (year as typed + selected day): Year Day is always
+    offered, Leap Day only in leap years, and a selected Leap Day moves to June 28 — with a visible, announced notice —
+    when the year becomes a valid common year (calendar-spec §7.10). The default input is today from `DateTicker`;
+    `ConverterKey.prefillEpochDay` overrides it when it lies in range and is ignored otherwise. Input lives in the
+    ViewModel's `SavedStateHandle` as primitives and is re-validated on restore. The result shows both dates, the numeric
+    `IFC` form, both labelled weekdays, and the proleptic note for years up to 1923 (the latest adoption calendar-spec
+    §7.1 names); copy and `ACTION_SEND` text always carry the `IFC` marker and the Gregorian date.
   - **Day detail:** a bottom sheet on compact widths (done: a material3 `ModalBottomSheet` inside the Nav3 entry — Nav3 1.1.7 has no sheet scene, only `DialogSceneStrategy`) and a pane on expanded widths (M3 T4). It shows both dates, both weekdays and the day's events, with "Add event" and "Open in converter" actions.
 
 ### State management
@@ -467,6 +488,15 @@ All widgets use `SizeMode.Responsive` with three sizes, `GlanceTheme` dynamic co
 3. **Self-healing backstop:** `updatePeriodMillis` of 4 hours in the provider XML. It needs no code, recovers from OEM alarm killing or force-stop, and re-arms the alarm.
    - Do not add a periodic WorkManager job. Glance already uses WorkManager internally for sessions.
 
+**As built (M5 T2, `:core:scheduling`).** Layers 1 and 2 exist and are armed in every build; layer 3 arrives with the first widget (M5 T1).
+
+- **The hook is `DayRolloverListener`** (`:core:domain`, package `core.domain.rollover`): `suspend fun onDayRollover(trigger: DayRolloverTrigger)`, with one trigger per source (`MIDNIGHT`, `TIME_CHANGED`, `ZONE_CHANGED`, `LOCALE_CHANGED`, `BOOT_COMPLETED`, `APP_UPDATED`). `:core:scheduling` declares the Hilt multibinding `Set<DayRolloverListener>` with `@Multibinds`, so the empty set is valid and the module is complete and wired into `:app` before any widget exists. `:widget` contributes a listener with `@Binds @IntoSet` that calls its `updateAll`; the reminder scheduler (M6) contributes another that recomputes its next alarm. Wherever this section says a trigger "updates the widgets and re-arms the reminder alarms", it happens through these listeners; `:core:scheduling` never learns who listens. `WidgetUpdater.requestUpdate()` stays what "Data" above says it is — the repository-write path (M5 T6) — and is not the rollover hook. `RecordingDayRolloverListener` in `:core:testing` is the fake.
+- **A call is a hint, not a fact.** Listeners recompute "today" from the injected `Clock` and `ZoneProvider` every time and never infer the date from the trigger or the alarm's nominal time; that is what keeps the rollover correct on the windowed alarm, after late delivery in Doze, and after the clock is set backwards.
+- `DayRolloverScheduler.arm()` sets one `setWindow(RTC_WAKEUP, nextLocalMidnight + 1 s, 10 min)` alarm. "Next local midnight" is `today.plusDays(1).atStartOfDay(zone)` from the `Clock` and the `ZoneProvider` (DST-safe, including zones where 00:00 does not exist); the only conversion to epoch milliseconds is the `AlarmManager` call. The `PendingIntent` is explicit, immutable, has a fixed request code and no extras, so re-arming replaces the alarm and never stacks one.
+- **Pre-reminder builds use the windowed alarm on every API level (26–36)**, not only where `canScheduleExactAlarms()` is false. Android Lint's `MissingPermission` rejects any `setExactAndAllowWhileIdle` call, guarded or not, while the manifest declares neither exact-alarm permission, so the `canScheduleExactAlarms()` branch of layer 1 lands in the change that declares them (M6 T3).
+- `DayRolloverAlarmReceiver` (no intent filter) and `SystemEventReceiver` (the five actions of layer 2) are declared in the library manifest with `android:exported="false"`; both check `intent.action` and read nothing else from the intent. A receiver re-arms **first**, synchronously, then notifies the listeners concurrently on a background scope under `goAsync()` with an 8-second budget. A listener that throws or hangs does not stop the others; the failure is rethrown after the broadcast is released, not swallowed.
+- `IfcApplication.onCreate` arms the alarm on every process start (one `AlarmManager` call, no listener is notified), which is how an alarm lost to force-stop or an OEM task killer comes back.
+
 Never update a widget per minute. The widgets show dates, not clocks.
 
 ### Configuration
@@ -512,8 +542,18 @@ Never update a widget per minute. The widgets show dates, not clocks.
 
 Robolectric native-graphics output differs between Windows and Linux, so CI (Linux) is the only recorder.
 
-- A `workflow_dispatch` "record-screenshots" job commits goldens to the branch it is dispatched on (normally `main`).
+- A `workflow_dispatch` "record-screenshots" job (`.github/workflows/record-screenshots.yml`) runs
+  `recordRoborazziDebug` on `ubuntu-latest` and uploads the recorded images as a build artifact. It does
+  not commit them: every commit in this repo is GPG-signed (WORKFLOW.md §1), and a bot cannot hold that
+  key, so the owner downloads the artifact, reviews it, and commits the goldens locally with a signed
+  commit.
 - Local and agent runs use `compareRoborazziDebug`, which never blocks.
+- As of M2 T10 no module has a `captureRoboImage` test yet, so the workflow currently records zero
+  images; it lands ahead of the first screenshot test so that test's author has a working recorder
+  immediately. `verifyRoborazziDebug` joins `ci.yml` once the first goldens are committed to the repo.
+- Roborazzi's default output directory is under the gitignored `build/`. The task that writes the first
+  screenshot test therefore sets `roborazzi { outputDir }` in `ifc.android.compose` to a tracked
+  directory per module and widens the workflow's artifact glob to match.
 
 ### CI gate per push
 

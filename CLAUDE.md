@@ -3,10 +3,13 @@
 **Yearal** — Android app for the International Fixed Calendar (IFC; the owner also says "FC"): 13 months × 28 days,
 the month Sol, plus Year Day and Leap Day. Solo developer working with AI agents.
 
-**Status:** M0 and M1 done, M2 in progress. Pure-JVM: `:core:calendar`, `:core:domain` (clock/ticker,
-holiday engine), `:core:holidays` (JSON packs), `:core:testing`. Android: `:app` (Hilt, 5-tab Nav3 shell),
-`:core:designsystem` (theme, `MonthGrid`), `:core:navigation`, `:core:data` (settings DataStore), `:feature:calendar` (Today, Month, Day detail),
-`:feature:settings` (Settings + More hub). `docs/ROADMAP.md` has the ledger.
+**Status:** M0 and M1 done; M2–M5 in progress (M3 T1, M4 T1, M5 T2 done). Pure-JVM: `:core:calendar`,
+`:core:domain` (clock/ticker, holiday engine, the events contract, `DayRolloverListener`), `:core:holidays`
+(JSON packs), `:core:testing`. Android: `:app` (Hilt, 5-tab Nav3 shell), `:core:designsystem` (theme,
+`MonthGrid`, date pickers), `:core:navigation`, `:core:data` (settings DataStore), `:core:scheduling`
+(midnight rollover alarm + receivers), `:feature:calendar` (Today, Month, Day detail), `:feature:converter`
+(Gregorian ↔ IFC), `:feature:settings` (Settings + More hub). `docs/ROADMAP.md` has the ledger; frozen
+contracts are in `docs/contracts/`.
 Toolchain decisions are frozen in `docs/adr/0001-toolchain.md` — read it before touching build-logic.
 
 ## Workflow — mandatory
@@ -35,6 +38,7 @@ python scripts\check_docs.py        # doc link check
 | Structure, stack, data model, widgets, tests, CI | `docs/ARCHITECTURE.md` — start with "Reconciled decisions" |
 | What to build and its priority | `docs/FEATURES.md` |
 | What to build next | `docs/ROADMAP.md` |
+| Events, recurrence, agenda | `docs/contracts/Events.md` (frozen), `docs/adr/0005-events-contract.md` |
 | Holidays, device calendars, `.ics` | `docs/holidays-and-import.md` |
 | Permissions, backups, intents, exports, releases | `docs/security-and-privacy.md` |
 
