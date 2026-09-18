@@ -60,7 +60,13 @@ disagree, the authoritative one wins — fix the other in the same change.
 9. **All user-visible strings live in resources**, including "Sol".
 10. **Module boundaries:** features depend on `:core:domain` interfaces, never on `:core:data` or on
     other features. Cross-feature navigation goes through `:core:navigation` keys.
-11. **Spec tables and golden files are inputs.** `SpecVectorsTest` reads `docs/calendar-spec.md` §6;
+11. **Pure-JVM modules may only use Java 8 APIs from `java.*`.** They ship inside an app with
+    minSdk 26, where the JDK classes are Android's, and a JVM build cannot detect a missing method.
+    Known traps: `LocalDate.ofInstant` (use `instant.atZone(zone).toLocalDate()`), `Optional.isEmpty`,
+    `List.of`/`Map.of`/`Set.of`, `String.isBlank/strip/repeat`, `Stream.toList`, `InstantSource`.
+    Kotlin stdlib equivalents are fine. Android Lint's `NewApi` check catches the rest once an Android
+    module depends on these.
+12. **Spec tables and golden files are inputs.** `SpecVectorsTest` reads `docs/calendar-spec.md` §6;
     never edit those tables to match the code.
 
 ## API generations — easy to get wrong

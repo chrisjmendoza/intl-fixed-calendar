@@ -52,7 +52,8 @@ public class RealDateTicker(
                 while (true) {
                     val zone = zoneProvider.currentZone()
                     val now = clock.instant()
-                    val today = LocalDate.ofInstant(now, zone)
+                    // Not LocalDate.ofInstant: that is a Java 9 API, absent on Android below API 34.
+                    val today = now.atZone(zone).toLocalDate()
                     emit(today)
                     val nextMidnight = today.plusDays(1).atStartOfDay(zone).toInstant()
                     val untilMidnight = Duration.between(now, nextMidnight).coerceAtLeast(Duration.ZERO)

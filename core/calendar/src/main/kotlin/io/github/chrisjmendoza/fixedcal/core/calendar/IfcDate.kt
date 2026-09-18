@@ -6,6 +6,7 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.Year
 import java.time.format.DateTimeParseException
+import java.time.temporal.ChronoUnit
 
 /**
  * A date in the International Fixed Calendar (IFC).
@@ -77,6 +78,16 @@ public sealed interface IfcDate : Comparable<IfcDate> {
 
     /** Orders dates chronologically by ([year], [dayOfYear]). */
     override fun compareTo(other: IfcDate): Int = compareValuesBy(this, other, IfcDate::year, IfcDate::dayOfYear)
+
+    /**
+     * Returns the number of real days from this date until [other]: positive when [other] is later,
+     * negative when earlier, zero for the same day. Intercalary days count as days, so
+     * `other == this.plusDays(daysUntil(other))` always holds.
+     *
+     * This is `ChronoUnit.DAYS.between` on the Gregorian equivalents, the only date difference the
+     * app needs. Spec: `docs/calendar-spec.md` §7.7 ("Differences").
+     */
+    public fun daysUntil(other: IfcDate): Long = ChronoUnit.DAYS.between(toLocalDate(), other.toLocalDate())
 
     /**
      * Returns the date [days] real days after this one (before it, if negative).
