@@ -28,7 +28,9 @@ dependencies {
     implementation(project(":core:scheduling"))
     implementation(project(":feature:calendar"))
     implementation(project(":feature:converter"))
+    implementation(project(":feature:events"))
     implementation(project(":feature:settings"))
+    implementation(project(":widget"))
 
     implementation(libs.findLibrary("androidx-core-ktx").get())
     implementation(libs.findLibrary("androidx-activity-compose").get())

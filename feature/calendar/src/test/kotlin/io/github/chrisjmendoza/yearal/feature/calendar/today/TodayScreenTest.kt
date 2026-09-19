@@ -1,18 +1,23 @@
 package io.github.chrisjmendoza.yearal.feature.calendar.today
 
 import android.content.Context
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.chrisjmendoza.yearal.core.designsystem.format.IfcDateFormatter
 import io.github.chrisjmendoza.yearal.core.designsystem.theme.IfcTheme
+import io.github.chrisjmendoza.yearal.feature.calendar.agenda.AgendaItemUi
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
 import java.time.LocalDate
+import java.time.LocalTime
 import java.util.Locale
 
 /**
@@ -21,6 +26,8 @@ import java.util.Locale
  * weekday block speaks both weekdays in one description (§4.1 item 7).
  */
 @RunWith(AndroidJUnit4::class)
+// A tall window so the whole screen, agenda and holidays included, is on screen without scrolling.
+@Config(qualifiers = "w360dp-h1200dp")
 class TodayScreenTest {
     @get:Rule
     val compose = createComposeRule()
@@ -28,10 +35,15 @@ class TodayScreenTest {
     private val formatter =
         IfcDateFormatter(ApplicationProvider.getApplicationContext<Context>().resources, Locale.US)
 
-    private fun show(today: LocalDate) {
+    private fun show(
+        today: LocalDate,
+        holidays: List<String> = emptyList(),
+        nextHoliday: Pair<LocalDate, String>? = null,
+        agenda: List<AgendaItemUi> = emptyList(),
+    ) {
         compose.setContent {
             IfcTheme(dynamicColor = false) {
-                TodayScreen(state = buildTodayUiState(today, formatter))
+                TodayScreen(state = buildTodayUiState(today, formatter, holidays, nextHoliday, agenda))
             }
         }
     }
@@ -79,5 +91,42 @@ class TodayScreenTest {
         compose.setContent { IfcTheme(dynamicColor = false) { TodayScreen(state = TodayUiState.Loading) } }
 
         compose.onNodeWithContentDescription("Loading today’s date").assertIsDisplayed()
+    }
+
+    // FEATURES T5: today's agenda summary and the next holiday.
+
+    @Test
+    fun `today's holidays, the next holiday and the agenda summary are shown`() {
+        show(
+            LocalDate.of(2026, 7, 3),
+            holidays = listOf("Independence Day (observed)"),
+            nextHoliday = LocalDate.of(2026, 7, 4) to "Independence Day",
+            agenda =
+                listOf(
+                    AgendaItemUi(
+                        eventId = 1,
+                        title = "Picnic",
+                        isAllDay = true,
+                        startTime = null,
+                        endTime = null,
+                        colorArgb = 0xFF123F3D.toInt(),
+                    ),
+                ),
+        )
+
+        compose.onNodeWithText("Holidays").assertIsDisplayed()
+        compose.onNodeWithText("Independence Day (observed)").assertIsDisplayed()
+        compose.onNodeWithText("1 day until Independence Day").assertIsDisplayed()
+        compose.onNodeWithText("Today’s events").assertIsDisplayed()
+        compose.onNodeWithText("Picnic").assertIsDisplayed()
+        compose.onNodeWithText("All day").assertIsDisplayed()
+    }
+
+    @Test
+    fun `no holidays or agenda means neither section is shown`() {
+        show(LocalDate.of(2026, 9, 17))
+
+        compose.onAllNodesWithText("Holidays").assertCountEquals(0)
+        compose.onAllNodesWithText("Today’s events").assertCountEquals(0)
     }
 }

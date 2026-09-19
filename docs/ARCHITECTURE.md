@@ -156,7 +156,7 @@ declare Java toolchains of their own, so compilation never triggers JDK provisio
 | androidxTest | core / runner / rules / ext-junit / espresso | 1.7.0 / 1.7.0 / 1.7.0 / 1.3.0 / 3.7.0 | |
 | spotless / ktlint | com.diffplug.spotless / ktlint | 8.10.2 / 1.8.0 | Formatter and style gate. |
 | lint | Android Lint | built into AGP | Correctness gate. Set `warningsAsErrors = true` and check in a baseline. |
-| recur | org.dmfs:lib-recur | **UNVERIFIED** (about 0.17.x) | RRULE expansion. Small, pure Java, used by Etar and OpenTasks. |
+| recur | org.dmfs:lib-recur | 0.17.1 | RRULE expansion for `Recurrence.Gregorian`, behind `RecurrenceExpander.supports` (M4 T3). Apache-2.0; pure Java 8 bytecode with no `java.time` or Java 9+ API use, so it is safe at minSdk 26. About 165 KB, plus `org.dmfs:rfc5545-datetime` 0.3 (33 KB) and `org.dmfs:jems2` 2.23.1 (143 KB). Used by Etar and OpenTasks. |
 
 ### Stack decisions
 
@@ -178,8 +178,9 @@ declare Java toolchains of their own, so compilation never triggers JDK provisio
 
 **Settled on 2026-09-17 by [adr/0001-toolchain.md](adr/0001-toolchain.md)** — items 1–3 and 5 verified
 by a real build (Kotlin 2.4.20 passed the Room/KSP spike but is not adopted yet); item 4's
-`lifecycle-viewmodel-navigation3` exists at lifecycle 2.11.0; `adaptive-navigation3`, lib-recur and the
-Android 17 behaviour review remain open for M3/M4. The original list is kept for the record:
+`lifecycle-viewmodel-navigation3` exists at lifecycle 2.11.0; lib-recur was settled at 0.17.1 by M4 T3
+(see the table above); `adaptive-navigation3` and the Android 17 behaviour review remain open for M3/M7.
+The original list is kept for the record:
 
 1. **Kotlin 2.4.20 with KSP 2.3.12, Room 3 and Hilt.** Evidence is mixed. KSP2 is decoupled from the compiler, but its own "Upgrade to Kotlin 2.4.0" issue is open and third parties report lock-out. The plan is to start on 2.3.21, try 2.4.20 on the scaffold, and bump only if it is green.
 2. **Kotlin 2.3.21.** The exact patch was inferred from the Dagger 2.60 release notes. 2.3.20 is known good with AGP 9.3 on this machine, so fall back to it if 2.3.21 does not resolve.
@@ -208,7 +209,7 @@ D:\Dev\intl-fixed-calendar
 │   │                            repository interfaces, use cases (ObserveAgenda), Clock/Zone/DateTicker, DayRolloverListener
 │   │                            (done), WidgetUpdater + ReminderScheduler interfaces. Depends on :core:calendar, coroutines-core, lib-recur
 │   ├─ holidays      [JVM]       Bundled holiday-set JSON packs (schema 1, ADR 0004) + strict loader (HolidayPackLoader). Depends on :core:domain
-│   ├─ data          [Android]   DataStore UserSettings + SettingsRepository (done); Room3 DB/DAOs/mappers, ICS import/export, Hilt modules
+│   ├─ data          [Android]   DataStore UserSettings + SettingsRepository (done); Room 3 YearalDatabase, DAOs, mappers, RoomEventRepository (done); ICS import/export (1.2)
 │   ├─ devicecalendar[Android]   CalendarContract read-only overlay (M7), isolated because it owns a permission
 │   ├─ scheduling    [Android]   AlarmManager day rollover (done: DayRolloverScheduler, alarm + system-event receivers, the
 │   │                            DayRolloverListener multibinding; owns RECEIVE_BOOT_COMPLETED); reminder scheduling, notifications (M6)
@@ -220,7 +221,7 @@ D:\Dev\intl-fixed-calendar
 │   ├─ calendar                  Today (done), Month, Year, Day detail
 │   ├─ settings                  Settings + More hub (done); Learn/About
 │   ├─ converter                 Gregorian ↔ IFC converter (done): direction switch, both pickers, copy / share
-│   ├─ events                    list + editor
+│   ├─ events                    Event list + editor (done), against :core:domain interfaces only
 │   └─ holidays
 ├─ widget                        Glance widgets, widget receivers, config activity, WidgetUpdater impl
 └─ baselineprofile               (M8)
@@ -367,6 +368,7 @@ Holidays are computed, never stored.
 - Evaluation per year takes microseconds and is memoised.
 - Enabled set IDs live in DataStore.
 - `HolidayEngine` is bound in `:feature:calendar` (`di/HolidayModule`) and `HolidayPackLoader` in `:feature:settings`; both move to `:app` if a third module needs them. The IFC observances set and the US pack are enabled by default; any set, the IFC one included, may be switched off in Settings (`UserSettings.enabledHolidaySets`). Version 1 ships the "IFC observances" set (Year Day, Leap Day, Sol 1) and the US pack (federal holidays plus common observances). Lunisolar tables are a 1.0 stretch goal that can slip to 1.1 without affecting the engine. More sets are data-only PRs.
+- **`HolidaySetProvider`** (`:core:domain`, M4 T6) is the one seam "which sets are enabled" flows through: `enabledSets(): Flow<List<HolidaySet>>`, the bundled packs already filtered to `UserSettings.enabledHolidaySets`. `:core:domain` cannot depend on `:core:holidays` (dependency direction, §2), so the production implementation, `PackHolidaySetProvider`, lives in `:feature:calendar` next to `HolidayEngine` and is bound there (`di/HolidayModule`); `ObserveAgendaUseCase`'s own binding lives in `:app` (`di/AgendaModule`) and receives it across the Hilt component the same way `HolidayCatalog` already receives `HolidayPackLoader` from `:feature:settings`. `HolidayCatalog` (grid and Day-detail label formatting) is unchanged and keeps evaluating `HolidayEngine` itself from an explicit `enabledSetIds` argument, since it needs arbitrary set ids for previews and per-call flexibility that a `Flow`-shaped provider does not give for free; the provider's job is only to give `ObserveAgendaUseCase` the same "enabled" definition without loading `:core:holidays` types into `:core:domain`.
 - Device calendars (M7) are a read-only overlay through `CalendarContract.Instances`, queried on the same Gregorian range. The feature is opt-in and the `READ_CALENDAR` prompt appears in context.
 
 ### 3.4 Month-grid query
@@ -380,7 +382,7 @@ Holidays are computed, never stored.
    - **Device instances:** optional.
 3. Bucket the results by local date. The UI maps dates to cells through `IfcDate.from`. The map holds only dates that have something on them.
 
-The pager keeps three months warm with `beyondViewportPageCount = 1`. The Year view issues one range query for the whole year and returns only a presence bitmap (`ObserveAgendaUseCase.presence(range): Flow<Set<LocalDate>>`, event occurrences only).
+The pager keeps three months warm with `beyondViewportPageCount = 1`: `MonthViewModel` calls `ObserveAgendaUseCase.invoke` once per warm month (its own page plus one neighbour on each side) and reads `DayAgenda.entries.size` for the grid's event-dot counts (FEATURES C4); Day detail and Today query it for exactly one day each. The Year view issues one range query for the whole year and returns only a presence bitmap (`ObserveAgendaUseCase.presence(range): Flow<Set<LocalDate>>`, event occurrences only).
 
 ## 4. UI architecture
 
@@ -498,6 +500,45 @@ All widgets use `SizeMode.Responsive` with three sizes, `GlanceTheme` dynamic co
 - `IfcApplication.onCreate` arms the alarm on every process start (one `AlarmManager` call, no listener is notified), which is how an alarm lost to force-stop or an OEM task killer comes back.
 
 Never update a widget per minute. The widgets show dates, not clocks.
+
+**As built (M5 T1, `:widget`).** The Today widget (`TodayGlanceWidget` + `TodayWidgetReceiver`) is the
+first thing in `:widget`, on Glance 1.2.0.
+
+- `TodayGlanceWidget.provideGlance` resolves `Clock` and `ZoneProvider` through the Hilt `WidgetEntryPoint`
+  (`@EntryPoint`, resolved with `EntryPointAccessors.fromApplication`, exactly like `:core:scheduling`'s
+  `SchedulingEntryPoint` — Glance instantiates the widget itself, not Hilt). The composable content calls
+  `todayDate(clock, zoneProvider)` directly, every composition, with no `remember`: this is what "at
+  composition time" above means in code. `IfcDateFormatter` and the tap-hint string are read once per
+  `provideGlance` call instead, since they do not depend on the date and reading `Locale.getDefault()`
+  inside the composable itself trips Compose lint's `NonObservableLocale` check for no benefit (Glance
+  content is not recomposed by a locale change the way an Activity's is; the `LOCALE_CHANGED` trigger
+  already forces a fresh `provideGlance` through `TodayWidgetRolloverListener`).
+- `TodayWidgetRolloverListener` (`@Binds @IntoSet` into `:core:scheduling`'s `Set<DayRolloverListener>`)
+  calls a small `WidgetRefresher` seam (`GlanceWidgetRefresher.refreshAll` = `TodayGlanceWidget().updateAll`)
+  so the listener is unit-testable without a real `AppWidgetManager`.
+- Three `SizeMode.Responsive` breakpoints, `SMALL` (110x40dp, 2x1: date only), `MEDIUM` (180x40dp, adds
+  the Gregorian line) and `LARGE` (180x110dp, adds the labelled actual weekday), matching
+  `res/xml/today_widget_info.xml`'s `minWidth`/`minHeight`/`minResizeWidth`/`minResizeHeight` and
+  `res/xml-v31/today_widget_info.xml`'s additional `maxResizeWidth`/`maxResizeHeight`/`targetCellWidth`/
+  `targetCellHeight` (introduced in API 31; Android Lint's `UnusedAttribute` rejects them below minSdk 26
+  in a single file, hence the two files — a `-v31` resource replaces the base file wholesale on API 31+,
+  it does not merge attribute-by-attribute). `widgetCategory="home_screen"` only, not `keyguard`
+  (docs/security-and-privacy.md §3.2: a date-only widget stays lock-screen eligible on Android 16 QPR2+
+  by default, so nothing extra needs declaring).
+- The tap action opens the app through `launchAppIntent`, which resolves the launcher via
+  `PackageManager.getLaunchIntentForPackage` rather than naming `MainActivity` — `:widget` cannot depend
+  on `:app` (§2) — then `androidx.glance.appwidget.action.actionStartActivity(intent)`. `IntentRouter`
+  (M3 T5) does not exist yet, so no extras are added; the app simply opens on its normal start
+  destination.
+- `GlanceTheme` uses Material You dynamic colour on API 31+ (`GlanceTheme.colors`) and the brand palette
+  (`BrandLightColorScheme`/`BrandDarkColorScheme` from `:core:designsystem`, wrapped by
+  `androidx.glance.material3.ColorProviders`) below it.
+- Glance depends on WorkManager, which unconditionally declares `WAKE_LOCK`, `ACCESS_NETWORK_STATE` and
+  `FOREGROUND_SERVICE` alongside `RECEIVE_BOOT_COMPLETED` (already declared by `:core:scheduling`).
+  `:widget`'s manifest keeps `WAKE_LOCK` (WorkManager's own reliability mechanism for the widget's
+  background render) and strips the other two with `tools:node="remove"`, verified safe from the actual
+  work-runtime and glance-appwidget sources rather than assumed — see
+  docs/security-and-privacy.md §5.1 for the detail and the allow-list entries.
 
 ### Configuration
 

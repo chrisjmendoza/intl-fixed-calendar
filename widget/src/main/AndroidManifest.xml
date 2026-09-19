@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Glance pulls in WorkManager, whose own manifest (work-runtime 2.10.0) unconditionally declares
+         WAKE_LOCK, ACCESS_NETWORK_STATE, RECEIVE_BOOT_COMPLETED and FOREGROUND_SERVICE
+         (docs/security-and-privacy.md §5.1). RECEIVE_BOOT_COMPLETED is already declared and allow-listed
+         by :core:scheduling. Verified against the actual work-runtime-2.10.0.aar manifest and classes
+         (not from memory, per this task's instructions):
+         - ACCESS_NETWORK_STATE is used only by `ConstraintProxy$NetworkStateProxy`, a receiver that
+           WorkManager itself leaves `enabled="false"` and only flips on for a Worker whose Constraints
+           declare a network type. Glance's own internal session/update work carries no such constraint
+           and this widget's tap action never fetches anything (the app's "no network" selling point,
+           CLAUDE.md rule 7), so the permission is removed.
+         - FOREGROUND_SERVICE is required only by callers of `Service.startForeground`/
+           `startForegroundService`; inside glance-appwidget-1.2.0 that call appears solely in the
+           `actionStartService` trampoline (an opt-in Glance action this widget never uses; Today has
+           only a tap-to-open-the-app action, `actionStartActivity`). AsyncRequestWorker, the one
+           WorkManager Worker Glance actually runs here, never calls `setForeground`. Removed.
+         - WAKE_LOCK is NOT removed: `androidx.work.impl.utils.WakeLocks` acquires a wake lock for every
+           piece of work WorkManager executes, unconditionally, to keep the device awake long enough to
+           finish it; this is exactly what makes the widget's own background render reliable
+           (FEATURES Q10/S3), so stripping it would risk the "widget goes stale" failure this whole
+           feature exists to avoid. Declared in the allow-list below.
+    -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" tools:node="remove" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" tools:node="remove" />
+
+    <!-- Exported because launchers must be able to bind to it (docs/security-and-privacy.md §6.3);
+         the only intent filter it accepts is the system's own widget-update action, and
+         TodayWidgetReceiver re-renders from the injected Clock/ZoneProvider on every update, ignoring
+         whatever triggered it, so a spoofed APPWIDGET_UPDATE just causes a harmless refresh. -->
+    <application>
+        <receiver
+            android:name=".TodayWidgetReceiver"
+            android:exported="true"
+            android:label="@string/today_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/today_widget_info" />
+        </receiver>
+    </application>
+
+</manifest>

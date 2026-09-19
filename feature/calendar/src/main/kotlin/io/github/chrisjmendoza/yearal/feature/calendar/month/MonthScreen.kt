@@ -142,6 +142,7 @@ fun MonthScreen(
                 selected = state.selected,
                 weekdayDisplay = state.weekdayDisplay,
                 onDayClick = onDayClick,
+                eventCounts = state.eventCountsByMonth[month].orEmpty(),
                 holidays = state.holidaysByMonth[month].orEmpty(),
                 modifier =
                     Modifier

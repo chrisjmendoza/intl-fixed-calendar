@@ -110,3 +110,31 @@ decided here; each decision is checkable by a test or a reviewer.
   milestone (1.2) sets import-side caps per security-and-privacy §6.1.
 - Nominal durations mean an overnight event across a fall-back night lasts an hour longer in real time. That
   matches what the user typed (an end time), and is what RFC 5545 does for `DTEND`-based events.
+
+## Amendment 1 (2026-09-18): rulings from the T3 implementation and its oracle suite
+
+The implementation (`DefaultRecurrenceExpander`) and the independent oracle suite
+(`RecurrenceExpanderOracleTest`) were written by different agents from this contract. They agreed on every
+generated case; they also found four points the contract left open. The owner accepted all four on 2026-09-18. These rulings describe what the code
+does; no behaviour changed, and [contracts/Events.md](../contracts/Events.md) stays as frozen.
+
+1. **Occurrence 1 is the event's own start, also for a Gregorian `RRULE` whose `BY…` parts do not match
+   it.** `lib-recur` (like several calendar clients) drops a non-matching `DTSTART`; the expander merges the
+   start in first, exactly once. A `COUNT=n` rule with a mismatched start therefore yields `n + 1`
+   occurrences. The editor cannot produce that mismatch (it derives the rule from the start date), so it can
+   only arrive through `.ics` import (1.2), which must normalise the start or the rule.
+2. **`RRULE` text is parsed leniently** (`lib-recur` `RFC5545_LAX`): strict mode rejects rules real clients
+   emit. An otherwise valid rule with a malformed part is evaluated without that part and `supports()` is
+   `true`; text that is not an `RRULE` at all is unsupported and shows the event once.
+3. **Rules that repeat within a day are unsupported** (`FREQ=HOURLY|MINUTELY|SECONDLY`, or any
+   `BYHOUR`/`BYMINUTE`/`BYSECOND`): every occurrence keeps the anchor's time of day, so they cannot be
+   represented. `supports()` is `false` and the event shows once.
+4. **Work cap:** `DefaultRecurrenceExpander.MAX_OCCURRENCES_PER_CALL` (10 000). `expand` stops adding there;
+   `nextOccurrence` and `recurrenceEndDate` return `null` rather than search on, and `null` always means
+   "unbounded, never prune". Whether an occurrence dropped by the year-9999 cut-off consumes a `COUNT` is
+   unobservable (nothing exists after it) and is left undefined.
+
+The editor (M4 T4) writes Gregorian rules as `FREQ=YEARLY` or `FREQ=WEEKLY` with an optional date-only
+`UNTIL=YYYYMMDD` or `COUNT`, and rebuilds that text on every save; preserving richer imported rules through
+an edit is import work (1.2).
+

@@ -1,14 +1,10 @@
 package io.github.chrisjmendoza.yearal.ui
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.adaptive.navigationsuite.NavigationSuiteScaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -23,6 +19,7 @@ import io.github.chrisjmendoza.yearal.core.calendar.IfcYearMonth
 import io.github.chrisjmendoza.yearal.core.calendar.toIfcDate
 import io.github.chrisjmendoza.yearal.core.navigation.ConverterKey
 import io.github.chrisjmendoza.yearal.core.navigation.DayKey
+import io.github.chrisjmendoza.yearal.core.navigation.EventEditorKey
 import io.github.chrisjmendoza.yearal.core.navigation.EventListKey
 import io.github.chrisjmendoza.yearal.core.navigation.MonthKey
 import io.github.chrisjmendoza.yearal.core.navigation.MoreKey
@@ -32,6 +29,8 @@ import io.github.chrisjmendoza.yearal.feature.calendar.day.DayRoute
 import io.github.chrisjmendoza.yearal.feature.calendar.month.MonthRoute
 import io.github.chrisjmendoza.yearal.feature.calendar.today.TodayRoute
 import io.github.chrisjmendoza.yearal.feature.converter.ConverterRoute
+import io.github.chrisjmendoza.yearal.feature.events.editor.EventEditorRoute
+import io.github.chrisjmendoza.yearal.feature.events.list.EventListRoute
 import io.github.chrisjmendoza.yearal.feature.settings.more.MoreRoute
 import io.github.chrisjmendoza.yearal.feature.settings.settings.SettingsRoute
 import io.github.chrisjmendoza.yearal.ui.navigation.rememberTabBackStacks
@@ -81,7 +80,8 @@ fun IfcApp(viewModel: MainViewModel = hiltViewModel()) {
                     entry<TodayKey> { TodayRoute() }
                     entry<MonthKey> { key -> MonthRoute(key = key, navigator = tabs) }
                     entry<DayKey> { key -> DayRoute(key = key, navigator = tabs) }
-                    entry<EventListKey> { TabPlaceholder(TopLevelDestination.EVENTS) }
+                    entry<EventListKey> { EventListRoute(navigator = tabs) }
+                    entry<EventEditorKey> { key -> EventEditorRoute(key = key, navigator = tabs) }
                     entry<ConverterKey> { key -> ConverterRoute(key = key, navigator = tabs) }
                     entry<MoreKey> {
                         MoreRoute(
@@ -93,13 +93,5 @@ fun IfcApp(viewModel: MainViewModel = hiltViewModel()) {
                     entry<SettingsKey> { SettingsRoute(navigator = tabs) }
                 },
         )
-    }
-}
-
-/** The empty tab body of the M0 walking skeleton; each is replaced by its feature in M2–M4. */
-@Composable
-private fun TabPlaceholder(destination: TopLevelDestination) {
-    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-        Text(text = stringResource(destination.labelRes))
     }
 }

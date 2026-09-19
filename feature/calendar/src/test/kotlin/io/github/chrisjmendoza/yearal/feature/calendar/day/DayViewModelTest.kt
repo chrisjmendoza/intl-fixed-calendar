@@ -7,10 +7,14 @@ import app.cash.turbine.test
 import io.github.chrisjmendoza.yearal.core.calendar.IfcDate
 import io.github.chrisjmendoza.yearal.core.calendar.IfcMonth
 import io.github.chrisjmendoza.yearal.core.designsystem.format.IfcDateFormatter
+import io.github.chrisjmendoza.yearal.core.domain.event.Event
+import io.github.chrisjmendoza.yearal.core.domain.event.EventTiming
 import io.github.chrisjmendoza.yearal.core.domain.holiday.HolidayEngine
 import io.github.chrisjmendoza.yearal.core.domain.settings.UserSettings
 import io.github.chrisjmendoza.yearal.core.holidays.HolidayPackLoader
+import io.github.chrisjmendoza.yearal.core.testing.EventFixtures
 import io.github.chrisjmendoza.yearal.core.testing.FakeDateTicker
+import io.github.chrisjmendoza.yearal.core.testing.FakeObserveAgendaUseCase
 import io.github.chrisjmendoza.yearal.core.testing.FakeSettingsRepository
 import io.github.chrisjmendoza.yearal.feature.calendar.holiday.HolidayCatalog
 import io.kotest.matchers.collections.shouldContainExactly
@@ -59,7 +63,8 @@ class DayViewModelTest {
         day: LocalDate,
         ticker: FakeDateTicker = FakeDateTicker(LocalDate.of(2026, 9, 17)),
         settings: FakeSettingsRepository = FakeSettingsRepository(),
-    ) = DayViewModel(day, ticker, settings, catalog, formatter)
+        observeAgenda: FakeObserveAgendaUseCase = FakeObserveAgendaUseCase(),
+    ) = DayViewModel(day, ticker, settings, catalog, formatter, observeAgenda)
 
     @Test
     fun `starts loading, then shows the regular day of the spec's worked example`() =
@@ -178,6 +183,38 @@ class DayViewModelTest {
                 settings.update { it.copy(enabledHolidaySets = emptySet()) }
 
                 awaitItem().shouldBeInstanceOf<DayUiState.Loaded>().holidays shouldBe emptyList()
+            }
+        }
+
+    // FEATURES C5: the day's own agenda, sourced from ObserveAgendaUseCase (docs/ARCHITECTURE.md §3.4).
+
+    @Test
+    fun `the day's agenda entries appear, all-day first then by start time`() =
+        runTest(dispatcher) {
+            val day = LocalDate.of(2026, 9, 17)
+            val allDayEvent = EventFixtures.allDay(id = 1, date = day, title = "Conference")
+            val timedEvent =
+                Event(id = 2, uid = "timed", title = "Standup", timing = EventTiming.Timed(day, 9 * 60, 30))
+            val agenda = FakeObserveAgendaUseCase()
+            agenda.putEntry(EventFixtures.entry(allDayEvent))
+            agenda.putEntry(EventFixtures.entry(timedEvent))
+
+            viewModel(day, observeAgenda = agenda).uiState.test {
+                awaitItem() shouldBe DayUiState.Loading
+                val loaded = awaitItem().shouldBeInstanceOf<DayUiState.Loaded>()
+                loaded.agenda.map { it.eventId } shouldContainExactly listOf(1L, 2L)
+                loaded.agenda[0].isAllDay shouldBe true
+                loaded.agenda[1].isAllDay shouldBe false
+                agenda.requestedRanges shouldContainExactly listOf(day..day)
+            }
+        }
+
+    @Test
+    fun `a day with no occurrences has an empty agenda`() =
+        runTest(dispatcher) {
+            viewModel(LocalDate.of(2026, 9, 17)).uiState.test {
+                awaitItem() shouldBe DayUiState.Loading
+                awaitItem().shouldBeInstanceOf<DayUiState.Loaded>().agenda shouldBe emptyList()
             }
         }
 }

@@ -55,4 +55,36 @@
     <!-- Heading above the list of holidays that fall on the shown day. Not shown when there are none. -->
     <string name="day_holidays">Holidays</string>
 
+    <!-- Agenda (FEATURES C5, T5): the day's or today's events, shared between the Day detail sheet and
+         the Today screen. -->
+
+    <!-- Heading above the list of the day's events on the Day detail sheet. Not shown when there are none. -->
+    <string name="day_events">Events</string>
+
+    <!-- Action that opens the event editor pre-filled with the shown day. -->
+    <string name="day_add_event">Add event</string>
+
+    <!-- Placeholder shown instead of an event's title when the user left it blank. -->
+    <string name="agenda_untitled_event">(No title)</string>
+
+    <!-- Shown instead of a time range for an all-day event. -->
+    <string name="agenda_all_day">All day</string>
+
+    <!-- A timed event's start and end time of day, already locale-formatted.
+         %1$s = start, e.g. "9:30 AM"; %2$s = end, e.g. "10:15 AM". -->
+    <string name="agenda_time_range">%1$s–%2$s</string>
+
+    <!-- Heading above today's own events on the Today screen. Not shown when there are none. -->
+    <string name="today_agenda_heading">Today’s events</string>
+
+    <!-- Heading above today's holidays on the Today screen. Not shown when there are none. -->
+    <string name="today_holidays">Holidays</string>
+
+    <!-- The next upcoming holiday from an enabled pack (FEATURES T5), a countdown in the same shape as
+         the intercalary-day one. %1$d = the number of days from today; %2$s = the holiday's name. -->
+    <plurals name="today_next_holiday">
+        <item quantity="one">%1$d day until %2$s</item>
+        <item quantity="other">%1$d days until %2$s</item>
+    </plurals>
+
 </resources>

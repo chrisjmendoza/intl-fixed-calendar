@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Today widget provider info for API 31 and later. Replaces (not merges with) res/xml/today_widget_info.xml
+  wholesale on API 31+, adding four attributes introduced in that API level: maxResizeWidth/Height
+  (upper resize bound; below API 31 the OS lets a widget resize without an upper bound once
+  minResizeWidth/Height are met), targetCellWidth/Height (the launcher's preferred initial cell size,
+  matching TodayGlanceWidget.SMALL: 2 cells wide, 1 tall) and previewLayout (the widget-picker preview;
+  reuses the loading layout since dedicated preview art is ROADMAP M5 T5). Keep every other attribute
+  identical to the base file.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="110dp"
+    android:minHeight="40dp"
+    android:minResizeWidth="110dp"
+    android:minResizeHeight="40dp"
+    android:maxResizeWidth="180dp"
+    android:maxResizeHeight="110dp"
+    android:targetCellWidth="2"
+    android:targetCellHeight="1"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:updatePeriodMillis="14400000"
+    android:initialLayout="@layout/today_widget_loading"
+    android:previewLayout="@layout/today_widget_loading"
+    android:description="@string/today_widget_description" />

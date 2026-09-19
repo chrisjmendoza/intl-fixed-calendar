@@ -1,15 +1,19 @@
 package io.github.chrisjmendoza.yearal.feature.calendar.today
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LinearProgressIndicator
@@ -18,8 +22,12 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -31,7 +39,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.chrisjmendoza.yearal.core.designsystem.format.rememberIfcDateFormatter
 import io.github.chrisjmendoza.yearal.core.designsystem.theme.IfcTheme
 import io.github.chrisjmendoza.yearal.feature.calendar.R
+import io.github.chrisjmendoza.yearal.feature.calendar.agenda.AgendaItemUi
 import java.time.LocalDate
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 
 /**
  * The Today tab (docs/FEATURES.md T1–T4, T6): collects [TodayViewModel.uiState] with the lifecycle
@@ -134,6 +146,91 @@ private fun LoadedContent(
         state.countdown?.let { countdown ->
             Spacer(modifier = Modifier.height(8.dp))
             Text(text = countdown, style = MaterialTheme.typography.bodyLarge)
+        }
+
+        val nextHolidayDays = state.nextHolidayDays
+        val nextHolidayName = state.nextHolidayName
+        if (nextHolidayDays != null && nextHolidayName != null) {
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(
+                text =
+                    pluralStringResource(
+                        R.plurals.today_next_holiday,
+                        nextHolidayDays,
+                        nextHolidayDays,
+                        nextHolidayName,
+                    ),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+        }
+
+        if (state.holidays.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = stringResource(R.string.today_holidays),
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.semantics { heading() },
+            )
+            for (holiday in state.holidays) {
+                Text(text = holiday, style = MaterialTheme.typography.bodyLarge)
+            }
+        }
+
+        if (state.agenda.isNotEmpty()) {
+            Spacer(modifier = Modifier.height(16.dp))
+            Text(
+                text = stringResource(R.string.today_agenda_heading),
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.semantics { heading() },
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                for (item in state.agenda) {
+                    TodayAgendaRow(item)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * One read-only row of today's agenda (FEATURES T5): a coloured dot (never colour alone — the title
+ * and time carry the same information in text), the title with a localized placeholder when blank,
+ * and "All day" or the locale-formatted time range. Unlike the Day detail's agenda row this one is not
+ * tappable; the Today screen is a summary, not an editor entry point.
+ */
+@Composable
+private fun TodayAgendaRow(item: AgendaItemUi) {
+    val title = item.title.ifBlank { stringResource(R.string.agenda_untitled_event) }
+    val timeLabel =
+        if (item.isAllDay) {
+            stringResource(R.string.agenda_all_day)
+        } else {
+            val locale = LocalConfiguration.current.locales[0]
+            val timeFormatter =
+                remember(locale) { DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(locale) }
+            stringResource(
+                R.string.agenda_time_range,
+                timeFormatter.format(item.startTime ?: LocalTime.MIDNIGHT),
+                timeFormatter.format(item.endTime ?: LocalTime.MIDNIGHT),
+            )
+        }
+    Row(
+        modifier =
+            Modifier.fillMaxWidth().semantics(mergeDescendants = true) {
+                contentDescription =
+                    "$title, $timeLabel"
+            },
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Box(modifier = Modifier.size(12.dp).background(Color(item.colorArgb), CircleShape))
+        Column {
+            Text(text = title, style = MaterialTheme.typography.bodyLarge)
+            Text(
+                text = timeLabel,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
     }
 }

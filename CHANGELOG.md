@@ -103,6 +103,28 @@ and the project uses [Semantic Versioning](https://semver.org/).
   allow-list from `docs/security-and-privacy.md`, so a dependency cannot silently add a permission such as
   `INTERNET`; and `record-screenshots.yml`, a manual job that records Roborazzi goldens on Linux and uploads
   them as an artifact for the owner to commit with a signed commit.
+- Recurrence expansion (M4 T3, `DefaultRecurrenceExpander` in `:core:domain`): IFC yearly, yearly-intercalary
+  and monthly rules expand by direct construction in `:core:calendar`, with the `JUNE_28` / `SKIP` / `SOL_1`
+  Leap Day policies, inclusive `UNTIL`, `COUNT` from the anchor, intervals, exdates and nothing after year
+  9999. Gregorian `RRULE`s expand through `org.dmfs:lib-recur` 0.17.1 (Apache-2.0); a rule that cannot be
+  evaluated shows the event once instead of failing. An independent brute-force oracle suite
+  (`RecurrenceExpanderOracleTest`, written from the contract without reading the implementation) checks
+  about 9,000 generated comparisons per run.
+- Event storage (M4 T2, `:core:data`): Room 3 schema v1 (`calendars`, `events`, `event_exdates`,
+  `reminders`) exported to `core/data/schemas/`, and `RoomEventRepository`, which passes the same 36-case
+  contract suite as the fake. The month-range query measures about 1 ms with 1,000 events.
+- Events tab (M4 T4, T5; FEATURES E1, E2, E3, E5, E6, E7, E9): a searchable event list showing both dates on
+  every row, and an editor with title, notes, location, all-day or timed, a date picked in either calendar,
+  device or fixed time zone, yearly recurrence on the IFC or the Gregorian date, monthly on the IFC day,
+  weekly, the Leap Day common-year choice, an end condition and reminder chips. Reminders are stored; they
+  are delivered from M6, and until then the editor says so under the chips.
+- Events on the calendar (M4 T6, T7; FEATURES C4, C5, T5): event dots on the month grid, the day's agenda
+  in Day detail (tap to edit, "Add event"), and today's agenda, today's holidays and the next holiday on
+  Today, all from the new `DefaultObserveAgendaUseCase` and the domain-level `HolidaySetProvider`.
+- Today home-screen widget (M5 T1, `:widget`, Glance 1.2.0; FEATURES S1, S3, S4, S5): the IFC date, the
+  Gregorian equivalent and the actual weekday, resizable, Material You colour, refreshed at midnight and
+  after clock, zone and locale changes, reboot and app update; tap opens the app. WorkManager's
+  `ACCESS_NETWORK_STATE` and `FOREGROUND_SERVICE` are removed from the merged manifest; `WAKE_LOCK` is added.
 
 ### Changed
 

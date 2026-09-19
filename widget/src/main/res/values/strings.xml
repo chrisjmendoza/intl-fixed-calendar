@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Every user- or TalkBack-visible widget string lives here (CLAUDE.md rule 9). -->
+<resources>
+    <!-- Widget-picker label (android:label on the receiver) and the provider's picker description. -->
+    <string name="today_widget_label">Today (IFC)</string>
+    <string name="today_widget_description">Today\'s International Fixed Calendar date, the Gregorian date and weekday. Updates automatically at midnight.</string>
+
+    <!-- Content description of the initial/preview layout's progress indicator. -->
+    <string name="today_widget_loading">Loading today’s date</string>
+
+    <!-- Appended to the merged content description so TalkBack announces that the widget is tappable. -->
+    <string name="today_widget_tap_hint">Double-tap to open Yearal.</string>
+</resources>

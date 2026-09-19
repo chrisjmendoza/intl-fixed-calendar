@@ -70,6 +70,21 @@ class HolidayCatalog
             return labels(enabledSetIds, range).mapValues { (_, names) -> names.joinToString(separator) }
         }
 
+        /**
+         * The earliest holiday **strictly after** [from], searched up to [windowDays] ahead (FEATURES
+         * T5); `null` if none of the enabled sets has one in that window. [from] itself is never
+         * returned — the Today screen shows today's own holidays separately, from [labels].
+         */
+        fun nextHoliday(
+            enabledSetIds: Set<String>,
+            from: LocalDate,
+            windowDays: Long = NEXT_HOLIDAY_WINDOW_DAYS,
+        ): Pair<LocalDate, String>? =
+            gridLabels(enabledSetIds, from.plusDays(1)..from.plusDays(windowDays))
+                .entries
+                .minByOrNull { it.key }
+                ?.toPair()
+
         private fun label(
             occurrence: HolidayOccurrence,
             locale: Locale,
@@ -79,5 +94,10 @@ class HolidayCatalog
             // HolidayDefinition.nameFor matches the tag exactly; stripping the region is the UI's job.
             val name = occurrence.holiday.nameFor(if (tag in names) tag else locale.language)
             return if (occurrence.observed) resources.getString(R.string.holiday_observed, name) else name
+        }
+
+        private companion object {
+            /** How far ahead [nextHoliday] looks: comfortably more than a year, so nothing is ever missed. */
+            const val NEXT_HOLIDAY_WINDOW_DAYS = 400L
         }
     }

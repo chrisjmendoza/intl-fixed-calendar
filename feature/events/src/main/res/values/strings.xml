@@ -1,0 +1,133 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Strings of the events list and editor (docs/FEATURES.md E1, E2, E3, E5, E6, E7, E9; ROADMAP M4 T4, T5).
+     Calendar terms, date patterns and the date pickers' own strings live in :core:designsystem, not here. -->
+<resources>
+
+    <!-- ===== List (EventListKey) ===== -->
+
+    <!-- Title of the events list's app bar. -->
+    <string name="events_list_title">Events</string>
+    <!-- Spoken description of the "create event" FAB. -->
+    <string name="events_add">Add event</string>
+    <!-- Label of the search field. -->
+    <string name="events_search_label">Search events</string>
+    <!-- Spoken description of the button that clears the search field. -->
+    <string name="events_search_clear">Clear search</string>
+    <!-- Empty state: no events exist yet. -->
+    <string name="events_empty_no_events">No events yet. Tap + to create one.</string>
+    <!-- Empty state: the search text matches nothing. -->
+    <string name="events_empty_no_matches">No events match your search.</string>
+    <!-- Placeholder shown in place of a blank title (docs/domain/event/Event.kt KDoc: "(No title)"). -->
+    <string name="events_no_title">(No title)</string>
+    <!-- Placeholder shown in place of a blank calendar name (the built-in calendar before it is renamed). -->
+    <string name="events_calendar_default_name">Default calendar</string>
+    <!-- Note shown on a row whose calendar is hidden (docs/contracts/Events.md: EventCalendar.visible). -->
+    <string name="events_calendar_hidden">Hidden calendar</string>
+    <!-- The time column for an all-day row. -->
+    <string name="events_all_day">All day</string>
+    <!-- A timed row's start time with its fixed zone. %1$s = the time (e.g. "9:30 AM"), %2$s = the zone id. -->
+    <string name="events_time_with_zone">%1$s (%2$s)</string>
+    <!-- Merged accessibility description of a row, spoken in order title, IFC date, Gregorian date, time.
+         %1$s = title (already placeholder-resolved), %2$s = IFC long date, %3$s = Gregorian long date,
+         %4$s = time or "All day". -->
+    <string name="events_row_description">%1$s. IFC %2$s. Gregorian %3$s. %4$s.</string>
+
+    <!-- Recurrence summaries (a row's own text, and the editor's radio labels reuse the day text). -->
+    <!-- %1$s = the IFC day named in its month, e.g. "Sol 13". -->
+    <string name="events_recurrence_yearly_ifc">Every %1$s</string>
+    <string name="events_recurrence_year_day">Every Year Day</string>
+    <string name="events_recurrence_leap_day_june28">Every Leap Day — June 28 in common years</string>
+    <string name="events_recurrence_leap_day_skip">Every Leap Day — leap years only</string>
+    <string name="events_recurrence_leap_day_sol1">Every Leap Day — Sol 1 in common years</string>
+    <!-- %1$d = day of the IFC month, 1..28. -->
+    <string name="events_recurrence_monthly_ifc">IFC day %1$d of every month</string>
+    <!-- %1$s = the Gregorian month and day, e.g. "Jun 18". -->
+    <string name="events_recurrence_yearly_gregorian">Every %1$s (Gregorian)</string>
+    <string name="events_recurrence_weekly">Weekly</string>
+    <!-- A Gregorian recurrence this app's own editor did not create (a future import). -->
+    <string name="events_recurrence_other">Recurring</string>
+
+    <!-- ===== Editor (EventEditorKey) ===== -->
+
+    <string name="events_editor_title_new">New event</string>
+    <string name="events_editor_title_edit">Edit event</string>
+    <string name="events_editor_back">Back</string>
+    <string name="events_editor_save">Save</string>
+    <string name="events_editor_delete">Delete</string>
+    <string name="events_editor_cancel">Cancel</string>
+    <string name="events_editor_confirm">OK</string>
+    <string name="events_editor_discard">Discard</string>
+    <!-- Shown when the event being edited no longer exists (deleted elsewhere). -->
+    <string name="events_editor_not_found">This event no longer exists.</string>
+    <!-- Shown after a save attempt failed soft (the event or its calendar was deleted elsewhere). -->
+    <string name="events_editor_save_failed">Couldn\'t save — this event or its calendar may have been deleted. Your changes are kept here.</string>
+
+    <string name="events_editor_title_label">Title</string>
+    <string name="events_editor_notes_label">Notes</string>
+    <string name="events_editor_location_label">Location</string>
+    <string name="events_editor_all_day_label">All day</string>
+    <string name="events_editor_start_label">Starts</string>
+    <string name="events_editor_end_date_label">Ends</string>
+    <!-- The date field button's text when both calendars apply: %1$s = IFC label, %2$s = Gregorian label. -->
+    <string name="events_editor_date_pair">%1$s / %2$s</string>
+    <!-- The date field's spoken description with both calendars. %1$s = field label (e.g. "Starts"),
+         %2$s = IFC long date, %3$s = Gregorian long date. -->
+    <string name="events_editor_date_description">%1$s, IFC %2$s, Gregorian %3$s. Change date</string>
+    <!-- The date field's spoken description when only the Gregorian date is shown (the "Ends" field of an
+         all-day event). %1$s = field label, %2$s = Gregorian long date. -->
+    <string name="events_editor_date_description_gregorian_only">%1$s, %2$s. Change date</string>
+    <string name="events_editor_end_before_start">The end must be on or after the start.</string>
+
+    <string name="events_editor_zone_floating">Device time</string>
+    <!-- %1$s = the fixed zone id, e.g. "America/New_York". -->
+    <string name="events_editor_zone_fixed">Fixed zone (%1$s)</string>
+
+    <string name="events_editor_recurrence_heading">Repeat</string>
+    <string name="events_recurrence_option_none">Does not repeat</string>
+    <!-- %1$s = the IFC day named in its month, e.g. "Sol 13". -->
+    <string name="events_recurrence_option_yearly_ifc">Yearly on %1$s (IFC)</string>
+    <!-- %1$s = the Gregorian month and day, e.g. "Jun 18". -->
+    <string name="events_recurrence_option_yearly_gregorian">Yearly on %1$s (Gregorian)</string>
+    <string name="events_recurrence_option_monthly_ifc">Monthly on this IFC day</string>
+    <string name="events_recurrence_option_weekly">Weekly</string>
+
+    <string name="events_editor_leap_day_policy_heading">In years with no Leap Day</string>
+    <string name="events_editor_leap_day_policy_explainer">Leap Day only exists in leap years. Choose what happens the rest of the time.</string>
+    <string name="events_editor_leap_day_policy_june28">Move to June 28 (the Gregorian date, June 17, stays the same)</string>
+    <string name="events_editor_leap_day_policy_skip">Skip that year</string>
+    <string name="events_editor_leap_day_policy_sol1">Move to Sol 1 (Gregorian June 18)</string>
+
+    <string name="events_editor_end_heading">Ends</string>
+    <string name="events_editor_end_never">Never</string>
+    <string name="events_editor_end_until">On a date</string>
+    <string name="events_editor_end_count">After a number of times</string>
+    <string name="events_editor_until_before_start">The end date must be on or after the start.</string>
+    <string name="events_editor_count_label">Number of times</string>
+
+    <string name="events_editor_reminders_heading">Reminders</string>
+    <!-- Honesty note under the reminders heading: chips are still stored (docs/ROADMAP.md M4), but nothing
+         delivers a notification until ReminderScheduler lands (docs/ROADMAP.md M6 T1). Remove this string
+         and its supporting Text in EventEditorScreen's ReminderSection once M6 T1 ships. -->
+    <string name="events_editor_reminders_not_yet_delivered">Reminders are saved with the event. Notifications arrive in a later version.</string>
+    <string name="events_reminder_0">At the time</string>
+    <string name="events_reminder_10">10 minutes before</string>
+    <string name="events_reminder_30">30 minutes before</string>
+    <string name="events_reminder_60">1 hour before</string>
+    <string name="events_reminder_1440">1 day before</string>
+    <!-- Fallback for a minutes-before value outside the fixed presets. %1$d = minutes. -->
+    <plurals name="events_reminder_minutes_before">
+        <item quantity="one">%1$d minute before</item>
+        <item quantity="other">%1$d minutes before</item>
+    </plurals>
+
+    <string name="events_editor_delete_confirm_title">Delete this event?</string>
+    <string name="events_editor_delete_confirm_text">This deletes every occurrence. This can\'t be undone.</string>
+    <string name="events_editor_discard_confirm_title">Discard changes?</string>
+    <string name="events_editor_discard_confirm_text">Your changes haven\'t been saved.</string>
+
+    <string name="events_editor_pick_calendar_title">Pick the date in</string>
+    <string name="events_editor_pick_gregorian">Gregorian calendar</string>
+    <string name="events_editor_pick_ifc">International Fixed Calendar</string>
+    <string name="events_editor_pick_time_title">Choose time</string>
+
+</resources>

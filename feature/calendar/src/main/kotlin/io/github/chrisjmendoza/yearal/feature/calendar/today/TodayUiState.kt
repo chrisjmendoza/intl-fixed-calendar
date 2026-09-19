@@ -3,8 +3,10 @@ package io.github.chrisjmendoza.yearal.feature.calendar.today
 import io.github.chrisjmendoza.yearal.core.calendar.IfcDate
 import io.github.chrisjmendoza.yearal.core.calendar.IfcMonth
 import io.github.chrisjmendoza.yearal.core.designsystem.format.IfcDateFormatter
+import io.github.chrisjmendoza.yearal.feature.calendar.agenda.AgendaItemUi
 import java.time.LocalDate
 import java.time.Year
+import java.time.temporal.ChronoUnit
 
 /**
  * What the Today screen shows (docs/FEATURES.md T1–T4; docs/ARCHITECTURE.md §4 "Screen behaviors").
@@ -34,6 +36,14 @@ sealed interface TodayUiState {
      * @property yearProgressLabel [yearProgress] as text, `71% of the year`.
      * @property countdown days until the next Leap Day or Year Day, whichever comes first
      * (`105 days until Year Day`); `null` only when there is none inside the supported year range.
+     * @property agenda today's own event occurrences (FEATURES T5), all-day first then by start time;
+     * empty when there are none.
+     * @property holidays display labels of today's enabled holidays, in holiday-engine order; empty
+     * when there are none.
+     * @property nextHolidayDays days from today until [nextHolidayName] (FEATURES T5), `> 0`; `null`
+     * when no enabled set has an upcoming holiday in the search window.
+     * @property nextHolidayName the next upcoming holiday's display label, paired with
+     * [nextHolidayDays]; `null` exactly when that is.
      */
     data class Loaded(
         val date: IfcDate,
@@ -50,6 +60,10 @@ sealed interface TodayUiState {
         val yearProgress: Float,
         val yearProgressLabel: String,
         val countdown: String?,
+        val agenda: List<AgendaItemUi> = emptyList(),
+        val holidays: List<String> = emptyList(),
+        val nextHolidayDays: Int? = null,
+        val nextHolidayName: String? = null,
     ) : TodayUiState
 }
 
@@ -57,10 +71,15 @@ sealed interface TodayUiState {
  * Builds the [TodayUiState.Loaded] for the Gregorian date [today]. The IFC date comes from
  * `:core:calendar` and every string from [formatter]; nothing here formats or computes a date itself
  * (CLAUDE.md rules 1 and 9).
+ *
+ * @param nextHoliday the next upcoming holiday and its label ([io.github.chrisjmendoza.yearal.feature.calendar.holiday.HolidayCatalog.nextHoliday]), or `null` for none.
  */
 fun buildTodayUiState(
     today: LocalDate,
     formatter: IfcDateFormatter,
+    holidays: List<String> = emptyList(),
+    nextHoliday: Pair<LocalDate, String>? = null,
+    agenda: List<AgendaItemUi> = emptyList(),
 ): TodayUiState.Loaded {
     val date = IfcDate.from(today)
     return TodayUiState.Loaded(
@@ -78,6 +97,10 @@ fun buildTodayUiState(
         yearProgress = IfcDateFormatter.yearProgressFraction(date),
         yearProgressLabel = formatter.yearProgress(date),
         countdown = nextIntercalaryDay(date)?.let { formatter.countdown(date, it) },
+        agenda = agenda,
+        holidays = holidays,
+        nextHolidayDays = nextHoliday?.let { ChronoUnit.DAYS.between(today, it.first).toInt() },
+        nextHolidayName = nextHoliday?.second,
     )
 }
 

@@ -2,6 +2,7 @@ plugins {
     id("ifc.android.library")
     id("ifc.kotlin.serialization")
     id("ifc.hilt")
+    id("ifc.room")
 }
 
 val libs = extensions.getByType<VersionCatalogsExtension>().named("libs")

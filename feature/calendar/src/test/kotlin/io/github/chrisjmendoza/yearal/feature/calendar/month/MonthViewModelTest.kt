@@ -11,7 +11,9 @@ import io.github.chrisjmendoza.yearal.core.domain.settings.UserSettings
 import io.github.chrisjmendoza.yearal.core.domain.settings.WeekdayDisplay
 import io.github.chrisjmendoza.yearal.core.holidays.HolidayPackLoader
 import io.github.chrisjmendoza.yearal.core.navigation.MonthKey
+import io.github.chrisjmendoza.yearal.core.testing.EventFixtures
 import io.github.chrisjmendoza.yearal.core.testing.FakeDateTicker
+import io.github.chrisjmendoza.yearal.core.testing.FakeObserveAgendaUseCase
 import io.github.chrisjmendoza.yearal.core.testing.FakeSettingsRepository
 import io.github.chrisjmendoza.yearal.feature.calendar.holiday.HolidayCatalog
 import io.kotest.matchers.collections.shouldContainExactly
@@ -75,7 +77,8 @@ class MonthViewModelTest {
         initialMonth: IfcYearMonth,
         ticker: FakeDateTicker = FakeDateTicker(LocalDate.of(2026, 9, 17)),
         settings: FakeSettingsRepository = FakeSettingsRepository(),
-    ) = MonthViewModel(initialMonth, ticker, settings, catalog)
+        observeAgenda: FakeObserveAgendaUseCase = FakeObserveAgendaUseCase(),
+    ) = MonthViewModel(initialMonth, ticker, settings, catalog, observeAgenda)
 
     // Spec §7.1: the pager covers 1583..9999, 13 pages a year.
 
@@ -270,6 +273,59 @@ class MonthViewModelTest {
                 viewModel.select(yearDay2026)
 
                 awaitItem().selected shouldBe yearDay2026
+            }
+        }
+
+    // FEATURES C4: event dots, sourced from ObserveAgendaUseCase for the three warm pages.
+
+    @Test
+    fun `event counts are requested for the current page and its two neighbours`() =
+        runTest(dispatcher) {
+            val agenda = FakeObserveAgendaUseCase()
+            viewModel(september2026, observeAgenda = agenda).uiState.test {
+                awaitItem()
+                val loaded = awaitItem()
+                loaded.eventCountsByMonth.keys shouldContainExactly
+                    setOf(IfcYearMonth(2026, IfcMonth.AUGUST), september2026, october2026)
+                agenda.requestedRanges shouldContainExactly
+                    listOf(
+                        IfcYearMonth(2026, IfcMonth.AUGUST).gregorianRange,
+                        september2026.gregorianRange,
+                        october2026.gregorianRange,
+                    )
+            }
+        }
+
+    @Test
+    fun `an event's occurrence count reaches the grid for its page`() =
+        runTest(dispatcher) {
+            val agenda = FakeObserveAgendaUseCase()
+            val onScreen = LocalDate.of(2026, 9, 17)
+            agenda.putEntry(EventFixtures.entry(EventFixtures.allDay(date = onScreen, title = "Meetup")))
+            viewModel(september2026, observeAgenda = agenda).uiState.test {
+                awaitItem()
+                val loaded = awaitItem()
+                loaded.eventCountsByMonth[september2026]?.get(onScreen) shouldBe 1
+            }
+        }
+
+    @Test
+    fun `paging re-evaluates event counts for the new warm window`() =
+        runTest(dispatcher) {
+            val agenda = FakeObserveAgendaUseCase()
+            agenda.putEntry(EventFixtures.entry(EventFixtures.allDay(date = christmas2026, title = "Party")))
+            val viewModel = viewModel(october2026, observeAgenda = agenda)
+            viewModel.uiState.test {
+                awaitItem()
+                awaitItem().eventCountsByMonth shouldNotContainKey december2026
+
+                viewModel.showPage(MonthPages.pageOf(IfcYearMonth(2026, IfcMonth.NOVEMBER)))
+
+                // The page and its event counts come from two combined flows, so the page change and the
+                // settled event counts can land in separate emissions; the second is always consistent.
+                awaitItem()
+                val paged = awaitItem()
+                paged.eventCountsByMonth[december2026]?.get(christmas2026) shouldBe 1
             }
         }
 }

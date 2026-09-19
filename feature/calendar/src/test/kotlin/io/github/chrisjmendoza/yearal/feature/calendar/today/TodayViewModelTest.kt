@@ -7,7 +7,14 @@ import app.cash.turbine.test
 import io.github.chrisjmendoza.yearal.core.calendar.IfcDate
 import io.github.chrisjmendoza.yearal.core.calendar.IfcMonth
 import io.github.chrisjmendoza.yearal.core.designsystem.format.IfcDateFormatter
+import io.github.chrisjmendoza.yearal.core.domain.holiday.HolidayEngine
+import io.github.chrisjmendoza.yearal.core.domain.settings.UserSettings
+import io.github.chrisjmendoza.yearal.core.holidays.HolidayPackLoader
+import io.github.chrisjmendoza.yearal.core.testing.EventFixtures
 import io.github.chrisjmendoza.yearal.core.testing.FakeDateTicker
+import io.github.chrisjmendoza.yearal.core.testing.FakeObserveAgendaUseCase
+import io.github.chrisjmendoza.yearal.core.testing.FakeSettingsRepository
+import io.github.chrisjmendoza.yearal.feature.calendar.holiday.HolidayCatalog
 import io.kotest.matchers.floats.plusOrMinus
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
@@ -37,11 +44,14 @@ import java.util.Locale
 class TodayViewModelTest {
     private val dispatcher = StandardTestDispatcher()
     private lateinit var formatter: IfcDateFormatter
+    private lateinit var catalog: HolidayCatalog
 
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
-        formatter = IfcDateFormatter(ApplicationProvider.getApplicationContext<Context>().resources, Locale.US)
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        formatter = IfcDateFormatter(context.resources, Locale.US)
+        catalog = HolidayCatalog(HolidayEngine(), HolidayPackLoader(), context)
     }
 
     @After
@@ -49,7 +59,11 @@ class TodayViewModelTest {
         Dispatchers.resetMain()
     }
 
-    private fun viewModel(ticker: FakeDateTicker) = TodayViewModel(ticker, formatter)
+    private fun viewModel(
+        ticker: FakeDateTicker,
+        settings: FakeSettingsRepository = FakeSettingsRepository(),
+        observeAgenda: FakeObserveAgendaUseCase = FakeObserveAgendaUseCase(),
+    ) = TodayViewModel(ticker, formatter, settings, catalog, observeAgenda)
 
     @Test
     fun `starts loading, then shows the ticker's date`() =
@@ -185,6 +199,75 @@ class TodayViewModelTest {
             viewModel(FakeDateTicker(LocalDate.of(2026, 1, 1))).uiState.test {
                 awaitItem() shouldBe TodayUiState.Loading
                 awaitItem().shouldBeInstanceOf<TodayUiState.Loaded>().countdown shouldBe "364 days until Year Day"
+            }
+        }
+
+    // FEATURES T5: today's agenda summary and the next holiday, sourced from ObserveAgendaUseCase and
+    // HolidayCatalog — the same single evaluation path the Month pager and Day detail use.
+
+    @Test
+    fun `today's own agenda entries are shown, all-day first`() =
+        runTest(dispatcher) {
+            val today = LocalDate.of(2026, 9, 17)
+            val agenda = FakeObserveAgendaUseCase()
+            agenda.putEntry(EventFixtures.entry(EventFixtures.allDay(id = 1, date = today, title = "Conference")))
+            viewModel(FakeDateTicker(today), observeAgenda = agenda).uiState.test {
+                awaitItem() shouldBe TodayUiState.Loading
+                val loaded = awaitItem().shouldBeInstanceOf<TodayUiState.Loaded>()
+                loaded.agenda.map { it.eventId } shouldBe listOf(1L)
+                agenda.requestedRanges shouldBe listOf(today..today)
+            }
+        }
+
+    @Test
+    fun `today's own holidays and the next upcoming one are both reported`() =
+        runTest(dispatcher) {
+            // Independence Day 2026 falls on a Saturday and is observed on Friday, July 3.
+            val settings = FakeSettingsRepository()
+            viewModel(FakeDateTicker(LocalDate.of(2026, 7, 3)), settings = settings).uiState.test {
+                awaitItem() shouldBe TodayUiState.Loading
+                val loaded = awaitItem().shouldBeInstanceOf<TodayUiState.Loaded>()
+                loaded.holidays shouldBe listOf("Independence Day (observed)")
+                // The real July 4 falls two days later; it is strictly after today, so it is "next".
+                loaded.nextHolidayDays shouldBe 1
+                loaded.nextHolidayName shouldBe "Independence Day"
+            }
+        }
+
+    @Test
+    fun `crossing midnight updates today's agenda and holidays`() =
+        runTest(dispatcher) {
+            val ticker = FakeDateTicker(LocalDate.of(2026, 7, 3))
+            val agenda = FakeObserveAgendaUseCase()
+            agenda.putEntry(
+                EventFixtures.entry(EventFixtures.allDay(id = 1, date = LocalDate.of(2026, 7, 4), title = "BBQ")),
+            )
+            viewModel(ticker, observeAgenda = agenda).uiState.test {
+                awaitItem() shouldBe TodayUiState.Loading
+                val before = awaitItem().shouldBeInstanceOf<TodayUiState.Loaded>()
+                before.agenda shouldBe emptyList()
+                before.holidays shouldBe listOf("Independence Day (observed)")
+
+                ticker.set(LocalDate.of(2026, 7, 4))
+
+                // "Today" and the agenda (keyed on "today") come from two combined flows, so the date
+                // change and the settled agenda can land in separate emissions; the second is consistent.
+                awaitItem()
+                val after = awaitItem().shouldBeInstanceOf<TodayUiState.Loaded>()
+                after.agenda.map { it.eventId } shouldBe listOf(1L)
+                after.holidays shouldBe listOf("Independence Day")
+            }
+        }
+
+    @Test
+    fun `no upcoming holiday leaves the countdown fields null`() =
+        runTest(dispatcher) {
+            val settings = FakeSettingsRepository(UserSettings(enabledHolidaySets = emptySet()))
+            viewModel(FakeDateTicker(LocalDate.of(2026, 9, 17)), settings = settings).uiState.test {
+                awaitItem() shouldBe TodayUiState.Loading
+                val loaded = awaitItem().shouldBeInstanceOf<TodayUiState.Loaded>()
+                loaded.nextHolidayDays shouldBe null
+                loaded.nextHolidayName shouldBe null
             }
         }
 

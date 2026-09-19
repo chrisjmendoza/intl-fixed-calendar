@@ -23,6 +23,9 @@ import java.time.LocalDate
  * @property holidaysByMonth holiday label per Gregorian date, keyed by month, for the current page
  * and its two neighbours (the pages kept warm), from the enabled holiday sets. A month without a
  * holiday maps to an empty map; a month not yet evaluated is absent.
+ * @property eventCountsByMonth number of event occurrences per Gregorian date, keyed by month, for the
+ * same warm pages as [holidaysByMonth] (FEATURES C4). A date with no event is absent (read as `0`); a
+ * month not yet evaluated is absent entirely.
  */
 data class MonthUiState(
     val currentPage: Int,
@@ -31,4 +34,5 @@ data class MonthUiState(
     val selected: LocalDate?,
     val weekdayDisplay: WeekdayDisplay = UserSettings.DEFAULT.weekdayDisplay,
     val holidaysByMonth: Map<IfcYearMonth, Map<LocalDate, String>> = emptyMap(),
+    val eventCountsByMonth: Map<IfcYearMonth, Map<LocalDate, Int>> = emptyMap(),
 )

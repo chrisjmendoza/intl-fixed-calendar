@@ -2,6 +2,7 @@ package io.github.chrisjmendoza.yearal.feature.calendar.day
 
 import io.github.chrisjmendoza.yearal.core.calendar.IfcDate
 import io.github.chrisjmendoza.yearal.core.designsystem.format.IfcDateFormatter
+import io.github.chrisjmendoza.yearal.feature.calendar.agenda.AgendaItemUi
 import java.time.LocalDate
 
 /**
@@ -31,6 +32,9 @@ sealed interface DayUiState {
      * @property isToday whether [gregorianDate] is the ticker's current date.
      * @property holidays display labels of the enabled holidays on this day, in holiday-engine order
      * (`Independence Day (observed)`); empty when there are none.
+     * @property agenda the day's event occurrences (FEATURES C5), all-day first then by start time
+     * ([io.github.chrisjmendoza.yearal.core.domain.event.DayAgenda.ENTRY_ORDER]); empty when there
+     * are none.
      */
     data class Loaded(
         val date: IfcDate,
@@ -45,6 +49,7 @@ sealed interface DayUiState {
         val quarter: String,
         val isToday: Boolean,
         val holidays: List<String>,
+        val agenda: List<AgendaItemUi> = emptyList(),
     ) : DayUiState
 }
 
@@ -58,6 +63,7 @@ fun buildDayUiState(
     today: LocalDate,
     formatter: IfcDateFormatter,
     holidays: List<String>,
+    agenda: List<AgendaItemUi> = emptyList(),
 ): DayUiState.Loaded {
     val date = IfcDate.from(day)
     return DayUiState.Loaded(
@@ -73,5 +79,6 @@ fun buildDayUiState(
         quarter = formatter.quarter(date),
         isToday = day == today,
         holidays = holidays,
+        agenda = agenda,
     )
 }

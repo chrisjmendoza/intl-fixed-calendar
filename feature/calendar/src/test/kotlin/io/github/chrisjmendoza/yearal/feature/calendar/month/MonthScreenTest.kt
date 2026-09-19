@@ -186,4 +186,21 @@ class MonthScreenTest {
             .assertIsDisplayed()
             .assert(hasContentDescription("Holiday: Christmas Day.", substring = true))
     }
+
+    // FEATURES C4: event dots, never colour alone, the spoken count included.
+
+    @Test
+    fun `event counts of the shown month reach the grid as dots and a spoken count`() {
+        // IFC October 5, 2026 is Gregorian October 12, 2026.
+        val onScreen = LocalDate.of(2026, 10, 12)
+        show(state(october2026).copy(eventCountsByMonth = mapOf(october2026 to mapOf(onScreen to 2))))
+
+        compose
+            .onNode(hasContentDescription("October 5, IFC", substring = true))
+            .assertIsDisplayed()
+            .assert(hasContentDescription("2 events.", substring = true))
+        compose
+            .onAllNodesWithTag(MonthGridTestTags.EVENT_DOT, useUnmergedTree = true)
+            .assertCountEquals(2)
+    }
 }
