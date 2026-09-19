@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Glance's required initial/preview layout for the Month widget (docs/ARCHITECTURE.md §5, ROADMAP
+  M5 T3): a plain RemoteViews layout shown for the brief moment before the first Glance composition
+  lands, and reused as previewLayout. It is replaced by MonthGlanceWidget's own content on the very
+  first provideGlance call, so it carries no date and needs no string beyond an accessibility label for
+  the loading state.
+-->
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ProgressBar
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center"
+        android:contentDescription="@string/month_widget_loading" />
+
+</FrameLayout>

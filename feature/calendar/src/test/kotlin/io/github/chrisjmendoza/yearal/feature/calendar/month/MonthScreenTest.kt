@@ -10,12 +10,14 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -70,10 +72,18 @@ class MonthScreenTest {
         state: MonthUiState,
         onPageChanged: (Int) -> Unit = {},
         onDayClick: (IfcDate) -> Unit = {},
+        onTitleClick: (Int) -> Unit = {},
+        onJumpToDate: (LocalDate) -> Unit = {},
     ) {
         compose.setContent {
             IfcTheme(dynamicColor = false) {
-                MonthScreen(state = state, onPageChanged = onPageChanged, onDayClick = onDayClick)
+                MonthScreen(
+                    state = state,
+                    onPageChanged = onPageChanged,
+                    onDayClick = onDayClick,
+                    onTitleClick = onTitleClick,
+                    onJumpToDate = onJumpToDate,
+                )
             }
         }
     }
@@ -202,5 +212,81 @@ class MonthScreenTest {
         compose
             .onAllNodesWithTag(MonthGridTestTags.EVENT_DOT, useUnmergedTree = true)
             .assertCountEquals(2)
+    }
+
+    // docs/ROADMAP.md M3 T2: tapping the month title zooms out to the Year view.
+
+    @Test
+    fun `tapping the month title reports the visible page's year`() {
+        var clickedYear: Int? = null
+        show(state(october2026), onTitleClick = { clickedYear = it })
+
+        compose.onNode(hasText("October 2026").and(hasClickAction())).performClick()
+
+        clickedYear shouldBe 2026
+    }
+
+    // FEATURES C7: jump to date, either calendar — the picker opens pre-selected on state.today, so
+    // confirming immediately round-trips that exact date, the same technique ConverterScreenTest uses.
+
+    @Test
+    fun `jump to date via Gregorian reports the pre-selected date`() {
+        val jumped = mutableListOf<LocalDate>()
+        show(state(october2026, today = LocalDate.of(2026, 9, 17)), onJumpToDate = { jumped += it })
+
+        compose.onNodeWithContentDescription("Jump to date").performClick()
+        compose.onNodeWithText("Pick a Gregorian date").performClick()
+        compose.onNodeWithText("OK").performClick()
+
+        jumped shouldBe listOf(LocalDate.of(2026, 9, 17))
+    }
+
+    @Test
+    fun `jump to date via IFC reports the pre-selected date for a regular day`() {
+        val jumped = mutableListOf<LocalDate>()
+        // Gregorian September 17, 2026 is IFC September 8, 2026 (spec §4.1 worked example).
+        show(state(october2026, today = LocalDate.of(2026, 9, 17)), onJumpToDate = { jumped += it })
+
+        compose.onNodeWithContentDescription("Jump to date").performClick()
+        compose.onNodeWithText("Pick an IFC date").performClick()
+        compose.onNodeWithText("Jump").performClick()
+
+        jumped shouldBe listOf(LocalDate.of(2026, 9, 17))
+    }
+
+    @Test
+    fun `jump to date via IFC reports Year Day`() {
+        val jumped = mutableListOf<LocalDate>()
+        show(state(october2026, today = LocalDate.of(2026, 12, 31)), onJumpToDate = { jumped += it })
+
+        compose.onNodeWithContentDescription("Jump to date").performClick()
+        compose.onNodeWithText("Pick an IFC date").performClick()
+        compose.onNodeWithText("Jump").performClick()
+
+        jumped shouldBe listOf(LocalDate.of(2026, 12, 31))
+    }
+
+    @Test
+    fun `jump to date via IFC reports Leap Day`() {
+        val jumped = mutableListOf<LocalDate>()
+        show(state(october2026, today = LocalDate.of(2028, 6, 17)), onJumpToDate = { jumped += it })
+
+        compose.onNodeWithContentDescription("Jump to date").performClick()
+        compose.onNodeWithText("Pick an IFC date").performClick()
+        compose.onNodeWithText("Jump").performClick()
+
+        jumped shouldBe listOf(LocalDate.of(2028, 6, 17))
+    }
+
+    @Test
+    fun `the jump-to-date chooser can be cancelled without invoking the callback`() {
+        var called = false
+        show(state(october2026), onJumpToDate = { called = true })
+
+        compose.onNodeWithContentDescription("Jump to date").performClick()
+        compose.onNodeWithText("Cancel").performClick()
+
+        compose.onAllNodesWithText("Choose a calendar").assertCountEquals(0)
+        called shouldBe false
     }
 }

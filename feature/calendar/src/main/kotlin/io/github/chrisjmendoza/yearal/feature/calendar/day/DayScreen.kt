@@ -18,6 +18,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -46,6 +47,7 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.chrisjmendoza.yearal.core.designsystem.format.rememberIfcDateFormatter
 import io.github.chrisjmendoza.yearal.core.designsystem.theme.IfcTheme
+import io.github.chrisjmendoza.yearal.core.navigation.ConverterKey
 import io.github.chrisjmendoza.yearal.core.navigation.DayKey
 import io.github.chrisjmendoza.yearal.core.navigation.EventEditorKey
 import io.github.chrisjmendoza.yearal.core.navigation.Navigator
@@ -72,10 +74,12 @@ private val AgendaRowSpacing = 12.dp
  *
  * The ViewModel is created for [key]'s date through [DayViewModel.Factory]; dismissing the sheet pops
  * the entry with [Navigator.goBack]. Tapping an agenda row or "Add event" pushes [EventEditorKey]
- * with the event's id or [DayKey.epochDay] as the prefill, ids only (CLAUDE.md rule 8).
+ * with the event's id or [DayKey.epochDay] as the prefill, ids only (CLAUDE.md rule 8). "Open in
+ * converter" (FEATURES D1) pushes [ConverterKey] prefilled with the same epoch day.
  *
  * @param key the day to show, as a Gregorian epoch day (CLAUDE.md rule 4).
- * @param navigator popped when the sheet is dismissed; navigated to the event editor on a tap.
+ * @param navigator popped when the sheet is dismissed; navigated to the event editor or the converter
+ * on a tap.
  * @param modifier applied to the sheet.
  */
 @Composable
@@ -94,6 +98,7 @@ fun DayRoute(
         onDismiss = navigator::goBack,
         onEventClick = { eventId -> navigator.navigate(EventEditorKey(eventId = eventId)) },
         onAddEvent = { navigator.navigate(EventEditorKey(prefillEpochDay = key.epochDay)) },
+        onOpenInConverter = { navigator.navigate(ConverterKey(prefillEpochDay = key.epochDay)) },
         modifier = modifier,
     )
 }
@@ -113,6 +118,7 @@ fun DayRoute(
  * @param modifier applied to the sheet.
  * @param onEventClick invoked with an agenda row's event id.
  * @param onAddEvent invoked by the "Add event" action.
+ * @param onOpenInConverter invoked by the "Open in converter" action (FEATURES D1).
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -122,13 +128,20 @@ fun DayScreen(
     modifier: Modifier = Modifier,
     onEventClick: (Long) -> Unit = {},
     onAddEvent: () -> Unit = {},
+    onOpenInConverter: () -> Unit = {},
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         modifier = modifier,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
-        DayDetail(state = state, onClose = onDismiss, onEventClick = onEventClick, onAddEvent = onAddEvent)
+        DayDetail(
+            state = state,
+            onClose = onDismiss,
+            onEventClick = onEventClick,
+            onAddEvent = onAddEvent,
+            onOpenInConverter = onOpenInConverter,
+        )
     }
 }
 
@@ -137,14 +150,15 @@ fun DayScreen(
  * Gregorian date, a "Today" badge when the day is today, both weekdays explicitly labelled (spec
  * §4.1; "no IFC weekday" on Leap Day and Year Day), day/week/quarter, the day's holidays under a
  * "Holidays" heading, and its events under an "Events" heading (FEATURES C5) — both headings omitted
- * when there is nothing to show — followed by an "Add event" action. "Open in converter" arrives with
- * its own feature; nothing here is a dead control.
+ * when there is nothing to show — followed by "Add event" and "Open in converter" actions (FEATURES
+ * D1); nothing here is a dead control.
  *
  * @param state what to show.
  * @param onClose the close button's action.
  * @param modifier applied to the content column.
  * @param onEventClick invoked with an agenda row's event id.
  * @param onAddEvent invoked by the "Add event" action.
+ * @param onOpenInConverter invoked by the "Open in converter" action.
  */
 @Composable
 fun DayDetail(
@@ -153,10 +167,11 @@ fun DayDetail(
     modifier: Modifier = Modifier,
     onEventClick: (Long) -> Unit = {},
     onAddEvent: () -> Unit = {},
+    onOpenInConverter: () -> Unit = {},
 ) {
     when (state) {
         DayUiState.Loading -> LoadingContent(modifier)
-        is DayUiState.Loaded -> LoadedContent(state, onClose, onEventClick, onAddEvent, modifier)
+        is DayUiState.Loaded -> LoadedContent(state, onClose, onEventClick, onAddEvent, onOpenInConverter, modifier)
     }
 }
 
@@ -177,6 +192,7 @@ private fun LoadedContent(
     onClose: () -> Unit,
     onEventClick: (Long) -> Unit,
     onAddEvent: () -> Unit,
+    onOpenInConverter: () -> Unit,
     modifier: Modifier,
 ) {
     Column(
@@ -249,10 +265,17 @@ private fun LoadedContent(
 
         Spacer(modifier = Modifier.height(BlockSpacing))
 
-        TextButton(onClick = onAddEvent) {
-            Icon(imageVector = Icons.Filled.Add, contentDescription = null)
-            Spacer(modifier = Modifier.width(ChipHorizontalPadding))
-            Text(text = stringResource(R.string.day_add_event))
+        Row(horizontalArrangement = Arrangement.spacedBy(BlockSpacing)) {
+            TextButton(onClick = onAddEvent) {
+                Icon(imageVector = Icons.Filled.Add, contentDescription = null)
+                Spacer(modifier = Modifier.width(ChipHorizontalPadding))
+                Text(text = stringResource(R.string.day_add_event))
+            }
+            TextButton(onClick = onOpenInConverter) {
+                Icon(imageVector = Icons.Filled.Refresh, contentDescription = null)
+                Spacer(modifier = Modifier.width(ChipHorizontalPadding))
+                Text(text = stringResource(R.string.day_open_in_converter))
+            }
         }
     }
 }

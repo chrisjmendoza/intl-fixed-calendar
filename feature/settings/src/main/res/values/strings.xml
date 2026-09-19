@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Strings of the More hub and the Settings screen (docs/FEATURES.md W1, W2, H5). -->
+<!-- Strings of the More hub, the Settings screen (docs/FEATURES.md W1, W2, H5), the Learn screen
+     (docs/FEATURES.md L2) and the Privacy screen (docs/FEATURES.md P5). One string per paragraph or
+     answer throughout, never built by concatenating strings in code, so every sentence can be
+     translated as a whole (CLAUDE.md rule 9). -->
 <resources>
 
     <!-- ===== More hub (the "More" tab) ===== -->
@@ -12,6 +15,18 @@
 
     <!-- Supporting line under the Settings row, listing what can be changed there. -->
     <string name="more_settings_detail">Weekday headers, theme, holidays</string>
+
+    <!-- Row that opens the Learn screen (docs/FEATURES.md L2). -->
+    <string name="more_learn">Learn</string>
+
+    <!-- Supporting line under the Learn row. -->
+    <string name="more_learn_detail">What the IFC is, how it works, and why the weekdays differ</string>
+
+    <!-- Row that opens the Privacy screen (docs/FEATURES.md P5). -->
+    <string name="more_privacy">Privacy</string>
+
+    <!-- Supporting line under the Privacy row. -->
+    <string name="more_privacy_detail">What the app stores, and what it never does</string>
 
     <!-- Supporting line of the About row. %1$s = the app's version name, e.g. "0.1.0". -->
     <string name="more_version">Version %1$s</string>
@@ -81,5 +96,163 @@
 
     <!-- Supporting line under a regional holiday set. %1$s = the country name, e.g. "United States". -->
     <string name="settings_holiday_region">Region: %1$s</string>
+
+    <!-- ===== Learn screen (docs/FEATURES.md L2) ===== -->
+
+    <!-- Title of the Learn screen. -->
+    <string name="learn_title">Learn</string>
+
+    <!-- Spoken description of the back arrow in the top app bar. -->
+    <string name="learn_back">Back</string>
+
+    <!-- Section heading: what the calendar is. -->
+    <string name="learn_section_what">What is the International Fixed Calendar?</string>
+
+    <!-- First "what is it" paragraph: the month/day structure. -->
+    <string name="learn_what_months">The International Fixed Calendar (IFC) reshapes the year into 13 months of exactly 28 days each — four whole weeks, every month, every year, forever.</string>
+
+    <!-- Second "what is it" paragraph: Sol. -->
+    <string name="learn_what_sol">The extra, 13th month is called Sol, and it sits between June and July.</string>
+
+    <!-- Third "what is it" paragraph: every month starts Sunday, and the Friday-the-13th identity. -->
+    <string name="learn_what_friday_13">Because every month is exactly 4 weeks, every month starts on a nominal Sunday and ends on a nominal Saturday — and the 13th of every month nominally falls on a Friday.</string>
+
+    <!-- Section heading: the two days that belong to no week. -->
+    <string name="learn_section_floating">The two days outside the week</string>
+
+    <!-- Intro paragraph explaining why the floating days exist. -->
+    <string name="learn_floating_intro">13 months of 28 days add up to 364 days — one short of a full year, two short in a leap year. Those extra days do not belong to any week or month; the IFC sets them apart as Year Day and Leap Day.</string>
+
+    <!-- Year Day paragraph. %1$s = its IFC long form, e.g. "Year Day, 2026". %2$s = its Gregorian long form. -->
+    <string name="learn_floating_year_day">Year Day happens every year. It comes after December 28 and before next January 1 — it belongs to no week and has no IFC weekday of its own. %1$s is Gregorian %2$s.</string>
+
+    <!-- Leap Day paragraph. %1$s = its IFC long form, e.g. "Leap Day, 2024". %2$s = its Gregorian long form. -->
+    <string name="learn_floating_leap_day">Leap Day happens only in leap years. It comes after June 28 and before Sol 1 — also outside the week. %1$s is Gregorian %2$s.</string>
+
+    <!-- Section heading: nominal vs. actual weekday. -->
+    <string name="learn_section_weekday">Why the weekdays in this app differ</string>
+
+    <!-- Intro paragraph: how the IFC gets a perpetual weekday, and why the real world does not follow it. -->
+    <string name="learn_weekday_intro">The IFC gets its perpetual weekdays by taking Year Day and Leap Day out of the week entirely. The real world does not do this: the seven-day cycle runs on, unbroken, through December 31 and June 17 every year.</string>
+
+    <!-- The spec's own worked example. %1$s = Gregorian long form with weekday. %2$s = IFC long form.
+         %3$s = the IFC (nominal) weekday name. %4$s = the real (actual) weekday name. -->
+    <string name="learn_weekday_worked_example">For example: %1$s is IFC %2$s. Its IFC weekday is %3$s, but because Year Day (and, in leap years, Leap Day) are taken out of the count first, its real weekday is %4$s.</string>
+
+    <!-- Conclusion: what the app does about it. -->
+    <string name="learn_weekday_conclusion">This is why the app always shows both weekdays: the IFC one for the calendar\'s own sense of the week, and the real one for anything tied to actual life — today\'s highlight, your events, and your reminders.</string>
+
+    <!-- Section heading: how dates are calculated. -->
+    <string name="learn_section_calculation">How the dates are calculated</string>
+
+    <!-- Day-of-year equality and the canonical numeric form. %1$s = the numeric IFC form with its
+         mandatory "IFC" marker, e.g. "IFC 2026-10-08". -->
+    <string name="learn_calc_day_of_year">The IFC\'s day-of-year number is always identical to the Gregorian one. The calendar\'s own numeric date form always carries an \"IFC\" marker, like %1$s, so it can never be mistaken for an ordinary Gregorian date written the same way.</string>
+
+    <!-- Sol 1 is always June 18. %1$s/%3$s = IFC long forms for a common and a leap year.
+         %2$s/%4$s = their Gregorian long forms. -->
+    <string name="learn_calc_sol1">Sol 1 is always Gregorian June 18, whether the year is a leap year or not: %1$s is Gregorian %2$s, and %3$s is Gregorian %4$s.</string>
+
+    <!-- Year Day is always December 31. %1$s = IFC long form. %2$s = Gregorian long form. -->
+    <string name="learn_calc_year_day">Year Day is always Gregorian December 31: %1$s is Gregorian %2$s.</string>
+
+    <!-- The leap-year shift for March through June. %1$s = IFC long form in the common-year example.
+         %2$d = that year. %3$s = IFC long form in the leap-year example. %4$d = that year. -->
+    <string name="learn_calc_leap_shift">In a leap year, Leap Day is inserted after June 28, which pushes every IFC date from March through June one day later than in a common year. For example, Gregorian March 1 is %1$s in a common year like %2$d, but %3$s in a leap year like %4$d.</string>
+
+    <!-- The Friday-the-13th identity, worked out. %1$s = IFC long form, e.g. "January 13, 2026".
+         %2$s = the nominal weekday name, e.g. "Friday". -->
+    <string name="learn_calc_friday_13">And because every month is exactly 4 weeks, the 13th of every month is always a nominal Friday: %1$s\'s IFC weekday is %2$s.</string>
+
+    <!-- Section heading: history. -->
+    <string name="learn_section_history">A brief history</string>
+
+    <!-- Cotsworth. The book's date is given as a range because sources disagree (calendar-spec §2.5). -->
+    <string name="learn_history_cotsworth">Moses B. Cotsworth (1859–1943), a British railway statistician, devised the plan so that monthly figures could be compared fairly, and presented it in 1902; his book explaining it, \"The Rational Almanac,\" is dated 1902 or 1905 depending on the source.</string>
+
+    <!-- League of Nations. -->
+    <string name="learn_history_league_of_nations">The League of Nations took up calendar reform in the 1920s. According to Wikipedia, its committee judged the 13-month plan the best of 130 proposals and held an international conference on it in October 1931 — but it was never adopted, largely because days outside the week broke the continuous seven-day week observed by several religions.</string>
+
+    <!-- Eastman Kodak. The end date is given loosely because sources disagree (calendar-spec §2.5: most
+         say 1989, one says 1982). -->
+    <string name="learn_history_kodak">George Eastman became the plan\'s main backer in the mid-1920s and put it to work at Eastman Kodak starting in 1928; Kodak\'s 13-period calendar stayed in internal use for decades — until around 1989, by most accounts.</string>
+
+    <!-- Closing historical fact. -->
+    <string name="learn_history_never_adopted">No country has ever adopted the International Fixed Calendar.</string>
+
+    <!-- Section heading: FAQ. -->
+    <string name="learn_section_faq">Frequently asked questions</string>
+
+    <!-- FAQ: is it lunar? -->
+    <string name="learn_faq_lunar_question">Is the IFC based on the phases of the moon?</string>
+    <string name="learn_faq_lunar_answer">No. Despite having 13 months, the IFC is a solar calendar: its year is exactly as long as the Gregorian year, and its months are fixed at 28 days regardless of the moon\'s roughly 29.5-day cycle.</string>
+
+    <!-- FAQ: does the year start in spring? -->
+    <string name="learn_faq_year_start_question">Does the IFC year start in spring?</string>
+    <string name="learn_faq_year_start_answer">No. IFC January 1 is Gregorian January 1, the same as every other year — the IFC relabels the days inside the existing Gregorian year rather than starting the year somewhere else.</string>
+
+    <!-- FAQ: Sol vs. Leap Day. -->
+    <string name="learn_faq_sol_vs_leap_question">Are Sol and Leap Day the same thing?</string>
+    <string name="learn_faq_sol_vs_leap_answer">No, they\'re different kinds of thing. Sol is a full, 28-day month between June and July, present every year. Leap Day is a single day with no week and no month, present only in leap years, coming after June 28.</string>
+
+    <!-- FAQ: other 13-month calendars. -->
+    <string name="learn_faq_other_calendars_question">Is this the only 13-month calendar?</string>
+    <string name="learn_faq_other_calendars_answer">No. Other 13-month proposals exist — among them the Positivist calendar, the World Calendar (which actually has 12 months) and the Pax calendar — and each places its extra days differently, or keeps the seven-day week intact instead. If a 13-month calendar has a month called Sol between June and July, a Year Day on Gregorian December 31 and a Leap Day on Gregorian June 17, it is this one, the IFC; otherwise, it\'s a different calendar.</string>
+
+    <!-- FAQ: what "proleptic" means in the converter. -->
+    <string name="learn_faq_proleptic_question">What does the converter\'s note about \"proleptic\" dates mean?</string>
+    <string name="learn_faq_proleptic_answer">For any date before a country actually adopted the Gregorian calendar, the app still uses today\'s calendar rules extended backward in time — historians call this \"proleptic.\" It lets the converter answer for any year from 1 to 9999, but a date from, say, the 1600s is a hypothetical translation, not a date anyone alive then would have recognized.</string>
+
+    <!-- Spoken state of an expanded FAQ answer, for TalkBack. -->
+    <string name="learn_faq_state_expanded">Expanded</string>
+
+    <!-- Spoken state of a collapsed FAQ answer, for TalkBack. -->
+    <string name="learn_faq_state_collapsed">Collapsed</string>
+
+    <!-- ===== Privacy screen (docs/FEATURES.md P5) ===== -->
+
+    <!-- Title of the Privacy screen. -->
+    <string name="privacy_title">Privacy</string>
+
+    <!-- Spoken description of the back arrow in the top app bar. -->
+    <string name="privacy_back">Back</string>
+
+    <!-- Section heading: the short version. -->
+    <string name="privacy_section_summary">In short</string>
+
+    <!-- The short version, close to the wording docs/security-and-privacy.md itself proposes. -->
+    <string name="privacy_summary_body">Your calendar stays on your phone. Yearal has no account, no ads, no analytics and no crash-reporting service — and because it has no permission to use the internet at all, nothing it stores could leave your device even if it wanted to.</string>
+
+    <!-- Section heading: what is stored. -->
+    <string name="privacy_section_data">What is stored, and where</string>
+
+    <!-- What the app stores (docs/security-and-privacy.md: "events, reminders, settings; stored only in
+         the app's private storage on the device"). -->
+    <string name="privacy_data_body">Your settings, your events and your reminders are the only things this app keeps, and they live only in the app\'s own private storage on your device — never on a server, because there is no server.</string>
+
+    <!-- Section heading: permissions. -->
+    <string name="privacy_section_permissions">Permissions, and what they\'re for</string>
+
+    <!-- RECEIVE_BOOT_COMPLETED, the only reason it is declared today. -->
+    <string name="privacy_permission_boot">Restart the day at midnight: the app asks Android for permission to run right after your device restarts (\"receive boot completed\"), only so it can re-arm the alarm that keeps the widget and the date rollover correct — a restart otherwise cancels it.</string>
+
+    <!-- WAKE_LOCK, merged in by WorkManager for the widget. -->
+    <string name="privacy_permission_wake">Keep the widget\'s date right: a system mechanism the widget\'s background updates rely on (\"wake lock\") briefly keeps the device awake long enough to redraw the widget, so it never goes stale.</string>
+
+    <!-- What is deliberately absent. -->
+    <string name="privacy_permission_none">That\'s the complete list. Yearal does not ask for your contacts, your location, your photos or files, your device calendars, or the internet.</string>
+
+    <!-- Section heading: backups. -->
+    <string name="privacy_section_backup">Backups</string>
+
+    <!-- Backup behaviour (docs/security-and-privacy.md §4.1: encrypted-only Auto Backup). -->
+    <string name="privacy_backup_body">If you have Android device backup turned on with a screen lock set, your settings and events may be included in an encrypted backup to your Google account — encrypted with your own screen lock, so Google cannot read it either. You can turn this off at any time in your device\'s system settings; the app has no separate control over it.</string>
+
+    <!-- Section heading: the policy itself. -->
+    <string name="privacy_section_policy">The full policy</string>
+
+    <!-- Notes that this screen is the whole policy today and a web copy will follow, without inventing a
+         URL that does not exist yet (docs/security-and-privacy.md §5.2). -->
+    <string name="privacy_policy_body">This screen is the complete privacy policy for the app as it stands today. The same text will also be published on the web once the app is available to install, with a link added here.</string>
 
 </resources>

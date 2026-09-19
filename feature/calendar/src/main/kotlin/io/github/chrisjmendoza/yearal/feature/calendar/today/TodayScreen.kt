@@ -1,6 +1,7 @@
 package io.github.chrisjmendoza.yearal.feature.calendar.today
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,6 +30,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
@@ -38,6 +40,8 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import io.github.chrisjmendoza.yearal.core.designsystem.format.rememberIfcDateFormatter
 import io.github.chrisjmendoza.yearal.core.designsystem.theme.IfcTheme
+import io.github.chrisjmendoza.yearal.core.navigation.EventEditorKey
+import io.github.chrisjmendoza.yearal.core.navigation.Navigator
 import io.github.chrisjmendoza.yearal.feature.calendar.R
 import io.github.chrisjmendoza.yearal.feature.calendar.agenda.AgendaItemUi
 import java.time.LocalDate
@@ -48,17 +52,24 @@ import java.time.format.FormatStyle
 /**
  * The Today tab (docs/FEATURES.md T1–T4, T6): collects [TodayViewModel.uiState] with the lifecycle
  * and renders it through the stateless [TodayScreen]. This is the composable `:app` places behind
- * `TodayKey`.
+ * `TodayKey`. Tapping an agenda row pushes [EventEditorKey] with the event's id only (CLAUDE.md rule
+ * 8); holidays stay non-tappable (docs/ROADMAP.md, left over from M4 T7).
  *
+ * @param navigator where an agenda row tap navigates.
  * @param modifier applied to the screen's root; the screen adds its own safe-drawing insets.
  */
 @Composable
 fun TodayRoute(
+    navigator: Navigator,
     modifier: Modifier = Modifier,
     viewModel: TodayViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    TodayScreen(state = state, modifier = modifier)
+    TodayScreen(
+        state = state,
+        onAgendaItemClick = { eventId -> navigator.navigate(EventEditorKey(eventId = eventId)) },
+        modifier = modifier,
+    )
 }
 
 /**
@@ -68,15 +79,18 @@ fun TodayRoute(
  * Shows the hero IFC date, its numeric form with the `IFC` marker, the Gregorian equivalent, both
  * weekdays explicitly labelled (spec §4.1; on Leap Day and Year Day the IFC line reads "no IFC
  * weekday"), day/week/quarter, a year-progress bar and the countdown to the next intercalary day.
+ *
+ * @param onAgendaItemClick invoked with an agenda row's event id (FEATURES T5); holidays are plain text.
  */
 @Composable
 fun TodayScreen(
     state: TodayUiState,
     modifier: Modifier = Modifier,
+    onAgendaItemClick: (Long) -> Unit = {},
 ) {
     when (state) {
         TodayUiState.Loading -> LoadingContent(modifier)
-        is TodayUiState.Loaded -> LoadedContent(state, modifier)
+        is TodayUiState.Loaded -> LoadedContent(state, modifier, onAgendaItemClick)
     }
 }
 
@@ -95,6 +109,7 @@ private fun LoadingContent(modifier: Modifier) {
 private fun LoadedContent(
     state: TodayUiState.Loaded,
     modifier: Modifier,
+    onAgendaItemClick: (Long) -> Unit,
 ) {
     Column(
         modifier =
@@ -185,7 +200,7 @@ private fun LoadedContent(
             )
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 for (item in state.agenda) {
-                    TodayAgendaRow(item)
+                    TodayAgendaRow(item, onClick = { onAgendaItemClick(item.eventId) })
                 }
             }
         }
@@ -193,13 +208,17 @@ private fun LoadedContent(
 }
 
 /**
- * One read-only row of today's agenda (FEATURES T5): a coloured dot (never colour alone — the title
- * and time carry the same information in text), the title with a localized placeholder when blank,
- * and "All day" or the locale-formatted time range. Unlike the Day detail's agenda row this one is not
- * tappable; the Today screen is a summary, not an editor entry point.
+ * One row of today's agenda (FEATURES T5): a coloured dot (never colour alone — the title and time
+ * carry the same information in text), the title with a localized placeholder when blank, and "All
+ * day" or the locale-formatted time range. Tapping the row invokes [onClick] with nothing but the
+ * event id already bound by the caller (CLAUDE.md rule 8), same as the Day detail's agenda row;
+ * holidays elsewhere on this screen stay plain text, since they have nothing to open.
  */
 @Composable
-private fun TodayAgendaRow(item: AgendaItemUi) {
+private fun TodayAgendaRow(
+    item: AgendaItemUi,
+    onClick: () -> Unit,
+) {
     val title = item.title.ifBlank { stringResource(R.string.agenda_untitled_event) }
     val timeLabel =
         if (item.isAllDay) {
@@ -216,10 +235,13 @@ private fun TodayAgendaRow(item: AgendaItemUi) {
         }
     Row(
         modifier =
-            Modifier.fillMaxWidth().semantics(mergeDescendants = true) {
-                contentDescription =
-                    "$title, $timeLabel"
-            },
+            Modifier
+                .fillMaxWidth()
+                .clickable(role = Role.Button, onClick = onClick)
+                .semantics(mergeDescendants = true) {
+                    contentDescription =
+                        "$title, $timeLabel"
+                },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {

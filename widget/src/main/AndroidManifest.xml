@@ -28,8 +28,9 @@
 
     <!-- Exported because launchers must be able to bind to it (docs/security-and-privacy.md §6.3);
          the only intent filter it accepts is the system's own widget-update action, and
-         TodayWidgetReceiver re-renders from the injected Clock/ZoneProvider on every update, ignoring
-         whatever triggered it, so a spoofed APPWIDGET_UPDATE just causes a harmless refresh. -->
+         TodayWidgetReceiver/MonthWidgetReceiver re-render from the injected Clock/ZoneProvider on every
+         update, ignoring whatever triggered it, so a spoofed APPWIDGET_UPDATE just causes a harmless
+         refresh. -->
     <application>
         <receiver
             android:name=".TodayWidgetReceiver"
@@ -41,6 +42,19 @@
             <meta-data
                 android:name="android.appwidget.provider"
                 android:resource="@xml/today_widget_info" />
+        </receiver>
+
+        <!-- Month-grid widget (ROADMAP M5 T3). Same hardening as TodayWidgetReceiver above. -->
+        <receiver
+            android:name=".MonthWidgetReceiver"
+            android:exported="true"
+            android:label="@string/month_widget_label">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/month_widget_info" />
         </receiver>
     </application>
 

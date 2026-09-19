@@ -388,14 +388,14 @@ The pager keeps three months warm with `beyondViewportPageCount = 1`: `MonthView
 
 ### Screens and navigation
 
-- **Bottom bar / rail:** the top-level destinations, via `NavigationSuiteScaffold`, are **Today | Calendar | Events | Convert | More**. "More" holds Holidays, Settings and Learn/About.
-- **Nav keys** live in `:core:navigation`: `TodayKey`, `MonthKey(year, month)`, `YearKey(year)`, `DayKey(epochDay)`, `ConverterKey(prefillEpochDay?)`, `EventListKey`, `EventEditorKey(eventId?, prefillEpochDay?)`, `MoreKey` (the hub tab), `HolidaysKey`, `SettingsKey`, `LearnKey`.
+- **Bottom bar / rail:** the top-level destinations, via `NavigationSuiteScaffold`, are **Today | Calendar | Events | Convert | More**. "More" holds Holidays, Settings, Learn/About and Privacy.
+- **Nav keys** live in `:core:navigation`: `TodayKey`, `MonthKey(year, month)`, `YearKey(year)`, `DayKey(epochDay)`, `ConverterKey(prefillEpochDay?)`, `EventListKey`, `EventEditorKey(eventId?, prefillEpochDay?)`, `MoreKey` (the hub tab), `HolidaysKey`, `SettingsKey`, `LearnKey`, `PrivacyKey`.
 - **Per-tab back stacks** are `TabBackStacks` in `:app`: one `NavBackStack` per tab, the Today root prefixed when another tab is shown so that back from a tab root returns to Today; the Calendar tab's root `MonthKey` is resolved from `DateTicker` when the tab is first opened.
 - **Entry providers:** each feature exposes `fun EntryProviderScope<NavKey>.xEntries(navigator: Navigator)`. `:app` owns the per-tab back stacks (the Nav3 "top-level back stack" recipe) and the `NavDisplay`.
 - **Intent routing:** widget and notification taps send explicit intents with extras. `IntentRouter` in `:app` builds the back stack, for example `[MonthKey, DayKey]`. No URI deep links are needed until Nav3 1.2 is stable.
 - **Screen behaviors:**
   - **Today:** the hero IFC date, the Gregorian equivalent, both weekdays, year progress, today's agenda, and the next intercalary day or holiday.
-  - **Month:** a `HorizontalPager` of months (done: "Calendar" app bar with a Today action; each page's `MonthGrid` carries the month heading; holidays come from `HolidayCatalog`, which evaluates the enabled packs with `HolidayEngine` for the visible page ±1). Tapping the title zooms out to **Year**, which is 13 mini-months in a `LazyVerticalGrid(Adaptive(160.dp))`. On a two-column phone, Year Day takes the 14th slot.
+  - **Month:** a `HorizontalPager` of months (done: an app bar with a Today action, a jump-to-date action (FEATURES C7) and the visible page's own title; each page's `MonthGrid` carries the same heading text inside the grid; holidays come from `HolidayCatalog`, which evaluates the enabled packs with `HolidayEngine` for the visible page ±1). The app bar's title mirrors the visible page's `MonthGrid` heading and is itself the tappable control that zooms out to **Year** (docs/ROADMAP.md M3 T2) — done this way, rather than making the grid's own heading tappable, because the grid is a shared `:core:designsystem` component and the zoom-out is `:feature:calendar` behavior. The jump-to-date action opens a small calendar chooser (Gregorian or IFC, the event editor's own pattern) and pushes the chosen date's `MonthKey`. **Year** is 13 mini-months in a `LazyVerticalGrid(Adaptive(160.dp))`, each drawn as a single `Canvas` rather than 28 real day cells (`YearMiniMonthTile`, `:core:designsystem`) — 364 real cells visibly cost frames while scrolling the grid. On a two-column phone, Year Day takes the 14th slot.
   - **Converter:** one chosen day and a direction switch (done). Gregorian → IFC picks the date in the Material 3
     `DatePickerDialog`; IFC → Gregorian uses `IfcDatePicker`. Both live in `:core:designsystem` (`picker` package) so the
     M4 event editor can reuse them, both are limited to `DatePickerRange` (1583–9999, reconciled decision 6), and the
@@ -408,6 +408,8 @@ The pager keeps three months warm with `beyondViewportPageCount = 1`: `MonthView
     `IFC` form, both labelled weekdays, and the proleptic note for years up to 1923 (the latest adoption calendar-spec
     §7.1 names); copy and `ACTION_SEND` text always carry the `IFC` marker and the Gregorian date.
   - **Day detail:** a bottom sheet on compact widths (done: a material3 `ModalBottomSheet` inside the Nav3 entry — Nav3 1.1.7 has no sheet scene, only `DialogSceneStrategy`) and a pane on expanded widths (M3 T4). It shows both dates, both weekdays and the day's events, with "Add event" and "Open in converter" actions.
+  - **Learn** (done, M3 T3, `:feature:settings`): static sections (what the IFC is, the floating days, nominal-vs-actual weekdays, how dates are calculated, a brief history, an FAQ) plus an expandable-FAQ list. Every worked-example date is computed through `:core:calendar` (`LearnFacts`) and rendered with `IfcDateFormatter`, never typed as a literal.
+  - **Privacy** (done, the in-app half of M2 T12, `:feature:settings`): a static, truthful statement of what the app stores and what its two declared permissions (`RECEIVE_BOOT_COMPLETED`, `WAKE_LOCK`) are for, sourced from `docs/security-and-privacy.md`'s allow-list; the hosted-policy URL is left blank until one exists.
 
 ### State management
 
@@ -429,7 +431,11 @@ Use plain unidirectional data flow with no MVI framework.
   - It uses the tertiary-container color plus an icon, and it is tappable like any other day.
   - The slot height is measured from real text (`intercalarySlotHeight()`), because non-linear font scaling breaks any "line height × N" estimate; months without a band show the month's Gregorian span in the placeholder.
 - Spanning every column makes "belongs to no week" visible. No weekday header aligns with it.
-- The same component serves the Year view as a thin bar, and the widget.
+- The same component serves the Year view's Year Day tile (the grid's 14th item) as a thin bar, and the
+  widget. Leap Day, inside the Year view's compact June tile rather than its own grid item, uses a
+  smaller non-interactive inline indicator instead (an icon, the label, an event dot and a hollow
+  today ring, never colour alone) so that tile stays one TalkBack node; tapping anywhere in the tile,
+  the indicator included, opens June.
 - A `WeekdayDisplay { NOMINAL, ACTUAL, BOTH }` setting drives the headers. `BOTH` is the default: nominal IFC weekdays with the actual weekdays in a second header row.
 
 ### Adaptive layouts
@@ -512,10 +518,11 @@ first thing in `:widget`, on Glance 1.2.0.
   `provideGlance` call instead, since they do not depend on the date and reading `Locale.getDefault()`
   inside the composable itself trips Compose lint's `NonObservableLocale` check for no benefit (Glance
   content is not recomposed by a locale change the way an Activity's is; the `LOCALE_CHANGED` trigger
-  already forces a fresh `provideGlance` through `TodayWidgetRolloverListener`).
-- `TodayWidgetRolloverListener` (`@Binds @IntoSet` into `:core:scheduling`'s `Set<DayRolloverListener>`)
-  calls a small `WidgetRefresher` seam (`GlanceWidgetRefresher.refreshAll` = `TodayGlanceWidget().updateAll`)
-  so the listener is unit-testable without a real `AppWidgetManager`.
+  already forces a fresh `provideGlance` through `WidgetRolloverListener`).
+- `WidgetRolloverListener` (`@Binds @IntoSet` into `:core:scheduling`'s `Set<DayRolloverListener>`; renamed
+  from `TodayWidgetRolloverListener` in M5 T3, once it covered more than one widget) calls a small
+  `WidgetRefresher` seam (`GlanceWidgetRefresher.refreshAll` updates every widget the module owns, one
+  `updateAll` call each) so the listener is unit-testable without a real `AppWidgetManager`.
 - Three `SizeMode.Responsive` breakpoints, `SMALL` (110x40dp, 2x1: date only), `MEDIUM` (180x40dp, adds
   the Gregorian line) and `LARGE` (180x110dp, adds the labelled actual weekday), matching
   `res/xml/today_widget_info.xml`'s `minWidth`/`minHeight`/`minResizeWidth`/`minResizeHeight` and
@@ -539,6 +546,46 @@ first thing in `:widget`, on Glance 1.2.0.
   background render) and strips the other two with `tools:node="remove"`, verified safe from the actual
   work-runtime and glance-appwidget sources rather than assumed — see
   docs/security-and-privacy.md §5.1 for the detail and the allow-list entries.
+
+**As built (M5 T3, `:widget`).** The Month-grid widget (`MonthGlanceWidget` + `MonthWidgetReceiver`,
+package `widget.month`) is the second widget in `:widget`, built the same way as Today.
+
+- `MonthGlanceWidget.provideGlance` reaches `Clock`/`ZoneProvider` through the same `WidgetEntryPoint` as
+  Today. The composable calls `todayDate(clock, zoneProvider)` every composition (no `remember`) and
+  derives the month to show from it with `IfcYearMonth.from(today.ifcDate)` — an intercalary today
+  (Leap Day or Year Day) resolves to the month it follows, so the widget always shows a real month, never
+  a page for a single floating day. `buildMonthWidgetState` (`widget/month/MonthWidgetState.kt`) is the
+  pure function that shapes this into what the content renders: the month title, both weekday header rows
+  (nominal and actual, from `IfcYearMonth.actualDayOfWeek`, never derived from each other per calendar-spec
+  §4.1), the 28 day cells with a Gregorian-date-matched `isToday` flag, the trailing Leap Day / Year Day
+  band from `IfcYearMonth.trailingIntercalary`, and the Gregorian span.
+- Two `SizeMode.Responsive` breakpoints (the task's minimum): `COMPACT` (250x180dp, about 4x3 home-screen
+  cells — `docs/ARCHITECTURE.md` §5's "Month grid: 4x3 and larger") shows the grid with one actual-weekday
+  header row and no Gregorian span line; `FULL` (320x320dp) adds the nominal weekday header row too — the
+  app's `BOTH` default (Reconciled decisions #7) — plus the Gregorian span line. `res/xml/month_widget_info.xml`
+  and the `res/xml-v31` split mirror the Today widget's pattern exactly, with `targetCellWidth`/`Height` at
+  4x3 and the same 4-hour `updatePeriodMillis` backstop.
+- Today is marked by shape and weight, never colour alone (CLAUDE.md rule 3; FEATURES Q4): a rounded,
+  filled pill behind a bold day number, or — when today is the intercalary day — the band itself switches
+  from the tertiary container to the primary container plus bold text. Glance 1.2.0 has no border/outline
+  modifier (unlike the app's own `MonthGrid`/`IntercalaryBand`, which use a border ring), so the widget
+  uses a filled shape instead; both satisfy "shape, not colour alone".
+- One merged content description (month, today's IFC date with both labelled weekdays, and the Gregorian
+  equivalent, built from `IfcDateFormatter.dayDescription`) sits on the whole tappable widget, the same
+  place Today puts its description. The 28 day-number `Text` elements and the two header rows carry no
+  semantics of their own — deliberately not the app's full-grid pattern of one rich description per cell
+  (`docs/ARCHITECTURE.md` §4 "Accessibility"), which would put 28-plus nodes on a home-screen widget.
+  Glance/RemoteViews in 1.2.0 has no modifier to mark a child unimportant for accessibility, so a screen
+  reader may still traverse the day numbers individually; this is a platform limitation, not a design
+  choice, and is worth revisiting if Glance adds one.
+- The tap action reuses Today's `launchAppIntent` unchanged — one explicit-intent helper for both widgets,
+  per docs/security-and-privacy.md §6.4.
+- `WidgetRefresher` (see above) and the renamed `WidgetRolloverListener` cover both widgets with the same
+  multibinding entry: `GlanceWidgetRefresher.refreshAll` calls `updateAll` on `TodayGlanceWidget` and
+  `MonthGlanceWidget`, one call each, and its target list is `internal` so a test can verify that without a
+  real `AppWidgetManager`.
+- Event dots and holiday markers are M5 T6 / H-series work and are explicitly out of scope: this widget
+  never reads the event or holiday repositories.
 
 ### Configuration
 

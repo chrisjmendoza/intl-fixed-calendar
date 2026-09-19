@@ -8,6 +8,14 @@
     <!-- Content description of the initial/preview layout's progress indicator. -->
     <string name="today_widget_loading">Loading today’s date</string>
 
-    <!-- Appended to the merged content description so TalkBack announces that the widget is tappable. -->
+    <!-- Appended to the merged content description so TalkBack announces that the widget is tappable.
+         Shared by the Month widget (ROADMAP M5 T3): the hint is not Today-specific wording. -->
     <string name="today_widget_tap_hint">Double-tap to open Yearal.</string>
+
+    <!-- Month-grid widget (ROADMAP M5 T3). Widget-picker label and the provider's picker description. -->
+    <string name="month_widget_label">Month (IFC)</string>
+    <string name="month_widget_description">The current International Fixed Calendar month, with today highlighted. Updates automatically at midnight.</string>
+
+    <!-- Content description of the Month widget's initial/preview layout progress indicator. -->
+    <string name="month_widget_loading">Loading the current IFC month</string>
 </resources>

@@ -125,6 +125,16 @@ and the project uses [Semantic Versioning](https://semver.org/).
   Gregorian equivalent and the actual weekday, resizable, Material You colour, refreshed at midnight and
   after clock, zone and locale changes, reboot and app update; tap opens the app. WorkManager's
   `ACCESS_NETWORK_STATE` and `FOREGROUND_SERVICE` are removed from the merged manifest; `WAKE_LOCK` is added.
+- Year overview (M3 T2; FEATURES C6, C7): 13 mini-months plus Year Day, Leap Day marked in June in leap
+  years, days with events marked, tap a month to open it, previous / next / Today. The Month screen's title
+  now shows the month and opens the Year overview, a "jump to date" action accepts either calendar, Day
+  detail has "Open in converter", and Today's agenda rows open the event.
+- Month-grid home-screen widget (M5 T3; FEATURES S2): the current IFC month with today highlighted and the
+  Leap Day / Year Day band, refreshed through the same midnight-rollover path as the Today widget.
+- Learn / About and Privacy screens (M3 T3, M2 T12 in-app half; FEATURES L2, P5), reachable from More: the
+  IFC rules, why the weekdays differ, how dates are calculated, a short history and an FAQ, with every
+  example date computed by the conversion core; and a plain-language statement of what the app stores, what
+  its two permissions are for, and what it never does.
 
 ### Changed
 

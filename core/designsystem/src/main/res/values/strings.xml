@@ -147,4 +147,21 @@
     <!-- Dismiss button of the Gregorian date picker dialog. -->
     <string name="picker_cancel">Cancel</string>
 
+    <!-- ===== Year overview (docs/ROADMAP.md M3 T2; FEATURES C6; spec §7.2) ===== -->
+
+    <!-- Spoken, optional sentence on a Year overview mini-month tile noting that Leap Day is drawn
+         with it, outside the 4x7 grid (it belongs to no week). -->
+    <string name="year_mini_month_leap_day_note">Includes Leap Day.</string>
+    <!-- Spoken, optional sentence on a Year overview mini-month tile giving its event-day count
+         (holidays are not counted here — the Year view's presence bitmap is events only).
+         %1$d = number of days with at least one event. -->
+    <plurals name="year_mini_month_events">
+        <item quantity="one">%1$d day with events.</item>
+        <item quantity="other">%1$d days with events.</item>
+    </plurals>
+    <!-- Spoken, optional last sentence on a Year overview mini-month tile that contains the real
+         today; the visual mark is a border and a ring, which a screen reader cannot see.
+         %1$s = the day named within its month, or "Leap Day" (IfcDateFormatter.formatDay). -->
+    <string name="year_mini_month_today">Today is %1$s.</string>
+
 </resources>

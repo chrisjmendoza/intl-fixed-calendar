@@ -94,7 +94,7 @@ Counts are from the 51 incumbent reviews retrieved, plus the iOS app's review fe
 | 🟠 | C4 | Event dots / holiday markers in cells; today highlighted (never by colour alone) | |
 | 🟠 | C7 | Jump to date / jump to today | |
 | 🟡 | C8 | Agenda list (upcoming events, both dates on each row) | |
-| 🟡 | C10 | Gregorian month grid with IFC dates overlaid (the inverse view) | For planning around Gregorian-world deadlines. |
+| 🟡 | C10 | Gregorian month grid with IFC dates overlaid (the inverse view) | For planning around Gregorian-world deadlines. Owner-requested as an optional view (2026-09-19): the mirror of C1 — Gregorian day large, IFC date small; design it together with the M2 T13 polish pass. |
 | 🟡 | C11 | Tablet / foldable / landscape layouts (month + day side by side; year comparison) | Window size classes from day one, so this is additive. |
 | 🔵 | C12 | Optional moon-phase indicator | Off by default, with explainer. |
 | ⚪ | C9 | Week view | Every IFC week looks the same; the agenda covers the need. |

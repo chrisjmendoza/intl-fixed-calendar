@@ -87,3 +87,7 @@ data object SettingsKey : NavKey
 /** Learn / About: the IFC rules and why the weekdays differ. */
 @Serializable
 data object LearnKey : NavKey
+
+/** Privacy: what the app stores, what its permissions are for, and what it never does. */
+@Serializable
+data object PrivacyKey : NavKey

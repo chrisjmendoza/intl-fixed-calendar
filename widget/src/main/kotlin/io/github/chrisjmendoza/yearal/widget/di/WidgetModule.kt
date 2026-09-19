@@ -10,23 +10,23 @@ import dagger.multibindings.IntoSet
 import io.github.chrisjmendoza.yearal.core.domain.ZoneProvider
 import io.github.chrisjmendoza.yearal.core.domain.rollover.DayRolloverListener
 import io.github.chrisjmendoza.yearal.widget.GlanceWidgetRefresher
-import io.github.chrisjmendoza.yearal.widget.TodayWidgetRolloverListener
 import io.github.chrisjmendoza.yearal.widget.WidgetRefresher
+import io.github.chrisjmendoza.yearal.widget.WidgetRolloverListener
 import java.time.Clock
 
 /**
- * Hilt wiring for `:widget`. Contributes [TodayWidgetRolloverListener] to the
+ * Hilt wiring for `:widget`. Contributes [WidgetRolloverListener] to the
  * `Set<DayRolloverListener>` multibinding `:core:scheduling` declares
  * (docs/ARCHITECTURE.md §5, "`:widget` contributes a listener with `@Binds @IntoSet` that calls its
- * `updateAll`").
+ * `updateAll`"). One listener refreshes both the Today and the Month-grid widget (ROADMAP M5 T3).
  */
 @Module
 @InstallIn(SingletonComponent::class)
 abstract class WidgetModule {
-    /** Adds [TodayWidgetRolloverListener] to the app-wide listener set; see the class KDoc above. */
+    /** Adds [WidgetRolloverListener] to the app-wide listener set; see the class KDoc above. */
     @Binds
     @IntoSet
-    internal abstract fun bindTodayWidgetRolloverListener(impl: TodayWidgetRolloverListener): DayRolloverListener
+    internal abstract fun bindWidgetRolloverListener(impl: WidgetRolloverListener): DayRolloverListener
 
     /** The production [WidgetRefresher]: a real `GlanceAppWidget.updateAll` call. */
     @Binds

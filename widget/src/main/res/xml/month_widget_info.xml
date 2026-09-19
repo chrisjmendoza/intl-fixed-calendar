@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Month-grid widget provider info for API 26-30 (ROADMAP M5 T3; docs/ARCHITECTURE.md §5 "Widget
+  architecture", "Configuration"). API 31 and later reads res/xml-v31/month_widget_info.xml instead,
+  which adds maxResizeWidth/Height, targetCellWidth/Height and previewLayout, all introduced in API 31,
+  so lint's UnusedAttribute check (correctly) rejects them here at minSdk 26. A `-v31` resource file
+  replaces this one entirely rather than merging with it, so keep both files in step.
+
+  Sizes match MonthGlanceWidget's SizeMode.Responsive steps in Kotlin (COMPACT/FULL): about 4x3
+  home-screen cells at minimum (the task's "sensible min/target cells"), matching
+  docs/ARCHITECTURE.md §5's "Month grid: 4x3 and larger".
+
+  updatePeriodMillis is the layer-3 self-healing backstop of the midnight rollover
+  (docs/ARCHITECTURE.md §5 "Midnight rollover (layered)"), the same four hours as the Today widget;
+  layers 1 and 2 (the alarm and the system-event receivers in :core:scheduling) do the real work.
+
+  widgetCategory is "home_screen" only: like the Today widget, this widget shows only dates (event dots
+  are M5 T6, out of scope here), so docs/security-and-privacy.md §3.2 keeps it lock-screen eligible on
+  Android 16 QPR2+ without declaring `not_keyguard`.
+
+  No android:configure: the optional config activity is ROADMAP M5 T4, out of scope here.
+-->
+<appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
+    android:minWidth="250dp"
+    android:minHeight="180dp"
+    android:minResizeWidth="250dp"
+    android:minResizeHeight="180dp"
+    android:resizeMode="horizontal|vertical"
+    android:widgetCategory="home_screen"
+    android:updatePeriodMillis="14400000"
+    android:initialLayout="@layout/month_widget_loading"
+    android:description="@string/month_widget_description" />

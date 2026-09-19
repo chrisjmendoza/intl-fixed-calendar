@@ -44,7 +44,7 @@ import java.util.Locale
  *
  * Every [provideGlance] call — the initial placement,
  * [androidx.glance.appwidget.GlanceAppWidget.updateAll] from
- * [io.github.chrisjmendoza.yearal.widget.TodayWidgetRolloverListener], and the `updatePeriodMillis`
+ * [io.github.chrisjmendoza.yearal.widget.WidgetRolloverListener], and the `updatePeriodMillis`
  * backstop in `today_widget_info.xml` — reads [Clock] and [ZoneProvider] through [WidgetEntryPoint] and
  * computes "today" inside the composable content itself (CLAUDE.md rule 2), so a stale render is not
  * possible: there is no cached date anywhere in this class.
@@ -67,7 +67,7 @@ class TodayGlanceWidget : GlanceAppWidget() {
         // Read here, not inside the @Composable content below: androidx.compose.ui's NonObservableLocale
         // lint check is right that Locale.getDefault() inside a composable does not recompose on a
         // locale change, but Glance content never does either way -- a LOCALE_CHANGED broadcast reaches
-        // this widget through TodayWidgetRolloverListener, which calls updateAll and re-invokes
+        // this widget through WidgetRolloverListener, which calls updateAll and re-invokes
         // provideGlance from scratch, so reading it once per call already self-corrects (CLAUDE.md rule 9).
         val formatter = IfcDateFormatter(context.resources, Locale.getDefault())
         val tapHint = context.getString(R.string.today_widget_tap_hint)

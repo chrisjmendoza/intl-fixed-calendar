@@ -54,6 +54,7 @@ class DayScreenTest {
         onDismiss: () -> Unit = {},
         onEventClick: (Long) -> Unit = {},
         onAddEvent: () -> Unit = {},
+        onOpenInConverter: () -> Unit = {},
         fontScale: Float = 1f,
     ) {
         compose.setContent {
@@ -65,6 +66,7 @@ class DayScreenTest {
                         onDismiss = onDismiss,
                         onEventClick = onEventClick,
                         onAddEvent = onAddEvent,
+                        onOpenInConverter = onOpenInConverter,
                     )
                 }
             }
@@ -195,6 +197,18 @@ class DayScreenTest {
         compose.onNodeWithText("Add event").performClick()
 
         added shouldBe 1
+    }
+
+    // FEATURES D1: "Open in converter" (docs/ROADMAP.md M3 T5).
+
+    @Test
+    fun `the Open in converter action invokes its callback`() {
+        var opened = 0
+        show(LocalDate.of(2026, 9, 17), onOpenInConverter = { opened++ })
+
+        compose.onNodeWithText("Open in converter").performClick()
+
+        opened shouldBe 1
     }
 
     // docs/ARCHITECTURE.md §4 "Accessibility": 200% font scale, 48dp touch targets.

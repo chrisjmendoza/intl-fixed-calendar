@@ -7,11 +7,13 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Test
 
 /**
- * [TodayWidgetRolloverListener] is the widget's contribution to the
+ * [WidgetRolloverListener] is the widget module's contribution to the
  * `Set<DayRolloverListener>` multibinding (docs/ARCHITECTURE.md §5). It must refresh exactly once per
  * call, regardless of [DayRolloverTrigger] — the trigger is a hint, never a reason to skip a refresh.
+ * Renamed from `TodayWidgetRolloverListener` in ROADMAP M5 T3, when the Month-grid widget joined Today
+ * under the same listener; these three tests are unchanged from before the rename.
  */
-class TodayWidgetRolloverListenerTest {
+class WidgetRolloverListenerTest {
     private class RecordingRefresher : WidgetRefresher {
         val calls = mutableListOf<Unit>()
 
@@ -24,7 +26,7 @@ class TodayWidgetRolloverListenerTest {
     fun `one trigger refreshes exactly once`() =
         runTest {
             val refresher = RecordingRefresher()
-            val listener = TodayWidgetRolloverListener(refresher)
+            val listener = WidgetRolloverListener(refresher)
 
             listener.onDayRollover(DayRolloverTrigger.MIDNIGHT)
 
@@ -35,7 +37,7 @@ class TodayWidgetRolloverListenerTest {
     fun `every trigger kind refreshes, one call each`() =
         runTest {
             val refresher = RecordingRefresher()
-            val listener = TodayWidgetRolloverListener(refresher)
+            val listener = WidgetRolloverListener(refresher)
 
             DayRolloverTrigger.entries.forEach { trigger -> listener.onDayRollover(trigger) }
 
@@ -46,7 +48,7 @@ class TodayWidgetRolloverListenerTest {
     fun `two separate calls refresh exactly twice, not once`() =
         runTest {
             val refresher = RecordingRefresher()
-            val listener = TodayWidgetRolloverListener(refresher)
+            val listener = WidgetRolloverListener(refresher)
 
             listener.onDayRollover(DayRolloverTrigger.MIDNIGHT)
             listener.onDayRollover(DayRolloverTrigger.ZONE_CHANGED)

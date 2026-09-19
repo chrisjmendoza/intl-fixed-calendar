@@ -21,17 +21,23 @@ import io.github.chrisjmendoza.yearal.core.navigation.ConverterKey
 import io.github.chrisjmendoza.yearal.core.navigation.DayKey
 import io.github.chrisjmendoza.yearal.core.navigation.EventEditorKey
 import io.github.chrisjmendoza.yearal.core.navigation.EventListKey
+import io.github.chrisjmendoza.yearal.core.navigation.LearnKey
 import io.github.chrisjmendoza.yearal.core.navigation.MonthKey
 import io.github.chrisjmendoza.yearal.core.navigation.MoreKey
+import io.github.chrisjmendoza.yearal.core.navigation.PrivacyKey
 import io.github.chrisjmendoza.yearal.core.navigation.SettingsKey
 import io.github.chrisjmendoza.yearal.core.navigation.TodayKey
+import io.github.chrisjmendoza.yearal.core.navigation.YearKey
 import io.github.chrisjmendoza.yearal.feature.calendar.day.DayRoute
 import io.github.chrisjmendoza.yearal.feature.calendar.month.MonthRoute
 import io.github.chrisjmendoza.yearal.feature.calendar.today.TodayRoute
+import io.github.chrisjmendoza.yearal.feature.calendar.year.YearRoute
 import io.github.chrisjmendoza.yearal.feature.converter.ConverterRoute
 import io.github.chrisjmendoza.yearal.feature.events.editor.EventEditorRoute
 import io.github.chrisjmendoza.yearal.feature.events.list.EventListRoute
+import io.github.chrisjmendoza.yearal.feature.settings.learn.LearnRoute
 import io.github.chrisjmendoza.yearal.feature.settings.more.MoreRoute
+import io.github.chrisjmendoza.yearal.feature.settings.privacy.PrivacyRoute
 import io.github.chrisjmendoza.yearal.feature.settings.settings.SettingsRoute
 import io.github.chrisjmendoza.yearal.ui.navigation.rememberTabBackStacks
 
@@ -77,8 +83,9 @@ fun IfcApp(viewModel: MainViewModel = hiltViewModel()) {
                 ),
             entryProvider =
                 entryProvider {
-                    entry<TodayKey> { TodayRoute() }
+                    entry<TodayKey> { TodayRoute(navigator = tabs) }
                     entry<MonthKey> { key -> MonthRoute(key = key, navigator = tabs) }
+                    entry<YearKey> { key -> YearRoute(key = key, navigator = tabs) }
                     entry<DayKey> { key -> DayRoute(key = key, navigator = tabs) }
                     entry<EventListKey> { EventListRoute(navigator = tabs) }
                     entry<EventEditorKey> { key -> EventEditorRoute(key = key, navigator = tabs) }
@@ -91,6 +98,8 @@ fun IfcApp(viewModel: MainViewModel = hiltViewModel()) {
                         )
                     }
                     entry<SettingsKey> { SettingsRoute(navigator = tabs) }
+                    entry<LearnKey> { LearnRoute(navigator = tabs) }
+                    entry<PrivacyKey> { PrivacyRoute(navigator = tabs) }
                 },
         )
     }

@@ -21,5 +21,8 @@ class WidgetStringsTest {
         context.getString(R.string.today_widget_description).shouldNotBeBlank()
         context.getString(R.string.today_widget_loading).shouldNotBeBlank()
         context.getString(R.string.today_widget_tap_hint).shouldNotBeBlank()
+        context.getString(R.string.month_widget_label).shouldNotBeBlank()
+        context.getString(R.string.month_widget_description).shouldNotBeBlank()
+        context.getString(R.string.month_widget_loading).shouldNotBeBlank()
     }
 }

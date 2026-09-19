@@ -16,12 +16,30 @@
 
     <!-- Month pager (FEATURES C1, C7) -->
 
-    <!-- Title of the app bar above the swipeable month grid; the month itself is the grid's heading. -->
-    <string name="month_screen_title">Calendar</string>
-
     <!-- Label of the app-bar button that scrolls the pager back to the month containing today. Shown
-         only while another month is on screen. -->
+         only while another month is on screen. Reused, unchanged, by the Year overview's own "Today"
+         action (FEATURES C7). -->
     <string name="month_today">Today</string>
+
+    <!-- App-bar action that opens the jump-to-date dialog (FEATURES C7). -->
+    <string name="month_jump_to_date">Jump to date</string>
+    <!-- Title of the dialog that asks which calendar to pick the target date in. -->
+    <string name="month_jump_choose_calendar_title">Choose a calendar</string>
+    <!-- Option that opens the Gregorian date picker. -->
+    <string name="month_jump_pick_gregorian">Pick a Gregorian date</string>
+    <!-- Option that opens the IFC date picker. -->
+    <string name="month_jump_pick_ifc">Pick an IFC date</string>
+    <!-- Confirm button of the IFC date picker dialog used to jump to a date. -->
+    <string name="month_jump_confirm">Jump</string>
+    <!-- Dismiss button shared by the jump-to-date dialogs. -->
+    <string name="month_jump_cancel">Cancel</string>
+
+    <!-- Year overview (FEATURES C6, C7) -->
+
+    <!-- Spoken description of the app-bar action that shows the year before the one on screen. -->
+    <string name="year_previous">Previous year</string>
+    <!-- Spoken description of the app-bar action that shows the year after the one on screen. -->
+    <string name="year_next">Next year</string>
 
     <!-- Holiday names (FEATURES H2, H3) -->
 
@@ -63,6 +81,9 @@
 
     <!-- Action that opens the event editor pre-filled with the shown day. -->
     <string name="day_add_event">Add event</string>
+
+    <!-- Action that opens the converter pre-filled with the shown day (FEATURES D1). -->
+    <string name="day_open_in_converter">Open in converter</string>
 
     <!-- Placeholder shown instead of an event's title when the user left it blank. -->
     <string name="agenda_untitled_event">(No title)</string>
