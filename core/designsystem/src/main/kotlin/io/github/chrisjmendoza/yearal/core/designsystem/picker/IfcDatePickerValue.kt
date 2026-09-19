@@ -249,6 +249,10 @@ class IfcDatePickerValue private constructor(
             }
         }
 
+        // The single place the "Leap Day never survives into a valid common year" invariant is
+        // enforced: every public mutator funnels through here (or through withSelection, which already
+        // refuses to select Leap Day when it is not offered), so the invariant holds after every edit
+        // and after restore.
         private fun normalized(
             yearText: String,
             selection: IfcDaySelection,

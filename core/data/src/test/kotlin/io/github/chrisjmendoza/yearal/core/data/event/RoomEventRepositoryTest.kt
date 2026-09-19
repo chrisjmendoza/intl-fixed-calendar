@@ -15,6 +15,7 @@ import io.github.chrisjmendoza.yearal.core.domain.event.Reminder
 import io.github.chrisjmendoza.yearal.core.testing.EventFixtures
 import io.github.chrisjmendoza.yearal.core.testing.FakeRecurrenceExpander
 import io.github.chrisjmendoza.yearal.core.testing.FakeReminderScheduler
+import io.github.chrisjmendoza.yearal.core.testing.FakeWidgetUpdater
 import io.github.chrisjmendoza.yearal.core.testing.MutableClock
 import io.kotest.matchers.longs.beLessThan
 import io.kotest.matchers.should
@@ -52,6 +53,7 @@ public class RoomEventRepositoryTest {
         clock: MutableClock = MutableClock(EventRepositoryContractTest.FIXED_INSTANT),
         expander: FakeRecurrenceExpander = FakeRecurrenceExpander(),
         reminderScheduler: FakeReminderScheduler = FakeReminderScheduler(),
+        widgetUpdater: FakeWidgetUpdater = FakeWidgetUpdater(),
     ) = RoomEventRepository(
         database = database,
         calendarDao = database.calendarDao(),
@@ -61,6 +63,7 @@ public class RoomEventRepositoryTest {
         clock = clock,
         recurrenceExpander = expander,
         reminderScheduler = reminderScheduler,
+        widgetUpdater = widgetUpdater,
     )
 
     @Test
@@ -290,6 +293,46 @@ public class RoomEventRepositoryTest {
 
                 repository.deleteAllData()
                 reminderScheduler.rescheduleCount shouldBe 7
+            } finally {
+                database.close()
+            }
+        }
+
+    @Test
+    public fun `every successful write asks the widget updater to request an update, exactly once`(): Unit =
+        runTest {
+            val database = YearalDatabase.createInMemory(context, dispatcher)
+            try {
+                val expander = FakeRecurrenceExpander()
+                val widgetUpdater = FakeWidgetUpdater()
+                val repository = newRepository(database, expander = expander, widgetUpdater = widgetUpdater)
+
+                val calendarId = repository.upsertCalendar(EventCalendar(name = "x"))
+                widgetUpdater.requestCount shouldBe 1
+
+                val event = EventFixtures.sol13Yearly().copy(calendarId = calendarId)
+                expander.scriptDates(event, listOf(event.startDate), unbounded = true)
+                val eventId = repository.upsertEvent(event)
+                widgetUpdater.requestCount shouldBe 2
+
+                repository.addExdate(eventId, event.startDate.plusYears(1))
+                widgetUpdater.requestCount shouldBe 3
+
+                repository.removeExdate(eventId, event.startDate.plusYears(1))
+                widgetUpdater.requestCount shouldBe 4
+
+                // A no-op exdate change (nothing to remove) must not request an update again.
+                repository.removeExdate(eventId, event.startDate.plusYears(1)) shouldBe false
+                widgetUpdater.requestCount shouldBe 4
+
+                repository.deleteEvent(eventId) shouldBe true
+                widgetUpdater.requestCount shouldBe 5
+
+                repository.deleteCalendar(calendarId) shouldBe true
+                widgetUpdater.requestCount shouldBe 6
+
+                repository.deleteAllData()
+                widgetUpdater.requestCount shouldBe 7
             } finally {
                 database.close()
             }

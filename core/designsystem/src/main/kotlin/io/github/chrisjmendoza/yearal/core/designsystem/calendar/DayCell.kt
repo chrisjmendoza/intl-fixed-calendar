@@ -28,6 +28,7 @@ import java.time.LocalDate
 /** Minimum touch target of a day cell (docs/ARCHITECTURE.md §4 "Accessibility"). */
 val DayCellMinSize = 48.dp
 
+/** Width of the border drawn around today's cell or band; shared by [DayCell] and `IntercalaryBand`. */
 internal val TodayRingWidth = 2.dp
 
 // 1dp, not more: seven columns at 360dp give 51dp each (docs/ARCHITECTURE.md §4), and the touch

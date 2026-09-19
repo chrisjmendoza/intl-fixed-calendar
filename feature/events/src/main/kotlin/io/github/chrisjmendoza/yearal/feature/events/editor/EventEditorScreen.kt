@@ -1,6 +1,13 @@
 package io.github.chrisjmendoza.yearal.feature.events.editor
 
+import android.Manifest
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import android.provider.Settings
 import androidx.activity.compose.BackHandler
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -15,6 +22,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -46,6 +54,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -79,8 +88,12 @@ private val ChipSpacing = 8.dp
 /**
  * The event editor (`EventEditorKey`, `docs/ROADMAP.md` M4 T4): collects
  * [EventEditorViewModel.uiState] and renders it through the stateless [EventEditorScreen]. Reacts to
- * [EventEditorViewModel.editorEvents] by leaving the screen ([navigator.goBack]) and to the system back
- * gesture by asking the ViewModel first, so an unsaved draft can show its guard.
+ * [EventEditorViewModel.editorEvents] by leaving the screen ([navigator.goBack]) on
+ * [EventEditorEvent.Saved]/[EventEditorEvent.Deleted]/[EventEditorEvent.NavigatedAway], and by
+ * launching the `POST_NOTIFICATIONS` Activity Result request on
+ * [EventEditorEvent.RequestNotificationPermission] (FEATURES E4, P2) — the request itself lives here,
+ * not in the ViewModel, so [EventEditorViewModel] needs no Android permission API. Reacts to the
+ * system back gesture by asking the ViewModel first, so an unsaved draft can show its guard.
  *
  * @param key which event to edit, or none for a new one.
  * @param navigator receives the "leave the editor" action.
@@ -96,8 +109,27 @@ fun EventEditorRoute(
         ),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val permissionLauncher =
+        rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            viewModel.onNotificationPermissionResult(granted)
+        }
     LaunchedEffect(viewModel) {
-        viewModel.editorEvents.collectLatest { navigator.goBack() }
+        viewModel.editorEvents.collectLatest { event ->
+            when (event) {
+                EventEditorEvent.RequestNotificationPermission -> {
+                    // The ViewModel only sends this event on API 33+ (NotificationPermissionGate); the
+                    // redundant SDK_INT check keeps the inlined API 33 constant lint-safe on minSdk 26.
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                        permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                    }
+                }
+
+                EventEditorEvent.Saved, EventEditorEvent.Deleted, EventEditorEvent.NavigatedAway -> {
+                    navigator.goBack()
+                }
+            }
+        }
     }
     BackHandler(onBack = viewModel::requestBack)
     EventEditorScreen(
@@ -126,9 +158,23 @@ fun EventEditorRoute(
                 onBack = viewModel::requestBack,
                 onConfirmDiscard = viewModel::confirmDiscard,
                 onCancelDiscard = viewModel::cancelDiscard,
+                onRestoreAllOccurrences = viewModel::restoreAllOccurrences,
+                onDismissNotificationPermissionNotice = viewModel::dismissNotificationPermissionNotice,
+                onOpenNotificationSettings = { openNotificationSettings(context) },
             ),
         modifier = modifier,
     )
+}
+
+/**
+ * Opens the app's own notification settings screen (the "quiet, dismissible explanation" of FEATURES
+ * P2 links here rather than re-requesting the permission, which would only loop a denial).
+ */
+private fun openNotificationSettings(context: Context) {
+    val intent =
+        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+            .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+    context.startActivity(intent)
 }
 
 /** Every intent the stateless [EventEditorScreen] reports (grouped to keep the composable's signature short). */
@@ -155,6 +201,9 @@ data class EventEditorCallbacks(
     val onBack: () -> Unit,
     val onConfirmDiscard: () -> Unit,
     val onCancelDiscard: () -> Unit,
+    val onRestoreAllOccurrences: () -> Unit,
+    val onDismissNotificationPermissionNotice: () -> Unit,
+    val onOpenNotificationSettings: () -> Unit,
 )
 
 /** Which date field a picker dialog is currently editing. */
@@ -406,7 +455,21 @@ private fun EditorBody(
 
         RecurrenceSection(state = state, callbacks = callbacks, formatter = formatter, onPickUntil = onPickUntil)
 
+        if (state.recurrenceKind != RecurrenceKind.NONE) {
+            SeriesNotice()
+            if (state.exdateCount > 0) {
+                RestoreOccurrencesRow(count = state.exdateCount, onRestoreAll = callbacks.onRestoreAllOccurrences)
+            }
+        }
+
         ReminderSection(reminders = state.reminders, onToggle = callbacks.onToggleReminder)
+
+        if (state.showNotificationPermissionNotice) {
+            NotificationPermissionNotice(
+                onOpenSettings = callbacks.onOpenNotificationSettings,
+                onDismiss = callbacks.onDismissNotificationPermissionNotice,
+            )
+        }
     }
 }
 
@@ -622,9 +685,9 @@ private fun RecurrenceEndSection(
 }
 
 /**
- * Reminder chips plus an honesty note: chips are stored on the draft, but nothing in the app delivers a
- * notification yet — `ReminderScheduler` is a no-op until `docs/ROADMAP.md` M6 T1. Remove the note
- * ([R.string.events_editor_reminders_not_yet_delivered]) once that lands.
+ * Reminder chips (FEATURES E4). The first chip added on API 33+ triggers a `POST_NOTIFICATIONS`
+ * request ([EventEditorViewModel.toggleReminder]); a denial shows [NotificationPermissionNotice]
+ * below, never blocking this section or saving.
  */
 @Composable
 private fun ReminderSection(
@@ -633,11 +696,6 @@ private fun ReminderSection(
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(FieldSpacing / 2)) {
         Text(stringResource(R.string.events_editor_reminders_heading), style = MaterialTheme.typography.titleSmall)
-        Text(
-            stringResource(R.string.events_editor_reminders_not_yet_delivered),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
         FlowRow(horizontalArrangement = Arrangement.spacedBy(ChipSpacing)) {
             for (minutes in EventDraft.REMINDER_PRESETS) {
                 FilterChip(
@@ -647,6 +705,85 @@ private fun ReminderSection(
                     modifier = Modifier.heightIn(min = MinTouchTarget),
                 )
             }
+        }
+    }
+}
+
+/**
+ * A quiet, dismissible explanation shown after the user denies `POST_NOTIFICATIONS` (FEATURES E4, P2):
+ * reminders are still saved, but nothing will notify until the permission is granted from Settings.
+ * Never blocks saving.
+ */
+@Composable
+private fun NotificationPermissionNotice(
+    onOpenSettings: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    Surface(
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        shape = MaterialTheme.shapes.medium,
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(FieldSpacing),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(FieldSpacing),
+        ) {
+            Text(
+                text = stringResource(R.string.events_editor_notification_permission_notice),
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.weight(1f),
+            )
+            TextButton(onClick = onOpenSettings) {
+                Text(stringResource(R.string.events_editor_notification_permission_settings))
+            }
+            IconButton(onClick = onDismiss, modifier = Modifier.heightIn(min = MinTouchTarget)) {
+                Icon(
+                    Icons.Filled.Close,
+                    contentDescription = stringResource(R.string.events_editor_notification_permission_dismiss),
+                )
+            }
+        }
+    }
+}
+
+/**
+ * A supporting line, shown only for a recurring event (`state.recurrenceKind != NONE`), spelling out
+ * that Save and Delete both act on every occurrence — per-occurrence edits are out of scope for 1.0
+ * (`docs/ARCHITECTURE.md` §3.2 "Scope cuts").
+ */
+@Composable
+private fun SeriesNotice() {
+    Text(
+        text = stringResource(R.string.events_editor_series_notice),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+/**
+ * How many occurrences were individually deleted ("delete this occurrence" from Day detail), with a
+ * "restore all" action that clears every exdate (FEATURES E1).
+ */
+@Composable
+private fun RestoreOccurrencesRow(
+    count: Int,
+    onRestoreAll: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(FieldSpacing),
+    ) {
+        Text(
+            text =
+                pluralStringResource(R.plurals.events_editor_exdate_count, count, count),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.weight(1f),
+        )
+        TextButton(onClick = onRestoreAll, modifier = Modifier.heightIn(min = MinTouchTarget)) {
+            Text(stringResource(R.string.events_editor_restore_all))
         }
     }
 }
@@ -872,6 +1009,9 @@ private val previewCallbacks =
         onBack = {},
         onConfirmDiscard = {},
         onCancelDiscard = {},
+        onRestoreAllOccurrences = {},
+        onDismissNotificationPermissionNotice = {},
+        onOpenNotificationSettings = {},
     )
 
 @Preview(name = "New event", showBackground = true, heightDp = 1400)

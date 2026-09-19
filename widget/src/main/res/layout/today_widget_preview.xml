@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Static widget-picker preview for the Today widget (ROADMAP M5 T5; `res/xml-v31/today_widget_info.xml`'s
+  `previewLayout`, API 31-34; superseded on API 35+ by `TodayGlanceWidget.providePreview` +
+  `WidgetPreviewUpdater`'s `setWidgetPreview` call, docs/ARCHITECTURE.md §5 "Picker previews").
+
+  A plain RemoteViews-safe layout (LinearLayout + TextView only, no Compose/Glance) shown by the
+  launcher's widget picker before the widget is placed, so it cannot run TodayGlanceWidget's own code;
+  every value here is a fixed, illustrative sample date (`docs/security-and-privacy.md`: nothing here
+  reads real app data), matching the LARGE responsive size's three lines. The sample (IFC Sol 13, 2026 =
+  Gregorian Tuesday, June 30, 2026) is a regular day on purpose: CLAUDE.md rule 6 requires Year Day and
+  Leap Day be handled everywhere they can appear, but a *static* preview showing one as a mock-up risks
+  misrepresenting a day that in the app never looks like an ordinary one (it has no month/day number).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:gravity="center_vertical"
+    android:background="@drawable/widget_preview_background"
+    android:padding="12dp">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/widget_preview_today_ifc_date"
+        android:textSize="22sp"
+        android:textStyle="bold"
+        android:textColor="@color/widget_preview_on_surface" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/widget_preview_today_gregorian_date"
+        android:textSize="14sp"
+        android:textColor="@color/widget_preview_on_surface_variant" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/widget_preview_today_actual_weekday"
+        android:textSize="14sp"
+        android:textColor="@color/widget_preview_on_surface_variant" />
+
+</LinearLayout>

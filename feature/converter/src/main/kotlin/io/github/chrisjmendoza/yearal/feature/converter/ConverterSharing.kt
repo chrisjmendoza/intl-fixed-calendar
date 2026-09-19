@@ -9,9 +9,13 @@ import android.content.ContextWrapper
 import android.content.Intent
 
 /*
- * Copy and share of a conversion (docs/FEATURES.md D4). Both need no permission. The text is the
- * converted date the user asked to send — it is not event content (CLAUDE.md rule 8) — and it always
- * carries the "IFC" marker and the Gregorian date (docs/calendar-spec.md §7.3, §7.9). Nothing is logged.
+ * Copy and share of a conversion (docs/FEATURES.md D4). Both need no permission. The text handed in is
+ * always `ConverterScreen`'s `ConvertedResult`, built from `R.string.converter_share_text` as literally
+ * `IFC {ifcLong} ({numeric}) = Gregorian {gregorianLong}` — e.g. "IFC September 8, 2026
+ * (IFC 2026-10-08) = Gregorian Thursday, September 17, 2026" — so it always carries the "IFC" marker
+ * (via {numeric}'s mandatory prefix, CLAUDE.md rule 5) and the Gregorian date (docs/calendar-spec.md
+ * §7.3, §7.9). This file only moves that text to the clipboard or the share sheet; it neither builds nor
+ * reformats it, and it is not event content (CLAUDE.md rule 8). Nothing is logged.
  */
 
 /**

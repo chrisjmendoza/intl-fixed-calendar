@@ -8,12 +8,13 @@ import io.github.chrisjmendoza.yearal.core.domain.event.DefaultRecurrenceExpande
 import io.github.chrisjmendoza.yearal.core.domain.event.EventUidGenerator
 import io.github.chrisjmendoza.yearal.core.domain.event.RandomEventUidGenerator
 import io.github.chrisjmendoza.yearal.core.domain.event.RecurrenceExpander
-import io.github.chrisjmendoza.yearal.core.domain.event.ReminderScheduler
 import javax.inject.Singleton
 
 /**
  * The events bindings that live in pure-JVM `:core:domain`, which cannot carry Hilt modules itself
- * (`docs/contracts/Events.md`). `EventRepository` is bound by `:core:data`'s own `EventModule`.
+ * (`docs/contracts/Events.md`). `EventRepository` is bound by `:core:data`'s own `EventModule`, and
+ * `ReminderScheduler` by `:core:scheduling`'s `SchedulingModule` — `AlarmReminderScheduler`, which
+ * replaced the no-op binding that stood here until ROADMAP M6 T1.
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -26,13 +27,4 @@ object EventsModule {
     /** Random UUIDs for new events' `uid` (the `.ics` round-trip key). */
     @Provides
     fun provideEventUidGenerator(): EventUidGenerator = RandomEventUidGenerator
-
-    /**
-     * Reminder delivery does not exist before ROADMAP M6 T1: the editor already stores reminders, and
-     * nothing fires them yet. Until the real `AlarmManager`-backed scheduler in `:core:scheduling`
-     * replaces this binding, the repository's post-write hook has nothing to re-arm, so it does nothing.
-     */
-    @Provides
-    @Singleton
-    fun provideReminderScheduler(): ReminderScheduler = ReminderScheduler { }
 }

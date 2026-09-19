@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Shared `previewImage` fallback for both widgets, API 26-30 only (ROADMAP M5 T5;
+  `res/xml/today_widget_info.xml`, `res/xml/month_widget_info.xml`). API 31-34 shows the real static
+  mock-up (`res/layout/*_widget_preview.xml`) instead, and API 35+ shows the bitmap
+  `providePreview`/`setWidgetPreview` renders (docs/ARCHITECTURE.md §5 "Picker previews"), so this is a
+  legacy-only fallback: a simple vector, not a Roborazzi-captured bitmap (the task's explicit
+  simplification over the doc's original "generated from a Roborazzi capture"; no binary asset is
+  needed here. A rounded card echoing the brand launcher mark's dot-row-plus-pill motif
+  (`core/designsystem/.../drawable/ic_intercalary.xml`), tinted with the brand teal so it reads at a
+  glance as "this app", without depicting either widget's exact layout (which the two real preview paths
+  above already do more precisely).
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp"
+    android:height="48dp"
+    android:viewportWidth="48"
+    android:viewportHeight="48">
+    <path
+        android:fillColor="#123F3D"
+        android:pathData="M4,4h40v40h-40z" />
+    <path
+        android:fillColor="#F4ECDA"
+        android:pathData="M10,15a2.4,2.4 0 1,0 4.8,0a2.4,2.4 0 1,0 -4.8,0z" />
+    <path
+        android:fillColor="#F4ECDA"
+        android:pathData="M20.6,15a2.4,2.4 0 1,0 4.8,0a2.4,2.4 0 1,0 -4.8,0z" />
+    <path
+        android:fillColor="#F4ECDA"
+        android:pathData="M31.2,15a2.4,2.4 0 1,0 4.8,0a2.4,2.4 0 1,0 -4.8,0z" />
+    <path
+        android:fillColor="#F4ECDA"
+        android:pathData="M16,26h16a4.5,4.5 0 0,1 0,9h-16a4.5,4.5 0 0,1 0,-9z" />
+</vector>

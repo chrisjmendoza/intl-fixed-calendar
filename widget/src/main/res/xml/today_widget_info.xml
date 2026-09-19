@@ -21,6 +21,12 @@
 
   No android:configure: the optional config activity is ROADMAP M5 T4, out of scope for the Today
   widget's first version.
+
+  previewImage (ROADMAP M5 T5) is valid since API 11 (confirmed against the SDK's own
+  api-versions.xml, not from memory; CLAUDE.md rule 11's "look at the dependency's sources" applies
+  equally to platform attributes), so it belongs here rather than needing its own `-v30`/`-v31` split;
+  it is the widget-picker preview shown below API 31, superseded by previewLayout at API 31-34 and by
+  `providePreview`/`setWidgetPreview` at API 35+ (docs/ARCHITECTURE.md §5 "Picker previews").
 -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
     android:minWidth="110dp"
@@ -31,4 +37,5 @@
     android:widgetCategory="home_screen"
     android:updatePeriodMillis="14400000"
     android:initialLayout="@layout/today_widget_loading"
+    android:previewImage="@drawable/widget_preview_image"
     android:description="@string/today_widget_description" />

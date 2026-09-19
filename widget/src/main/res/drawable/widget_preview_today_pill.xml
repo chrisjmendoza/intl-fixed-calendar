@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  The "today" pill background for the static month-widget preview (ROADMAP M5 T5), matching
+  MonthGlanceWidget's DayNumberCell: a filled, rounded shape behind the day number, shape and weight
+  (never colour alone, CLAUDE.md rule 3).
+-->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <solid android:color="@color/widget_preview_primary" />
+    <corners android:radius="6dp" />
+</shape>

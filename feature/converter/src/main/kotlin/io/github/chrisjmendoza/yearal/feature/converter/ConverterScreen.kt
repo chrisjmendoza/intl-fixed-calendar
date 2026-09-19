@@ -287,6 +287,7 @@ private fun GregorianInput(
     }
 }
 
+/** The IFC input: the reusable [IfcDatePicker] — Year Day always offered, Leap Day only in leap years. */
 @Composable
 private fun IfcInput(
     value: IfcDatePickerValue,
@@ -296,6 +297,11 @@ private fun IfcInput(
     IfcDatePicker(value = value, onValueChange = onIfcInputChange)
 }
 
+/**
+ * Shown instead of a result when the active input is not a date the converter accepts (spec §7.1); no
+ * actions follow it. Announced as a polite live region so a screen reader reports it as the input
+ * changes, without interrupting whatever the user is doing.
+ */
 @Composable
 private fun InvalidResult() {
     Text(
@@ -313,7 +319,11 @@ private fun InvalidResult() {
 
 /**
  * Both dates, the converted one first and larger; the numeric form with its `IFC` prefix; the weekday
- * block; day and week; the proleptic note; the actions.
+ * block; day and week; the proleptic note; the actions. **Copy and Share send the identical text**,
+ * built from `R.string.converter_share_text` as `IFC {ifcLong} ({numeric}) = Gregorian {gregorianLong}`
+ * — e.g. `IFC September 8, 2026 (IFC 2026-10-08) = Gregorian Thursday, September 17, 2026` — so the
+ * shared text always carries the `IFC` marker and the Gregorian date (CLAUDE.md rule 5) before it
+ * reaches [copyConversion] or [shareConversion].
  */
 @Composable
 private fun ConvertedResult(

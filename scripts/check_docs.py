@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
-"""Doc-drift gate: every relative markdown link in the repo must resolve to an existing file.
+"""Doc-drift gate: every relative markdown link in the repo must resolve to an existing file, and
+README.md must not regress into stating a handful of specific claims that have been false since 2026-09.
 
-Run from anywhere: `python scripts/check_docs.py`. Exits 1 and lists the broken links on failure.
+Run from anywhere: `python scripts/check_docs.py`. Exits 1 and lists the problems on failure.
 See docs/WORKFLOW.md §4.2.
 """
 from __future__ import annotations
@@ -15,6 +16,15 @@ SKIP_DIRS = {".git", ".gradle", ".kotlin", ".idea", "build", "node_modules"}
 LINK = re.compile(r"(?<!\!)\[[^\]\n]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
 FENCE = re.compile(r"^\s*(```|~~~)")
 EXTERNAL = ("http://", "https://", "mailto:", "#")
+
+# Literal phrases that were true in the very first commit of README.md and have been false ever since an
+# Android module existed and the app was named. If one of these reappears, someone reverted the status
+# section instead of updating it in the same push as a behaviour change (docs/WORKFLOW.md §4.2 rule 4).
+README_STALE_PHRASES = (
+    "The Android app itself has not been started",
+    "The working name is a placeholder",
+    "Tech stack (planned)",
+)
 
 
 def markdown_files() -> list[Path]:
@@ -43,6 +53,13 @@ def broken_links(path: Path) -> list[tuple[int, str]]:
     return problems
 
 
+def stale_readme_phrases(readme: Path) -> list[str]:
+    if not readme.exists():
+        return []
+    text = readme.read_text(encoding="utf-8")
+    return [phrase for phrase in README_STALE_PHRASES if phrase in text]
+
+
 def main() -> int:
     failures = 0
     files = markdown_files()
@@ -50,10 +67,15 @@ def main() -> int:
         for number, target in broken_links(path):
             print(f"{path.relative_to(ROOT).as_posix()}:{number}: broken link -> {target}")
             failures += 1
+
+    for phrase in stale_readme_phrases(ROOT / "README.md"):
+        print(f'README.md: contains a known-stale phrase -> "{phrase}"')
+        failures += 1
+
     if failures:
-        print(f"\n{failures} broken link(s) in {len(files)} markdown files.")
+        print(f"\n{failures} problem(s) in {len(files)} markdown files.")
         return 1
-    print(f"OK: {len(files)} markdown files, all relative links resolve.")
+    print(f"OK: {len(files)} markdown files, all relative links resolve, README.md has no stale phrases.")
     return 0
 
 

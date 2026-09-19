@@ -2,9 +2,28 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <!-- Normal (install-time) permission, needed to receive BOOT_COMPLETED: a reboot drops every alarm.
-         docs/security-and-privacy.md §5.1. The exact-alarm permissions are deliberately NOT declared
-         here; they arrive with reminders in M6 (docs/ARCHITECTURE.md "Reconciled decisions" 11). -->
+         docs/security-and-privacy.md §5.1. -->
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+
+    <!-- Runtime permission from API 33; below that, notifications are on by default. Declared here
+         because this module is the only thing in the app that posts a notification (the reminder
+         channel). The in-context request, the first time a user adds a reminder, belongs to the event
+         editor; when it is denied the app keeps working and simply posts nothing (FEATURES E4, P2;
+         docs/security-and-privacy.md §5.1). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+    <!-- Exact alarms, layer 1 of docs/ARCHITECTURE.md §5 and ARCHITECTURE "Reconciled decisions" 11.
+         USE_EXACT_ALARM is normal, install-time and not revocable from API 33; SCHEDULE_EXACT_ALARM
+         covers API 31-32, where it is special app access, pre-granted and revocable - hence
+         maxSdkVersion="32", the pattern Android documents for calendar apps. Their justification is
+         event reminder notifications, which Play's policy allows for a calendar app and which needs a
+         Play Console declaration (docs/security-and-privacy.md §5.1, §5.2, §5.4). Every call goes
+         through armWakeup, which checks canScheduleExactAlarms() and falls back to a windowed alarm,
+         so the app stays correct without them. -->
+    <uses-permission android:name="android.permission.USE_EXACT_ALARM" />
+    <uses-permission
+        android:name="android.permission.SCHEDULE_EXACT_ALARM"
+        android:maxSdkVersion="32" />
 
     <application>
 
@@ -14,13 +33,21 @@
             android:name="io.github.chrisjmendoza.yearal.core.scheduling.DayRolloverAlarmReceiver"
             android:exported="false" />
 
+        <!-- Same shape for the single reminder alarm: explicit, immutable, no extras, no intent
+             filter, not exported (docs/security-and-privacy.md §6.3, §6.4; CLAUDE.md rule 8). -->
+        <receiver
+            android:name="io.github.chrisjmendoza.yearal.core.scheduling.reminder.ReminderAlarmReceiver"
+            android:exported="false" />
+
         <!-- Layer 2 of docs/ARCHITECTURE.md §5 "Midnight rollover (layered)". A manifest receiver may
              only listen for these because TIME_SET, TIMEZONE_CHANGED, LOCALE_CHANGED and BOOT_COMPLETED
-             are on the implicit-broadcast exemption list, and MY_PACKAGE_REPLACED is not implicit at
-             all (the system addresses it to this package only). DATE_CHANGED is not exempt and must
-             not be added. Every one of the five is a protected broadcast sent by the system, which
-             reaches non-exported receivers, so exported="false" costs nothing and shuts out every
-             other app. -->
+             are on the implicit-broadcast exemption list, and MY_PACKAGE_REPLACED and
+             SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED are not implicit at all (the system addresses
+             them to the affected package). DATE_CHANGED is not exempt and must not be added. Every one
+             of the six is a protected broadcast sent by the system, which reaches non-exported
+             receivers, so exported="false" costs nothing and shuts out every other app. The
+             exact-alarm one (API 31+) means the capability changed, so both alarms are armed again
+             under the new one (ROADMAP M6 T3). -->
         <receiver
             android:name="io.github.chrisjmendoza.yearal.core.scheduling.SystemEventReceiver"
             android:exported="false">
@@ -30,6 +57,7 @@
                 <action android:name="android.intent.action.LOCALE_CHANGED" />
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+                <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED" />
             </intent-filter>
         </receiver>
     </application>

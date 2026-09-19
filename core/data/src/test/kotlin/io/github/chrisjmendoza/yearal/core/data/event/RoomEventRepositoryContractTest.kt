@@ -7,6 +7,7 @@ import io.github.chrisjmendoza.yearal.core.domain.event.Event
 import io.github.chrisjmendoza.yearal.core.domain.event.EventRepository
 import io.github.chrisjmendoza.yearal.core.testing.FakeRecurrenceExpander
 import io.github.chrisjmendoza.yearal.core.testing.FakeReminderScheduler
+import io.github.chrisjmendoza.yearal.core.testing.FakeWidgetUpdater
 import io.github.chrisjmendoza.yearal.core.testing.MutableClock
 import kotlinx.coroutines.Dispatchers
 import org.junit.After
@@ -19,8 +20,9 @@ import org.junit.runner.RunWith
  * (`docs/ARCHITECTURE.md` §6: "Room 3 DAO tests on the JVM with `BundledSQLiteDriver` in memory"), so
  * the real storage implementation is proven to agree with
  * `io.github.chrisjmendoza.yearal.core.testing.FakeEventRepository` on every shared behaviour
- * ([FakeEventRepositoryContractTest]). `RecurrenceExpander` and `ReminderScheduler` are the fakes from
- * `:core:testing`, since this suite is about storage, not recurrence evaluation or scheduling.
+ * ([FakeEventRepositoryContractTest]). `RecurrenceExpander`, `ReminderScheduler` and `WidgetUpdater` are
+ * the fakes from `:core:testing`, since this suite is about storage, not recurrence evaluation,
+ * scheduling or widget rendering.
  *
  * **[Dispatchers.IO], not a `TestDispatcher`, for Room's own query context.** Room 3's connection pool
  * runs its own coroutine machinery (a mutex-guarded single connection for an in-memory database) on
@@ -41,6 +43,7 @@ public class RoomEventRepositoryContractTest : EventRepositoryContractTest() {
     private val database = YearalDatabase.createInMemory(context, dispatcher)
     private val expander = FakeRecurrenceExpander()
     private val reminderScheduler = FakeReminderScheduler()
+    private val widgetUpdater = FakeWidgetUpdater()
 
     override val clock: MutableClock = MutableClock(FIXED_INSTANT)
     override val repository: EventRepository =
@@ -53,6 +56,7 @@ public class RoomEventRepositoryContractTest : EventRepositoryContractTest() {
             clock = clock,
             recurrenceExpander = expander,
             reminderScheduler = reminderScheduler,
+            widgetUpdater = widgetUpdater,
         )
 
     override suspend fun prepareForStorage(event: Event) {

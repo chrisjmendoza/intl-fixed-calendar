@@ -16,6 +16,7 @@ import io.github.chrisjmendoza.yearal.core.domain.event.EventRepository
 import io.github.chrisjmendoza.yearal.core.domain.event.EventUidGenerator
 import io.github.chrisjmendoza.yearal.core.domain.event.LeapDayPolicy
 import io.github.chrisjmendoza.yearal.core.navigation.EventEditorKey
+import io.github.chrisjmendoza.yearal.feature.events.notification.NotificationPermissionGate
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,6 +49,8 @@ import java.time.ZoneId
  * @param zoneProvider the device zone: the initial value of a "fixed zone" choice.
  * @param dateTicker "today", for a new event with no prefilled start.
  * @param formatter renders every date through `:core:calendar`, never computing one itself (CLAUDE.md rule 1).
+ * @param notificationPermission whether this device needs a runtime `POST_NOTIFICATIONS` grant
+ * (FEATURES E4, P2); abstracted so the permission state machine is testable without Robolectric.
  */
 @HiltViewModel(assistedFactory = EventEditorViewModel.Factory::class)
 class EventEditorViewModel
@@ -60,6 +63,7 @@ class EventEditorViewModel
         zoneProvider: ZoneProvider,
         dateTicker: DateTicker,
         private val formatter: IfcDateFormatter,
+        private val notificationPermission: NotificationPermissionGate,
     ) : ViewModel() {
         /** Creates an [EventEditorViewModel] for the entry's key; used by `hiltViewModel(creationCallback)`. */
         @AssistedFactory
@@ -95,6 +99,7 @@ class EventEditorViewModel
                             val fromEvent = EventDraft.from(event, zoneProvider.currentZone())
                             loadedDraft = fromEvent
                             if (savedStateHandle.get<String>(KEY_TITLE) == null) draft.value = fromEvent
+                            flags.update { it.copy(exdateCount = event.exdates.size) }
                         }
                     }
                     loading.value = false
@@ -156,8 +161,16 @@ class EventEditorViewModel
         /** Sets the occurrence count, clamped to at least 1. */
         fun setCount(count: Int) = update { it.copy(count = count.coerceAtLeast(1)) }
 
-        /** Toggles a minutes-before reminder chip (FEATURES E4; storage only — no scheduling here). */
-        fun toggleReminder(minutesBefore: Int) =
+        /**
+         * Toggles a minutes-before reminder chip (FEATURES E4; storage only — [ReminderScheduler] is
+         * M6 T1). The **first** time a chip is added to an empty set, on a device that
+         * [NotificationPermissionGate.needsRuntimePermission] (API 33+), sends
+         * [EventEditorEvent.RequestNotificationPermission] once — never again this session, whatever
+         * the outcome (FEATURES P2: no re-prompt loop). Below API 33, or after the first ask, nothing
+         * is requested.
+         */
+        fun toggleReminder(minutesBefore: Int) {
+            val adding = minutesBefore !in draft.value.reminders
             update {
                 it.copy(
                     reminders =
@@ -170,6 +183,42 @@ class EventEditorViewModel
                         },
                 )
             }
+            if (adding && !flags.value.notificationPermissionRequested &&
+                notificationPermission.needsRuntimePermission()
+            ) {
+                flags.update { it.copy(notificationPermissionRequested = true) }
+                viewModelScope.launch { outbox.send(EventEditorEvent.RequestNotificationPermission) }
+            }
+        }
+
+        /**
+         * Records the outcome of [EventEditorEvent.RequestNotificationPermission] (the Activity Result
+         * launcher's callback). A denial never blocks saving; it only shows a dismissible explanation
+         * ([EventEditorUiState.Loaded.showNotificationPermissionNotice]).
+         */
+        fun onNotificationPermissionResult(granted: Boolean) {
+            flags.update { it.copy(notificationPermissionDenied = !granted) }
+        }
+
+        /** Dismisses the "notifications are off" notice without changing anything else. */
+        fun dismissNotificationPermissionNotice() = flags.update { it.copy(notificationPermissionDenied = false) }
+
+        /**
+         * Clears every exdate of the event being edited — "restore all" for occurrences individually
+         * deleted from Day detail. The contract has no bulk clear, so this loops
+         * [EventRepository.removeExdate] one date at a time, then refreshes the cached event and
+         * [EventEditorUiState.Loaded.exdateCount]. No-op for a new event or one with nothing to restore.
+         */
+        fun restoreAllOccurrences() {
+            val event = existingEvent ?: return
+            if (event.exdates.isEmpty()) return
+            viewModelScope.launch {
+                event.exdates.forEach { date -> eventRepository.removeExdate(event.id, date) }
+                val refreshed = eventRepository.getEvent(event.id)
+                existingEvent = refreshed
+                flags.update { it.copy(exdateCount = refreshed?.exdates?.size ?: 0) }
+            }
+        }
 
         /** Opens the delete confirmation. No-op while creating a new event. */
         fun requestDelete() {
@@ -250,6 +299,13 @@ sealed interface EventEditorEvent {
 
     /** The user left without saving (no changes, or the unsaved-changes guard was confirmed). */
     data object NavigatedAway : EventEditorEvent
+
+    /**
+     * Ask the platform for `POST_NOTIFICATIONS` with the Activity Result API (FEATURES E4, P2): sent
+     * once, the first time a reminder chip is added on a device that needs the runtime grant. The
+     * result reaches [EventEditorViewModel.onNotificationPermissionResult].
+     */
+    data object RequestNotificationPermission : EventEditorEvent
 }
 
 /** Transient dialog and error flags, not part of [EventDraft] because they are never persisted. */
@@ -257,6 +313,9 @@ internal data class EditorFlags(
     val deleteConfirm: Boolean = false,
     val discardConfirm: Boolean = false,
     val saveFailed: Boolean = false,
+    val notificationPermissionRequested: Boolean = false,
+    val notificationPermissionDenied: Boolean = false,
+    val exdateCount: Int = 0,
 )
 
 /** Builds the loaded state from [draft] against today's date, comparing with [loadedDraft] for [EventEditorUiState.Loaded.isDirty]. */
@@ -307,6 +366,8 @@ internal fun buildEventEditorUiState(
         saveFailed = flags.saveFailed,
         showDeleteConfirm = flags.deleteConfirm,
         showDiscardConfirm = flags.discardConfirm,
+        exdateCount = flags.exdateCount,
+        showNotificationPermissionNotice = flags.notificationPermissionDenied,
     )
 }
 

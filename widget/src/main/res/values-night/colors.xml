@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Dark-theme override of `res/values/colors.xml`'s widget-picker preview colours, matching
+  `core/designsystem/.../theme/Color.kt`'s dark scheme (`DarkPrimary` / `DarkOnPrimary` / `DarkSurface` /
+  `DarkOnSurface` / `DarkOnSurfaceVariant` / `DarkTertiaryContainer` / `DarkOnTertiaryContainer`).
+-->
+<resources>
+    <color name="widget_preview_surface">#0E1615</color>
+    <color name="widget_preview_on_surface">#DDE4E0</color>
+    <color name="widget_preview_on_surface_variant">#BEC9C4</color>
+    <color name="widget_preview_primary">#8FD4CA</color>
+    <color name="widget_preview_on_primary">#003733</color>
+    <color name="widget_preview_tertiary_container">#6B3800</color>
+    <color name="widget_preview_on_tertiary_container">#FFDCBE</color>
+</resources>

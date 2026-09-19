@@ -7,7 +7,7 @@ import io.github.chrisjmendoza.yearal.core.domain.event.EventCalendar
 
 /**
  * The `calendars` row of `docs/ARCHITECTURE.md` §3.2. Row [EventCalendar.DEFAULT_ID] is the built-in
- * local calendar, seeded when the database is created ([io.github.chrisjmendoza.yearal.core.data.event.YearalDatabaseCallback])
+ * local calendar, seeded when the database is created ([io.github.chrisjmendoza.yearal.core.data.event.SeedBuiltInCalendarCallback])
  * and restored by `RoomEventRepository.deleteAllData`.
  *
  * [source] and [category]-shaped enum columns are stored as their Kotlin enum

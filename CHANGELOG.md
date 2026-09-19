@@ -7,19 +7,82 @@ and the project uses [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+User-visible features first, then the architecture and build work underneath them.
+
+- The app is named **Yearal** (ROADMAP decision #1); applicationId and package base
+  `io.github.chrisjmendoza.yearal` (decision #2). Name availability research is in
+  [docs/competitive-analysis.md](docs/competitive-analysis.md) §8.
+- Launcher icon: the "perfect month" glyph (28-day grid with Year Day beneath) as vector adaptive-icon
+  layers with a themed (monochrome) variant; sources and the Play-listing PNG in [docs/brand/](docs/brand/README.md).
+- `:core:designsystem` (M2 T1, T5): `IfcTheme` — dynamic colour on API 31+, user-switchable in Settings,
+  with a non-dynamic fallback palette seeded from the brand icon (teal primary, cream surfaces, amber
+  tertiary container for the intercalary band) — and `IfcDateFormatter` implementing calendar-spec §7.3–7.6
+  (long/medium/numeric styles, labelled nominal vs actual weekday, day/week/quarter text, "Sol" and the
+  intercalary names as resources).
+- `MonthGrid`, `DayCell`, `IntercalaryBand`/`IntercalaryPlaceholder` and `WeekdayHeaders` in
+  `:core:designsystem` (M2 T4; FEATURES C1–C4): the perpetual 4 × 7 grid with the IFC number large and the
+  Gregorian day in the corner, nominal/actual/both weekday headers (Sunday first, always), a tappable Leap
+  Day / Year Day band whose slot is reserved in every month, today ring, selection, event dots and holiday
+  markers, merged TalkBack descriptions, and previews for the screenshot matrix.
+- Reusable date pickers in `:core:designsystem`: `IfcDatePicker` (year, 13 months including Sol, days 1–28,
+  Year Day always and Leap Day only in leap years; a selected Leap Day moves to June 28 with a notice when
+  the year becomes a valid common year) and `GregorianDatePickerDialog` (Material 3, 1583–9999).
+- `:feature:calendar` (M2 T6; FEATURES T1, T2, T3, T4, T6): the Today screen — hero IFC date, Gregorian
+  equivalent, both weekdays clearly labelled, day/week/quarter, year progress and the countdown to the next
+  Year Day / Leap Day, driven by `DateTicker` so it rolls over at midnight.
+- Calendar tab (M2 T7, T8; FEATURES C1, C3, C5, C7): a swipeable month grid over IFC 1583–9999 with the
+  Leap Day / Year Day bands, holiday marks from the enabled packs and a Today action. Tapping any day, the
+  bands included, opens a day-detail sheet with both dates, both labelled weekdays, day/week/quarter and the
+  day's holidays.
+- `:feature:settings` (M2 T9): the Settings screen — weekday-header mode (Both / Actual only / IFC only),
+  theme (System / Light / Dark), dynamic colour (Android 12+), one switch per bundled holiday pack — and the
+  More hub with Settings and About rows. The app applies the theme settings live.
+- Converter tab (M3 T1; FEATURES D1, D2, D4): convert a date between the Gregorian calendar and the
+  International Fixed Calendar in either direction, for the years 1583–9999. Shows both dates in full, the
+  numeric `IFC YYYY-MM-DD` form, the IFC weekday and the actual weekday on separately labelled lines ("no IFC
+  weekday" on Leap Day and Year Day), the day of the year and week, and a proleptic-calendar note for early
+  years. Copy or share the result as text that always carries the "IFC" marker and the Gregorian date.
+- Year overview (M3 T2; FEATURES C6, C7): 13 mini-months plus Year Day, Leap Day marked in June in leap
+  years, days with events marked, tap a month to open it, previous / next / Today. The Month screen's title
+  now shows the month and opens the Year overview, a "jump to date" action accepts either calendar, Day
+  detail has "Open in converter", and Today's agenda rows open the event.
+- Learn / About and Privacy screens (M3 T3, M2 T12 in-app half; FEATURES L2, P5), reachable from More: the
+  IFC rules, why the weekdays differ, how dates are calculated, a short history and an FAQ, with every
+  example date computed by the conversion core; and a plain-language statement of what the app stores, what
+  its two permissions are for, and what it never does.
+- Events tab (M4 T4, T5; FEATURES E1, E2, E3, E5, E6, E7, E9): a searchable event list showing both dates on
+  every row, and an editor with title, notes, location, all-day or timed, a date picked in either calendar,
+  device or fixed time zone, yearly recurrence on the IFC or the Gregorian date, monthly on the IFC day,
+  weekly, the Leap Day common-year choice, an end condition and reminder chips. Reminders are stored; they
+  are delivered from M6, and until then the editor says so under the chips.
+- Events on the calendar (M4 T6, T7; FEATURES C4, C5, T5): event dots on the month grid, the day's agenda
+  in Day detail (tap to edit, "Add event"), and today's agenda, today's holidays and the next holiday on
+  Today, all from the new `DefaultObserveAgendaUseCase` and the domain-level `HolidaySetProvider`.
+- Today home-screen widget (M5 T1, `:widget`, Glance 1.2.0; FEATURES S1, S3, S4, S5): the IFC date, the
+  Gregorian equivalent and the actual weekday, resizable, Material You colour, refreshed at midnight and
+  after clock, zone and locale changes, reboot and app update; tap opens the app. WorkManager's
+  `ACCESS_NETWORK_STATE` and `FOREGROUND_SERVICE` are removed from the merged manifest; `WAKE_LOCK` is added.
+- Month-grid home-screen widget (M5 T3; FEATURES S2): the current IFC month with today highlighted and the
+  Leap Day / Year Day band, refreshed through the same midnight-rollover path as the Today widget.
+
+Architecture, tooling and CI:
+
 - Planning baseline: calendar specification, feature catalog, architecture, roadmap, holiday and import
   strategy, security and privacy plan, competitive analysis.
 - Workflow rules ([docs/WORKFLOW.md](docs/WORKFLOW.md)): definition of done, KDoc standard, anti-drift
-  rules, rules for LLM agents, completion report, ADR template. Work is committed straight to `main`; no pull requests.
+  rules, rules for LLM agents, completion report, ADR template. Local work happens on a `local/<task>`
+  branch and merges to `main` only once the owner says so; cloud/scheduled work happens on a `cloud/<task>`
+  branch and opens a pull request instead.
 - Gradle build skeleton: wrapper 9.7.1, version catalog, `build-logic` with the `ifc.jvm.library`
   convention (explicit API, warnings as errors, ktlint via Spotless, Dokka KDoc gate, JUnit 6 + Kotest).
 - Gradle daemon pinned to JDK 21 (`gradle/gradle-daemon-jvm.properties`) and parallel IDE sync enabled,
   as generated by Android Studio on first import.
 - `:core:calendar` — pure Kotlin/JVM IFC model: `IfcMonth`, `IfcDate` (`Regular`, `LeapDay`, `YearDay`),
-  Gregorian ↔ IFC conversion, canonical numeric parse/format, and `IfcYearMonth` for month-grid layout.
+  Gregorian ↔ IFC conversion, canonical numeric parse/format, and `IfcYearMonth` for month-grid layout. The
+  frozen public API is documented in [docs/contracts/Calendar.md](docs/contracts/Calendar.md) (M1 T6).
 - Spec-driven tests that read their vectors from `docs/calendar-spec.md` §6, plus an exhaustive
   definitional oracle over every day of years 1–9999.
-- CI workflow running the full gate and the doc link check.
+- CI workflow (`ci.yml`) running the full gate and the doc link check on every push and pull request.
 - `IfcDate` date arithmetic (M1 T6b, `docs/calendar-spec.md` §7.7): `plusDays`/`minusDays` and
   `plusWeeks`/`minusWeeks` (real Gregorian days/weeks), `plusMonths`/`minusMonths` and
   `plusYears`/`minusYears` (IFC pseudo-fields with `java.time`-style clamping of day 29 to 28). Arithmetic
@@ -50,35 +113,10 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - `:core:holidays` (M1 T9; FEATURES H2, H3; [docs/adr/0004-holiday-pack-format.md](docs/adr/0004-holiday-pack-format.md)):
   the schema-1 JSON pack format, `HolidayPackLoader`, and the bundled `ifc`, `US` (federal + common
   observances) and `religious-christian` (Easter family) packs, checked against OPM 2024–2028.
-- `:core:designsystem` (M2 T1, T5): `IfcTheme` (dynamic colour on API 31+) and `IfcDateFormatter`
-  implementing calendar-spec §7.3–7.6 (long/medium/numeric styles, labelled nominal vs actual weekday,
-  day/week/quarter text, "Sol" and the intercalary names as resources).
-- `:feature:calendar` (M2 T6; FEATURES T1, T2, T3, T4, T6): the Today screen — hero IFC date, Gregorian
-  equivalent, both weekdays clearly labelled, day/week/quarter, year progress and the countdown to the next
-  Year Day / Leap Day, driven by `DateTicker` so it rolls over at midnight.
-- CI builds and uploads the debug APK on every push.
-- The app is named **Yearal** (ROADMAP decision #1); applicationId and package base
-  `io.github.chrisjmendoza.yearal` (decision #2). Name availability research is in
-  [docs/competitive-analysis.md](docs/competitive-analysis.md) §8.
-- Calendar tab (M2 T7, T8; FEATURES C1, C3, C5, C7): a swipeable month grid over IFC 1583–9999 with the
-  Leap Day / Year Day bands, holiday marks from the enabled packs and a Today action. Tapping any day, the
-  bands included, opens a day-detail sheet with both dates, both labelled weekdays, day/week/quarter and the
-  day's holidays.
 - `:core:data` (M2 T3; FEATURES W1, W2, H5): `UserSettings` persisted as JSON in a typed DataStore
   (`filesDir/datastore/user_settings.json`, inside the Auto Backup include set) behind `SettingsRepository`,
   with a forward/backward-compatible serializer and corruption fallback to the defaults.
-- `:feature:settings` (M2 T9): the Settings screen — weekday-header mode (Both / Actual only / IFC only),
-  theme (System / Light / Dark), dynamic colour (Android 12+), one switch per bundled holiday pack — and the
-  More hub with Settings and About rows. The app applies the theme settings live.
-- `MonthGrid`, `DayCell`, `IntercalaryBand`/`IntercalaryPlaceholder` and `WeekdayHeaders` in
-  `:core:designsystem` (M2 T4; FEATURES C1–C4): the perpetual 4 × 7 grid with the IFC number large and the
-  Gregorian day in the corner, nominal/actual/both weekday headers (Sunday first, always), a tappable Leap
-  Day / Year Day band whose slot is reserved in every month, today ring, selection, event dots and holiday
-  markers, merged TalkBack descriptions, and previews for the screenshot matrix.
-- `IfcTheme` (M2 T1): the non-dynamic palette is seeded from the brand icon (teal primary, cream surfaces,
-  amber tertiary container for the intercalary band); dynamic colour is now a user setting.
-- Launcher icon: the "perfect month" glyph (28-day grid with Year Day beneath) as vector adaptive-icon
-  layers with a themed (monochrome) variant; sources and the Play-listing PNG in [docs/brand/](docs/brand/README.md).
+- CI builds and uploads the debug APK on every push.
 - Events contract (M4 T1): `Event`, `EventTiming`, `EventCalendar`, `Reminder`, `Recurrence` / `IfcRecurrence`
   (with the Leap Day common-year policy `JUNE_28 | SKIP | SOL_1`), `Occurrence`, `DayAgenda`; the
   `EventRepository`, `RecurrenceExpander` and `ObserveAgendaUseCase` interfaces; the canonical IFC rule text
@@ -86,14 +124,6 @@ and the project uses [Semantic Versioning](https://semver.org/).
   [docs/contracts/Events.md](docs/contracts/Events.md); decisions in
   [docs/adr/0005-events-contract.md](docs/adr/0005-events-contract.md), including a range-query zone-skew
   padding of two days instead of one.
-- Converter tab (M3 T1; FEATURES D1, D2, D4): convert a date between the Gregorian calendar and the
-  International Fixed Calendar in either direction, for the years 1583–9999. Shows both dates in full, the
-  numeric `IFC YYYY-MM-DD` form, the IFC weekday and the actual weekday on separately labelled lines ("no IFC
-  weekday" on Leap Day and Year Day), the day of the year and week, and a proleptic-calendar note for early
-  years. Copy or share the result as text that always carries the "IFC" marker and the Gregorian date.
-- Reusable date pickers in `:core:designsystem`: `IfcDatePicker` (year, 13 months including Sol, days 1–28,
-  Year Day always and Leap Day only in leap years; a selected Leap Day moves to June 28 with a notice when
-  the year becomes a common year) and `GregorianDatePickerDialog` (Material 3, 1583–9999).
 - Day rollover scheduling (M5 T2, `:core:scheduling`; FEATURES S3 foundation): a once-a-day alarm for the
   next local midnight (DST-safe, windowed — no exact-alarm permission), re-armed at app start and after
   clock, time-zone and locale changes, reboot and app update through non-exported manifest receivers.
@@ -113,36 +143,40 @@ and the project uses [Semantic Versioning](https://semver.org/).
 - Event storage (M4 T2, `:core:data`): Room 3 schema v1 (`calendars`, `events`, `event_exdates`,
   `reminders`) exported to `core/data/schemas/`, and `RoomEventRepository`, which passes the same 36-case
   contract suite as the fake. The month-range query measures about 1 ms with 1,000 events.
-- Events tab (M4 T4, T5; FEATURES E1, E2, E3, E5, E6, E7, E9): a searchable event list showing both dates on
-  every row, and an editor with title, notes, location, all-day or timed, a date picked in either calendar,
-  device or fixed time zone, yearly recurrence on the IFC or the Gregorian date, monthly on the IFC day,
-  weekly, the Leap Day common-year choice, an end condition and reminder chips. Reminders are stored; they
-  are delivered from M6, and until then the editor says so under the chips.
-- Events on the calendar (M4 T6, T7; FEATURES C4, C5, T5): event dots on the month grid, the day's agenda
-  in Day detail (tap to edit, "Add event"), and today's agenda, today's holidays and the next holiday on
-  Today, all from the new `DefaultObserveAgendaUseCase` and the domain-level `HolidaySetProvider`.
-- Today home-screen widget (M5 T1, `:widget`, Glance 1.2.0; FEATURES S1, S3, S4, S5): the IFC date, the
-  Gregorian equivalent and the actual weekday, resizable, Material You colour, refreshed at midnight and
-  after clock, zone and locale changes, reboot and app update; tap opens the app. WorkManager's
-  `ACCESS_NETWORK_STATE` and `FOREGROUND_SERVICE` are removed from the merged manifest; `WAKE_LOCK` is added.
-- Year overview (M3 T2; FEATURES C6, C7): 13 mini-months plus Year Day, Leap Day marked in June in leap
-  years, days with events marked, tap a month to open it, previous / next / Today. The Month screen's title
-  now shows the month and opens the Year overview, a "jump to date" action accepts either calendar, Day
-  detail has "Open in converter", and Today's agenda rows open the event.
-- Month-grid home-screen widget (M5 T3; FEATURES S2): the current IFC month with today highlighted and the
-  Leap Day / Year Day band, refreshed through the same midnight-rollover path as the Today widget.
-- Learn / About and Privacy screens (M3 T3, M2 T12 in-app half; FEATURES L2, P5), reachable from More: the
-  IFC rules, why the weekdays differ, how dates are calculated, a short history and an FAQ, with every
-  example date computed by the conversion core; and a plain-language statement of what the app stores, what
-  its two permissions are for, and what it never does.
+- Reminder notifications (M6 T1; FEATURES E4, P3). One alarm is scheduled at a time, for the earliest
+  upcoming reminder across all events, and recomputed whenever an event changes, at local midnight, at app
+  start, after a reboot, a clock or time-zone change and an app update. All-day events remind at 09:00
+  local; timed events at their own start, daylight saving included. A reminder missed while the device was
+  off still arrives if it is less than 15 minutes late. On the lock screen the notification shows only
+  "Event reminder" and the time. No event text is ever put in an intent or a log.
+- The app now declares `POST_NOTIFICATIONS`, `USE_EXACT_ALARM` and (Android 12 only) `SCHEDULE_EXACT_ALARM`
+  (M6 T3), so reminders are punctual even in Doze; the editor asks for the notification permission the
+  first time a reminder is added (Android 13+). Everything keeps working when notifications are denied or
+  exact alarms are revoked.
+- "Delete this occurrence" (with undo) and plain delete for events in Day detail (M4 T8); the editor says
+  plainly that saving or deleting a repeating event acts on the whole series, shows how many occurrences
+  were deleted individually and can restore them.
+- "Delete all data" in Settings, behind a two-step confirmation (M4 T9; FEATURES W6); a test now pins the
+  encrypted-only backup rules to the real database and settings files.
+- Month widget event dots and a debounced widget refresh when events change (M5 T6), and widget-picker
+  previews for every supported Android version (M5 T5).
+- `docs/contracts/Calendar.md`, the frozen public API of `:core:calendar`; `README.md` rewritten to describe
+  the app as it is; `scripts/check_docs.py` fails if the README regresses to known-stale statements.
 
 ### Changed
+
+- The daily midnight refresh now uses the same exact alarm as reminders, with the previous 10-minute
+  windowed alarm as the fallback.
 
 - The `IfcDateFormatter` Hilt binding moved from `:feature:calendar` to `:app`, because a second feature
   injects it and features never depend on each other.
 
 ### Fixed
 
+- The Privacy screen no longer says that nothing stored could leave the device while also describing Android's
+  encrypted backup; it now says the app itself sends nothing and the backup is the one copy that can.
+- Day detail no longer crashes on an out-of-range day key (for example from a malformed widget or
+  notification intent); it shows a "date not available" state instead.
 - `IfcDate.toNumericString()` / `toPrefixedString()` took their digits from the default locale, so a device
   set to Arabic, Persian or Hindi produced a numeric IFC date that `IfcDate.parse` rejects. The canonical
   form now always uses ASCII digits (`docs/calendar-spec.md` §7.6).

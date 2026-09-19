@@ -1,5 +1,9 @@
 package io.github.chrisjmendoza.yearal.feature.settings.settings
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -9,6 +13,8 @@ import androidx.compose.ui.test.assertIsOff
 import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -28,6 +34,10 @@ import org.junit.runner.RunWith
  * [SettingsScreen] under Robolectric: each control reflects the state it is given, has the semantics
  * TalkBack needs (`selected`, on/off, disabled), and reports a change through its callback with the
  * right value (FEATURES W1, W2, H5; docs/ARCHITECTURE.md §4 "Accessibility").
+ *
+ * Tests of the "Delete all data" dialogs drive the two-step flow by reassigning [loadedState]
+ * directly (as `feature:events`'s `EventEditorScreenTest` does), since the Compose test rule refuses a
+ * second `setContent` call.
  */
 @RunWith(AndroidJUnit4::class)
 class SettingsScreenTest {
@@ -46,20 +56,35 @@ class SettingsScreenTest {
     private val dynamicColorChanges = mutableListOf<Boolean>()
     private val holidayChanges = mutableListOf<Pair<String, Boolean>>()
     private var backPresses = 0
+    private var deleteAllDataRequested = 0
+    private var deleteAllDataContinued = 0
+    private var deleteAllDataCancelled = 0
+    private var deleteAllDataConfirmed = 0
+    private var deleteAllDataDoneDismissed = 0
+
+    private var loadedState: SettingsUiState.Loaded by
+        mutableStateOf(SettingsUiState.Loaded(UserSettings.DEFAULT, packs, dynamicColorSupported = true))
 
     private fun show(
         settings: UserSettings = UserSettings.DEFAULT,
         dynamicColorSupported: Boolean = true,
+        deleteAllDataStep: DeleteAllDataStep = DeleteAllDataStep.NONE,
     ) {
+        loadedState = SettingsUiState.Loaded(settings, packs, dynamicColorSupported, deleteAllDataStep)
         compose.setContent {
             IfcTheme(dynamicColor = false) {
                 SettingsScreen(
-                    state = SettingsUiState.Loaded(settings, packs, dynamicColorSupported),
+                    state = loadedState,
                     onBack = { backPresses++ },
                     onWeekdayDisplaySelected = { weekdaySelections += it },
                     onThemeModeSelected = { themeSelections += it },
                     onDynamicColorChanged = { dynamicColorChanges += it },
                     onHolidaySetEnabledChanged = { id, enabled -> holidayChanges += id to enabled },
+                    onRequestDeleteAllData = { deleteAllDataRequested++ },
+                    onContinueDeleteAllData = { deleteAllDataContinued++ },
+                    onCancelDeleteAllData = { deleteAllDataCancelled++ },
+                    onConfirmDeleteAllData = { deleteAllDataConfirmed++ },
+                    onDismissDeleteAllDataDone = { deleteAllDataDoneDismissed++ },
                 )
             }
         }
@@ -178,6 +203,82 @@ class SettingsScreenTest {
         compose.onNodeWithContentDescription("Back").assertHasClickAction().performClick()
 
         backPresses shouldBe 1
+    }
+
+    // ----- "Delete all data" (FEATURES W6): reachable by TalkBack, unmistakably destructive, a
+    // two-step confirmation with cancel at each step. -----
+
+    @Test
+    fun `the delete-all-data row is reachable and opens the first confirmation`() {
+        show()
+
+        compose
+            .onNodeWithText("Delete all data")
+            .performScrollTo()
+            .assertHasClickAction()
+            .performClick()
+
+        deleteAllDataRequested shouldBe 1
+    }
+
+    @Test
+    fun `the first confirmation explains what will be erased and can be cancelled`() {
+        show(deleteAllDataStep = DeleteAllDataStep.CONFIRM_FIRST)
+
+        compose.onNodeWithText("Delete all data?").assertIsDisplayed()
+        compose.onNodeWithText("Cancel").performClick()
+
+        deleteAllDataCancelled shouldBe 1
+        deleteAllDataContinued shouldBe 0
+    }
+
+    @Test
+    fun `continuing the first confirmation opens the final, unmistakably destructive one`() {
+        show(deleteAllDataStep = DeleteAllDataStep.CONFIRM_FIRST)
+
+        compose.onNodeWithText("Continue").performClick()
+
+        deleteAllDataContinued shouldBe 1
+    }
+
+    @Test
+    fun `the final confirmation can be cancelled without erasing anything`() {
+        show(deleteAllDataStep = DeleteAllDataStep.CONFIRM_SECOND)
+
+        compose.onNodeWithText("This can't be undone").assertIsDisplayed()
+        compose.onNodeWithText("Cancel").performClick()
+
+        deleteAllDataCancelled shouldBe 1
+        deleteAllDataConfirmed shouldBe 0
+    }
+
+    @Test
+    fun `confirming the final dialog erases everything`() {
+        show(deleteAllDataStep = DeleteAllDataStep.CONFIRM_SECOND)
+
+        // The row behind the dialog shares its text with the dialog's own confirm button.
+        compose.onAllNodesWithText("Delete all data").onLast().performClick()
+
+        deleteAllDataConfirmed shouldBe 1
+    }
+
+    @Test
+    fun `the completion notice can be dismissed`() {
+        show(deleteAllDataStep = DeleteAllDataStep.DONE)
+
+        compose.onNodeWithText("All data deleted").assertIsDisplayed()
+        compose.onNodeWithText("OK").performClick()
+
+        deleteAllDataDoneDismissed shouldBe 1
+    }
+
+    @Test
+    fun `no confirmation dialog shows while the step is NONE`() {
+        show(deleteAllDataStep = DeleteAllDataStep.NONE)
+
+        compose.onAllNodesWithText("Delete all data?").assertCountEquals(0)
+        compose.onAllNodesWithText("This can't be undone").assertCountEquals(0)
+        compose.onAllNodesWithText("All data deleted").assertCountEquals(0)
     }
 
     @Test

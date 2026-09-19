@@ -4,6 +4,7 @@ import android.app.Application
 import dagger.hilt.internal.GeneratedComponent
 import dagger.hilt.internal.GeneratedComponentManager
 import io.github.chrisjmendoza.yearal.core.scheduling.di.SchedulingEntryPoint
+import io.github.chrisjmendoza.yearal.core.scheduling.reminder.ReminderBroadcastHandler
 
 /**
  * A hand-written stand-in for the `@HiltAndroidApp` application, so the receivers run their real
@@ -21,10 +22,19 @@ class FakeSchedulingApplication :
     override fun generatedComponent(): Any = component
 }
 
-/** The slice of the singleton component the receivers use. */
+/**
+ * The slice of the singleton component the receivers use.
+ *
+ * @param reminderHandler `null` for a test that only exercises the rollover receivers; asking for it
+ *   then fails loudly rather than silently doing nothing.
+ */
 internal class FakeSchedulingComponent(
     private val handler: RolloverBroadcastHandler,
+    private val reminderHandler: ReminderBroadcastHandler? = null,
 ) : SchedulingEntryPoint,
     GeneratedComponent {
     override fun rolloverBroadcastHandler(): RolloverBroadcastHandler = handler
+
+    override fun reminderBroadcastHandler(): ReminderBroadcastHandler =
+        checkNotNull(reminderHandler) { "This test did not install a ReminderBroadcastHandler" }
 }

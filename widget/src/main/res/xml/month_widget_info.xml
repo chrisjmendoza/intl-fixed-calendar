@@ -14,9 +14,17 @@
   (docs/ARCHITECTURE.md §5 "Midnight rollover (layered)"), the same four hours as the Today widget;
   layers 1 and 2 (the alarm and the system-event receivers in :core:scheduling) do the real work.
 
-  widgetCategory is "home_screen" only: like the Today widget, this widget shows only dates (event dots
-  are M5 T6, out of scope here), so docs/security-and-privacy.md §3.2 keeps it lock-screen eligible on
-  Android 16 QPR2+ without declaring `not_keyguard`.
+  widgetCategory is "home_screen" only (ROADMAP M5 T6 added event dots, which does not change this):
+  docs/security-and-privacy.md §3.2's ruling is "any widget capable of showing event titles declares
+  `not_keyguard`": a dot reveals only that a day has *something* on it (a plain boolean,
+  `ObserveAgendaUseCase.presence`; CLAUDE.md rule 8), never a title, a count, or which calendar, so this
+  widget is not "capable of showing event titles" in the sense that ruling means, and stays lock-screen
+  eligible on Android 16 QPR2+ like the date-only Today widget, without declaring `not_keyguard`.
+
+  previewImage (ROADMAP M5 T5) is valid since API 11 (confirmed against the SDK's own api-versions.xml,
+  not from memory), so it belongs here rather than needing its own `-v30`/`-v31` split; it is the
+  widget-picker preview shown below API 31, superseded by previewLayout at API 31-34 and by
+  `providePreview`/`setWidgetPreview` at API 35+ (docs/ARCHITECTURE.md §5 "Picker previews").
 
   No android:configure: the optional config activity is ROADMAP M5 T4, out of scope here.
 -->
@@ -29,4 +37,5 @@
     android:widgetCategory="home_screen"
     android:updatePeriodMillis="14400000"
     android:initialLayout="@layout/month_widget_loading"
+    android:previewImage="@drawable/widget_preview_image"
     android:description="@string/month_widget_description" />

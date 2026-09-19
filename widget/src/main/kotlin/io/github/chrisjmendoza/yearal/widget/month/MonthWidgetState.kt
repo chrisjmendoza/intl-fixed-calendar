@@ -7,6 +7,7 @@ import io.github.chrisjmendoza.yearal.core.designsystem.calendar.GRID_COLUMNS
 import io.github.chrisjmendoza.yearal.core.designsystem.format.IfcDateFormatter
 import io.github.chrisjmendoza.yearal.core.designsystem.format.IfcDateFormatter.WeekdayNameStyle
 import io.github.chrisjmendoza.yearal.widget.today.TodayDate
+import java.time.LocalDate
 
 /**
  * One of the 28 regular-day cells in the month grid, in row-major order (CLAUDE.md rule 1: the day
@@ -16,10 +17,15 @@ import io.github.chrisjmendoza.yearal.widget.today.TodayDate
  * @property isToday whether this cell is the real today, matched by **Gregorian** date (CLAUDE.md
  *   rule 4 -- events, "today", and everything else tied to real life compare Gregorian dates, never
  *   IFC numeric fields).
+ * @property hasEvent whether at least one event occurrence falls on this day (ROADMAP M5 T6,
+ *   `docs/contracts/Events.md` §5 "`ObserveAgendaUseCase.presence`"). Holidays are never counted, per
+ *   the same contract. Carries no event content (CLAUDE.md rule 8) -- a plain boolean, never a count or
+ *   a title.
  */
 data class MonthDayCellState(
     val dayOfMonth: Int,
     val isToday: Boolean,
+    val hasEvent: Boolean = false,
 )
 
 /**
@@ -33,11 +39,16 @@ data class MonthDayCellState(
  *   given a nominal weekday.
  * @property isToday whether the real today is this intercalary day; when true the band itself carries
  *   the today highlight, since it is not part of the 4x7 grid.
+ * @property hasEvent whether at least one event occurrence falls on this intercalary day (ROADMAP M5
+ *   T6) -- Leap Day and Year Day are ordinary dates to the events contract (`docs/contracts/Events.md`
+ *   §1.2) and so can carry events like any other day, and CLAUDE.md rule 6 requires this case be
+ *   handled explicitly rather than silently dropped because the day is not one of the 28 grid cells.
  */
 data class MonthIntercalaryState(
     val label: String,
     val subtitle: String,
     val isToday: Boolean,
+    val hasEvent: Boolean = false,
 )
 
 /**
@@ -59,11 +70,12 @@ data class MonthIntercalaryState(
  *   [IfcDateFormatter.gregorianSpan]), shown only at the widget's larger responsive size.
  * @property contentDescription the single merged TalkBack description for the whole tappable widget:
  *   the month title, today's IFC date with both labelled weekdays and its Gregorian equivalent
- *   ([IfcDateFormatter.dayDescription]), and the tap hint. Deliberately **not** one description per day
- *   cell -- the app's full month grid gives every cell its own rich description
- *   (docs/ARCHITECTURE.md §4 "Accessibility"), which would be 28-plus nodes on a home-screen widget; a
- *   single description here is the one TalkBack needs to say what today is without reading every
- *   number on the grid.
+ *   ([IfcDateFormatter.dayDescription]), whether today has an event (ROADMAP M5 T6, present only as a
+ *   plain "has events" hint -- never a count or a title, CLAUDE.md rule 8), and the tap hint.
+ *   Deliberately **not** one description per day cell -- the app's full month grid gives every cell its
+ *   own rich description (docs/ARCHITECTURE.md §4 "Accessibility"), which would be 28-plus nodes on a
+ *   home-screen widget; a single description here is the one TalkBack needs to say what today is
+ *   without reading every number on the grid.
  */
 data class MonthWidgetState(
     val monthTitle: String,
@@ -84,26 +96,43 @@ data class MonthWidgetState(
  *
  * Every date and weekday comes from `:core:calendar` (CLAUDE.md rule 1); this function only shapes and
  * formats what [today] and [IfcYearMonth] already computed.
+ *
+ * @param eventDates the Gregorian dates with at least one event occurrence in this month
+ *   (`ObserveAgendaUseCase.presence`, ROADMAP M5 T6), from [fetchMonthEventPresence]. Defaults to empty
+ *   for callers that do not care about event dots (most tests, and any render where the snapshot timed
+ *   out or failed -- see [fetchMonthEventPresence]'s KDoc).
+ * @param hasEventsLabel the localized "has events" hint appended to [MonthWidgetState.contentDescription]
+ *   when today has an event; the empty default appends nothing, which also keeps every existing caller
+ *   that does not pass one byte-for-byte unchanged.
  */
 fun buildMonthWidgetState(
     today: TodayDate,
     formatter: IfcDateFormatter,
     tapHint: String,
+    eventDates: Set<LocalDate> = emptySet(),
+    hasEventsLabel: String = "",
 ): MonthWidgetState {
     val month = IfcYearMonth.from(today.ifcDate)
 
     val days =
         (1..IfcMonth.DAYS_PER_MONTH).map { day ->
             val date = IfcDate.Regular(month.year, month.month, day)
-            MonthDayCellState(dayOfMonth = day, isToday = date.toLocalDate() == today.gregorianDate)
+            val gregorianDate = date.toLocalDate()
+            MonthDayCellState(
+                dayOfMonth = day,
+                isToday = gregorianDate == today.gregorianDate,
+                hasEvent = gregorianDate in eventDates,
+            )
         }
 
     val intercalary =
         month.trailingIntercalary?.let { day ->
+            val gregorianDate = day.toLocalDate()
             MonthIntercalaryState(
                 label = formatter.formatDay(day),
                 subtitle = formatter.intercalarySubtitle(day),
-                isToday = day.toLocalDate() == today.gregorianDate,
+                isToday = gregorianDate == today.gregorianDate,
+                hasEvent = gregorianDate in eventDates,
             )
         }
 
@@ -122,6 +151,19 @@ fun buildMonthWidgetState(
 
     val monthTitle = formatter.monthTitle(month)
     val todayDescription = formatter.dayDescription(today.ifcDate, isToday = true)
+    val todayHasEvent = today.gregorianDate in eventDates
+    val contentDescription =
+        buildString {
+            append(monthTitle)
+            append(". ")
+            append(todayDescription)
+            if (todayHasEvent && hasEventsLabel.isNotEmpty()) {
+                append(' ')
+                append(hasEventsLabel)
+            }
+            append(' ')
+            append(tapHint)
+        }
     return MonthWidgetState(
         monthTitle = monthTitle,
         nominalWeekdayHeaders = nominalHeaders,
@@ -129,6 +171,6 @@ fun buildMonthWidgetState(
         days = days,
         intercalary = intercalary,
         gregorianSpanLabel = formatter.gregorianSpan(month.gregorianRange),
-        contentDescription = "$monthTitle. $todayDescription $tapHint",
+        contentDescription = contentDescription,
     )
 }

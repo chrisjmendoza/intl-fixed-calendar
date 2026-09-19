@@ -14,6 +14,7 @@ import io.github.chrisjmendoza.yearal.core.domain.event.EventCalendar
 import io.github.chrisjmendoza.yearal.core.domain.event.EventRepository
 import io.github.chrisjmendoza.yearal.core.domain.event.RecurrenceExpander
 import io.github.chrisjmendoza.yearal.core.domain.event.ReminderScheduler
+import io.github.chrisjmendoza.yearal.core.domain.widget.WidgetUpdater
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
@@ -52,6 +53,9 @@ import javax.inject.Inject
  * @property reminderScheduler asked to recompute the next alarm after every successful write
  *   (`docs/ARCHITECTURE.md` §3.2 "Reminders"); no implementation exists in this module — `:app` must
  *   bind one (ROADMAP M6 T1).
+ * @property widgetUpdater asked to refresh event-aware widgets after every successful write
+ *   (`docs/ARCHITECTURE.md` §5 "Data"; `docs/contracts/Events.md` §5 "Small hooks"); the debounced
+ *   implementation lives in `:widget` (ROADMAP M5 T6).
  */
 public class RoomEventRepository
     @Inject
@@ -64,6 +68,7 @@ public class RoomEventRepository
         private val clock: Clock,
         private val recurrenceExpander: RecurrenceExpander,
         private val reminderScheduler: ReminderScheduler,
+        private val widgetUpdater: WidgetUpdater,
     ) : EventRepository {
         /** Serialises writers around the validate-then-transact sequence; see the class KDoc. */
         private val mutex = Mutex()
@@ -92,13 +97,17 @@ public class RoomEventRepository
                     }
                 }
             reminderScheduler.reschedule()
+            widgetUpdater.requestUpdate()
             return id
         }
 
         override suspend fun deleteCalendar(id: Long): Boolean {
             require(id != EventCalendar.DEFAULT_ID) { "The built-in calendar cannot be deleted" }
             val deleted = mutex.withLock { database.withWriteTransaction { calendarDao.deleteById(id) > 0 } }
-            if (deleted) reminderScheduler.reschedule()
+            if (deleted) {
+                reminderScheduler.reschedule()
+                widgetUpdater.requestUpdate()
+            }
             return deleted
         }
 
@@ -183,12 +192,16 @@ public class RoomEventRepository
                     }
                 }
             reminderScheduler.reschedule()
+            widgetUpdater.requestUpdate()
             return stored.id
         }
 
         override suspend fun deleteEvent(id: Long): Boolean {
             val deleted = mutex.withLock { database.withWriteTransaction { eventDao.deleteById(id) > 0 } }
-            if (deleted) reminderScheduler.reschedule()
+            if (deleted) {
+                reminderScheduler.reschedule()
+                widgetUpdater.requestUpdate()
+            }
             return deleted
         }
 
@@ -209,7 +222,10 @@ public class RoomEventRepository
                     }
                     true
                 }
-            if (added) reminderScheduler.reschedule()
+            if (added) {
+                reminderScheduler.reschedule()
+                widgetUpdater.requestUpdate()
+            }
             return added
         }
 
@@ -227,7 +243,10 @@ public class RoomEventRepository
                     }
                     true
                 }
-            if (removed) reminderScheduler.reschedule()
+            if (removed) {
+                reminderScheduler.reschedule()
+                widgetUpdater.requestUpdate()
+            }
             return removed
         }
 
@@ -240,6 +259,7 @@ public class RoomEventRepository
                 }
             }
             reminderScheduler.reschedule()
+            widgetUpdater.requestUpdate()
         }
 
         /** Sets `updated_at` to the clock's instant, never before [createdAt] (the [Event] invariant). */

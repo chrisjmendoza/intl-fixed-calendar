@@ -1,7 +1,8 @@
 package io.github.chrisjmendoza.yearal.feature.calendar.day
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,17 +20,23 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -37,8 +44,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.tooling.preview.Preview
@@ -53,6 +62,7 @@ import io.github.chrisjmendoza.yearal.core.navigation.EventEditorKey
 import io.github.chrisjmendoza.yearal.core.navigation.Navigator
 import io.github.chrisjmendoza.yearal.feature.calendar.R
 import io.github.chrisjmendoza.yearal.feature.calendar.agenda.AgendaItemUi
+import kotlinx.coroutines.flow.collectLatest
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
@@ -77,6 +87,9 @@ private val AgendaRowSpacing = 12.dp
  * with the event's id or [DayKey.epochDay] as the prefill, ids only (CLAUDE.md rule 8). "Open in
  * converter" (FEATURES D1) pushes [ConverterKey] prefilled with the same epoch day.
  *
+ * A deleted occurrence ([DayEvent.OccurrenceDeleted]) offers undo through a snackbar
+ * ([DayViewModel.undoDeleteOccurrence]); a deleted event has none.
+ *
  * @param key the day to show, as a Gregorian epoch day (CLAUDE.md rule 4).
  * @param navigator popped when the sheet is dismissed; navigated to the event editor or the converter
  * on a tap.
@@ -89,16 +102,40 @@ fun DayRoute(
     modifier: Modifier = Modifier,
     viewModel: DayViewModel =
         hiltViewModel<DayViewModel, DayViewModel.Factory>(
-            creationCallback = { factory -> factory.create(LocalDate.ofEpochDay(key.epochDay)) },
+            creationCallback = { factory -> factory.create(key.epochDay) },
         ),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbarHostState = remember { SnackbarHostState() }
+    val undoMessage = stringResource(R.string.day_delete_occurrence_snackbar)
+    val undoLabel = stringResource(R.string.day_delete_occurrence_undo)
+    LaunchedEffect(viewModel) {
+        viewModel.events.collectLatest { event ->
+            when (event) {
+                is DayEvent.OccurrenceDeleted -> {
+                    val result =
+                        snackbarHostState.showSnackbar(
+                            message = undoMessage,
+                            actionLabel = undoLabel,
+                            duration = SnackbarDuration.Short,
+                        )
+                    if (result == SnackbarResult.ActionPerformed) {
+                        viewModel.undoDeleteOccurrence(event.eventId, event.occurrenceDate)
+                    }
+                }
+            }
+        }
+    }
     DayScreen(
         state = state,
         onDismiss = navigator::goBack,
         onEventClick = { eventId -> navigator.navigate(EventEditorKey(eventId = eventId)) },
         onAddEvent = { navigator.navigate(EventEditorKey(prefillEpochDay = key.epochDay)) },
         onOpenInConverter = { navigator.navigate(ConverterKey(prefillEpochDay = key.epochDay)) },
+        onRequestDelete = viewModel::requestDelete,
+        onConfirmDelete = viewModel::confirmDelete,
+        onCancelDelete = viewModel::cancelDelete,
+        snackbarHostState = snackbarHostState,
         modifier = modifier,
     )
 }
@@ -119,6 +156,11 @@ fun DayRoute(
  * @param onEventClick invoked with an agenda row's event id.
  * @param onAddEvent invoked by the "Add event" action.
  * @param onOpenInConverter invoked by the "Open in converter" action (FEATURES D1).
+ * @param onRequestDelete invoked with an agenda row (long-press, or its TalkBack delete action) to
+ * open the delete confirmation for it.
+ * @param onConfirmDelete invoked when the delete confirmation is accepted.
+ * @param onCancelDelete invoked when the delete confirmation is dismissed without deleting.
+ * @param snackbarHostState hosts the undo snackbar after an occurrence delete.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -129,19 +171,29 @@ fun DayScreen(
     onEventClick: (Long) -> Unit = {},
     onAddEvent: () -> Unit = {},
     onOpenInConverter: () -> Unit = {},
+    onRequestDelete: (AgendaItemUi) -> Unit = {},
+    onConfirmDelete: () -> Unit = {},
+    onCancelDelete: () -> Unit = {},
+    snackbarHostState: SnackbarHostState = remember { SnackbarHostState() },
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         modifier = modifier,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     ) {
-        DayDetail(
-            state = state,
-            onClose = onDismiss,
-            onEventClick = onEventClick,
-            onAddEvent = onAddEvent,
-            onOpenInConverter = onOpenInConverter,
-        )
+        Box {
+            DayDetail(
+                state = state,
+                onClose = onDismiss,
+                onEventClick = onEventClick,
+                onAddEvent = onAddEvent,
+                onOpenInConverter = onOpenInConverter,
+                onRequestDelete = onRequestDelete,
+                onConfirmDelete = onConfirmDelete,
+                onCancelDelete = onCancelDelete,
+            )
+            SnackbarHost(hostState = snackbarHostState, modifier = Modifier.align(Alignment.BottomCenter))
+        }
     }
 }
 
@@ -159,6 +211,9 @@ fun DayScreen(
  * @param onEventClick invoked with an agenda row's event id.
  * @param onAddEvent invoked by the "Add event" action.
  * @param onOpenInConverter invoked by the "Open in converter" action.
+ * @param onRequestDelete invoked with an agenda row to open its delete confirmation.
+ * @param onConfirmDelete invoked when the delete confirmation is accepted.
+ * @param onCancelDelete invoked when the delete confirmation is dismissed.
  */
 @Composable
 fun DayDetail(
@@ -168,10 +223,63 @@ fun DayDetail(
     onEventClick: (Long) -> Unit = {},
     onAddEvent: () -> Unit = {},
     onOpenInConverter: () -> Unit = {},
+    onRequestDelete: (AgendaItemUi) -> Unit = {},
+    onConfirmDelete: () -> Unit = {},
+    onCancelDelete: () -> Unit = {},
 ) {
     when (state) {
-        DayUiState.Loading -> LoadingContent(modifier)
-        is DayUiState.Loaded -> LoadedContent(state, onClose, onEventClick, onAddEvent, onOpenInConverter, modifier)
+        DayUiState.Loading -> {
+            LoadingContent(modifier)
+        }
+
+        DayUiState.Unavailable -> {
+            UnavailableContent(onClose, modifier)
+        }
+
+        is DayUiState.Loaded -> {
+            LoadedContent(
+                state,
+                onClose,
+                onEventClick,
+                onAddEvent,
+                onOpenInConverter,
+                onRequestDelete,
+                onConfirmDelete,
+                onCancelDelete,
+                modifier,
+            )
+        }
+    }
+}
+
+/**
+ * Shown for [DayUiState.Unavailable]: the requested date cannot be shown (an out-of-range epoch day
+ * from a synthesized `DayKey`), with an explicit close action — the sheet's usual scrim tap, swipe and
+ * back gesture all still work too.
+ */
+@Composable
+private fun UnavailableContent(
+    onClose: () -> Unit,
+    modifier: Modifier,
+) {
+    Column(
+        modifier =
+            modifier
+                .fillMaxWidth()
+                .padding(start = SheetHorizontalPadding, end = SheetHorizontalPadding, bottom = SheetBottomPadding),
+        verticalArrangement = Arrangement.spacedBy(LineSpacing),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = stringResource(R.string.day_unavailable_title),
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.weight(1f).semantics { heading() },
+            )
+            IconButton(onClick = onClose) {
+                Icon(imageVector = Icons.Filled.Close, contentDescription = stringResource(R.string.day_close))
+            }
+        }
+        Text(text = stringResource(R.string.day_unavailable_message), style = MaterialTheme.typography.bodyLarge)
     }
 }
 
@@ -193,6 +301,9 @@ private fun LoadedContent(
     onEventClick: (Long) -> Unit,
     onAddEvent: () -> Unit,
     onOpenInConverter: () -> Unit,
+    onRequestDelete: (AgendaItemUi) -> Unit,
+    onConfirmDelete: () -> Unit,
+    onCancelDelete: () -> Unit,
     modifier: Modifier,
 ) {
     Column(
@@ -258,7 +369,11 @@ private fun LoadedContent(
             )
             Column(verticalArrangement = Arrangement.spacedBy(AgendaRowSpacing)) {
                 for (item in state.agenda) {
-                    AgendaRow(item = item, onClick = { onEventClick(item.eventId) })
+                    AgendaRow(
+                        item = item,
+                        onClick = { onEventClick(item.eventId) },
+                        onRequestDelete = { onRequestDelete(item) },
+                    )
                 }
             }
         }
@@ -278,6 +393,35 @@ private fun LoadedContent(
             }
         }
     }
+    if (state.pendingDelete != null) {
+        DeleteAgendaItemDialog(
+            item = state.pendingDelete,
+            onConfirm = onConfirmDelete,
+            onDismiss = onCancelDelete,
+        )
+    }
+}
+
+/**
+ * Confirms deleting [item]: "delete this occurrence" wording and an undo mention for a recurring
+ * event ([AgendaItemUi.isRecurring]), a plain and permanent "delete event" otherwise (FEATURES E1).
+ */
+@Composable
+private fun DeleteAgendaItemDialog(
+    item: AgendaItemUi,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    val titleRes = if (item.isRecurring) R.string.day_delete_occurrence_title else R.string.day_delete_event_title
+    val textRes = if (item.isRecurring) R.string.day_delete_occurrence_text else R.string.day_delete_event_text
+    val actionRes = if (item.isRecurring) R.string.day_delete_occurrence_action else R.string.day_delete_event_action
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(titleRes)) },
+        text = { Text(stringResource(textRes)) },
+        confirmButton = { TextButton(onClick = onConfirm) { Text(stringResource(actionRes)) } },
+        dismissButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.day_delete_cancel)) } },
+    )
 }
 
 /** A static "Today" pill, deliberately not a button: it states a fact and does nothing (no dead controls). */
@@ -326,11 +470,17 @@ private fun WeekdayBlock(state: DayUiState.Loaded) {
  * carry the same information in text), the title with a localized placeholder when blank, and "All
  * day" or the locale-formatted time range. Tapping the row invokes [onClick] with nothing but the
  * event id already bound by the caller (CLAUDE.md rule 8).
+ *
+ * Long-pressing the row, or its TalkBack custom action (`AccessibilityAction.ACTION_LONG_CLICK`'s
+ * spoken-menu equivalent — reachable without a long press), invokes [onRequestDelete]: "delete this
+ * occurrence" for a recurring event, a plain delete otherwise ([AgendaItemUi.isRecurring]).
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 private fun AgendaRow(
     item: AgendaItemUi,
     onClick: () -> Unit,
+    onRequestDelete: () -> Unit,
 ) {
     val title = item.title.ifBlank { stringResource(R.string.agenda_untitled_event) }
     val timeLabel =
@@ -346,12 +496,25 @@ private fun AgendaRow(
                 timeFormatter.format(item.endTime ?: LocalTime.MIDNIGHT),
             )
         }
+    val deleteActionLabel =
+        stringResource(
+            if (item.isRecurring) R.string.day_delete_occurrence_action else R.string.day_delete_event_action,
+        )
     Row(
         modifier =
             Modifier
                 .fillMaxWidth()
-                .clickable(role = Role.Button, onClick = onClick)
-                .semantics(mergeDescendants = true) { contentDescription = "$title, $timeLabel" },
+                .combinedClickable(role = Role.Button, onClick = onClick, onLongClick = onRequestDelete)
+                .semantics(mergeDescendants = true) {
+                    contentDescription = "$title, $timeLabel"
+                    customActions =
+                        listOf(
+                            CustomAccessibilityAction(deleteActionLabel) {
+                                onRequestDelete()
+                                true
+                            },
+                        )
+                },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(ChipHorizontalPadding),
     ) {

@@ -1,6 +1,10 @@
 # Security & Privacy Plan
 
-Status: planning (no code yet). Last verified against Android / Google Play / GitHub docs: **2026-09-17**.
+Status: **current as of M5 T2** (2026-09-18) — the plan below is implemented wherever a milestone/task is
+cited inline (permissions declared, backup rules, the manifest-permission CI gate, the in-app Privacy
+screen); sections with no milestone citation (app lock, widget privacy mode, `.ics` import/export, URL
+subscriptions) are still planning, for a later release. Last verified against Android / Google Play / GitHub
+docs: **2026-09-17**.
 Scope: the Android app (Kotlin, Compose, Glance widgets, Room + DataStore, WorkManager/AlarmManager, minSdk 26, no backend, no accounts) and its public GitHub repo.
 
 **Posture in one paragraph.** This is an offline, single-user calendar. The platform (app sandbox + file-based encryption + encrypted Auto Backup) already covers most of what matters. Our job is mostly to *not undo* those guarantees: keep the app off the network, keep data out of places other people can see it (widgets, lock-screen notifications, plain-text exports), treat `.ics` files and URLs as hostile input, keep exported components to a minimum, and keep the signing/publishing chain clean. Database encryption, custom PINs, certificate pinning, and enterprise supply-chain tooling are **not** warranted.
@@ -119,12 +123,21 @@ Addresses A1 only. Off by default.
 - Per-widget setting in the Glance configuration activity: **Show titles / Show counts only ("3 events") / Date only**. The IFC date itself is never sensitive.
 - Global override in Settings → Privacy: "Hide event details on all widgets".
 - Default: titles shown on an agenda-style widget (that is its purpose), but the configuration screen makes the choice visible at placement time rather than burying it.
-- **Lock-screen widgets:** since Android 16 QPR2, phone lock screens can host widgets, and **all widgets are eligible by default**; opt out by declaring widget category `not_keyguard` in the app-widget info XML placed in an `xml-36` resource folder ([Android Developers Blog FAQ](https://android-developers.googleblog.com/2025/03/widgets-on-lock-screen-faq.html)). **Decision:** the date-only widget stays lock-screen eligible; any widget capable of showing event titles declares `not_keyguard`. Revisit later if users ask for a redacted lock-screen agenda.
+- **Lock-screen widgets:** since Android 16 QPR2, phone lock screens can host widgets, and **all widgets are eligible by default**; opt out by declaring widget category `not_keyguard` in the app-widget info XML placed in an `xml-36` resource folder ([Android Developers Blog FAQ](https://android-developers.googleblog.com/2025/03/widgets-on-lock-screen-faq.html)). **Decision:** the date-only widget stays lock-screen eligible; any widget capable of showing event titles declares `not_keyguard`. Revisit later if users ask for a redacted lock-screen agenda. **Ruled on the Month widget's event dots (ROADMAP M5 T6):** a dot is a plain per-day boolean from `ObserveAgendaUseCase.presence` — it reveals that *something* exists on a day, never a title, a count, or which calendar — so it is not "capable of showing event titles" in the sense this decision means, and the Month widget stays `home_screen`-only like the date-only Today widget, without declaring `not_keyguard`.
 - Widgets must not cache titles in `RemoteViews` state after privacy mode is turned on: toggling the setting forces an immediate update of all widget instances.
 
 ### 3.3 Notifications — NEEDED, ships with reminders (effort S)
 
-- Reminder channel notifications use `VISIBILITY_PRIVATE` **plus a redacted `setPublicVersion()`** ("Event reminder · 14:30", no title/notes). This respects the user's system-level "hide sensitive content on lock screen" choice at zero UX cost. **MVP.**
+**As built (M6 T1, `:core:scheduling`, `reminder/ReminderNotifier.kt`).** One channel, id `reminders`,
+`IMPORTANCE_HIGH`, created idempotently before the first post. Each notification carries the event
+**title and time only** — never the description or location — with `VISIBILITY_PRIVATE`, a redacted
+public version, `CATEGORY_REMINDER`, `setAutoCancel(true)`, no full-screen intent, and a stable id
+derived from the event id, the occurrence date and the reminder's lead time, so re-posting replaces its
+own notification instead of adding one. The tap target is an explicit, immutable `PendingIntent` to the
+app's launcher activity with **no extras** (§6.4); routing to the event's own day waits for
+`IntentRouter`.
+
+- Reminder channel notifications use `VISIBILITY_PRIVATE` **plus a redacted `setPublicVersion()`** ("Event reminder · 14:30", no title/notes). This respects the user's system-level "hide sensitive content on lock screen" choice at zero UX cost. **MVP.** Built as a localized "Event reminder" label plus the same time text ("All day" for an all-day event) and nothing else; a test asserts the event title appears nowhere in the public version.
 - In-app toggle **"Hide event details in notifications"**: the notification content itself becomes generic everywhere (shade, heads-up, wearables, notification history), details only after opening the app. Default off; forced-on suggestion when app lock is enabled. **v1.x**, with app lock.
 - Never use `VISIBILITY_PUBLIC` for reminders. Never put notes/description text in the notification — title and time only.
 - No `USE_FULL_SCREEN_INTENT`: Play auto-grants it only for alarm and calling apps ([Play permissions policy](https://support.google.com/googleplay/android-developer/answer/16558241?hl=en)); a calendar reminder is a normal high-importance notification.
@@ -206,16 +219,19 @@ that adds the permission to the manifest. `android.permission.INTERNET` must nev
 | `io.github.chrisjmendoza.yearal.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION` | 0.1 | Self-scoped custom permission that `androidx.core` injects at merge time (named after `applicationId`, `android:protectionLevel="signature"`); guards this app's own dynamically-registered broadcast receivers on API < 33. Both the `<permission>` definition and the matching `<uses-permission>` are expected in every merged manifest; it grants the app no capability beyond what it already has. |
 | `android.permission.RECEIVE_BOOT_COMPLETED` | 0.1 (added by M5 T2) | Normal, install-time, no prompt. Declared by the `:core:scheduling` library manifest so `SystemEventReceiver` gets `BOOT_COMPLETED` and can re-arm the midnight rollover alarm, which a reboot drops (§5.1, §6.3). |
 | `android.permission.WAKE_LOCK` | 0.1 (added by M5 T1) | Normal, install-time, no prompt. Merged in by WorkManager (a transitive dependency of Glance, `:widget`); `androidx.work.impl.utils.WakeLocks` acquires it for every piece of work WorkManager runs, unconditionally, which is what keeps the Today widget's background render reliable (FEATURES Q10/S3). `:widget`'s manifest strips WorkManager's `ACCESS_NETWORK_STATE` and `FOREGROUND_SERVICE` with `tools:node="remove"` instead, since nothing this widget does needs either (§5.1). |
+| `android.permission.POST_NOTIFICATIONS` | 0.1 (added by M6 T1) | Runtime permission on API 33+, on by default below it. Declared by the `:core:scheduling` library manifest, the only place in the app that posts a notification: the reminder channel (FEATURES E4). Requested **in context**, the first time the user adds a reminder, never at launch; when it is denied the scheduler still computes and arms its alarm and simply posts nothing, so nothing else changes (FEATURES P2; §3.3, §5.1). |
+| `android.permission.USE_EXACT_ALARM` | 0.1 (added by M6 T3) | Normal, install-time, not user-revocable, API 33+. Declared by `:core:scheduling` so a reminder fires at the time the user set, in Doze included (`setExactAndAllowWhileIdle`); the midnight rollover reuses the same capability and must work without it. **Play-restricted**: allowed for "a calendar app that shows event notifications", which is exactly this use, and it needs the Play Console declaration in §5.4. Every call site checks `canScheduleExactAlarms()` first and falls back to a 10-minute windowed alarm (§5.1; ARCHITECTURE §5 layer 1). |
+| `android.permission.SCHEDULE_EXACT_ALARM` | 0.1 (added by M6 T3) | The same capability on API 31–32, where it is **special app access**: pre-granted there and user-revocable. Declared with `android:maxSdkVersion="32"`, the pattern Android documents for calendar apps, so API 33+ relies on `USE_EXACT_ALARM` alone and the Android 14 denied-by-default flow is never entered. Revocation is handled: `SystemEventReceiver` listens for `ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` and re-arms both alarms under the new capability (§5.1, §6.3). |
 <!-- permission-allowlist:end -->
 
 ### 5.1 Permission inventory
 
 | Permission | Decision | Milestone | Type / UX | Notes |
 |---|---|---|---|---|
-| `POST_NOTIFICATIONS` | Request | Ships with reminders (MVP if reminders are MVP) | Runtime (API 33+). Ask **when the user first adds a reminder**, never on first launch. If denied: keep the reminder, show an inline "notifications are off" chip linking to settings. | Below API 33 notifications are on by default. |
-| `USE_EXACT_ALARM` | Declare | Ships with reminders | Normal, install-time, not user-revocable (API 33+). | Play restricts it to apps whose core function needs precise timing; **"a calendar app that shows event notifications" is explicitly allowed**, and a **Play Console declaration is required** ([Play policy](https://support.google.com/googleplay/android-developer/answer/16558241?hl=en)). Do **not** declare it in a release that has no reminders — an unused restricted permission invites rejection. |
-| `SCHEDULE_EXACT_ALARM` with `android:maxSdkVersion="32"` | Declare | Ships with reminders | Special app access on API 31–32 (pre-granted there, user-revocable). | This is the manifest pattern Android recommends for calendar apps ([Android 14 exact-alarm change](https://developer.android.com/about/versions/14/changes/schedule-exact-alarms)). Always call `canScheduleExactAlarms()`; on `false`, fall back to `setWindow`/`setAndAllowWhileIdle` and surface a hint. Handle `ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` by rescheduling ([alarms docs](https://developer.android.com/develop/background-work/services/alarms)). |
-| `RECEIVE_BOOT_COMPLETED` | **Declared** (M5 T2, in the `:core:scheduling` library manifest) | Ships with reminders / widgets | Normal, install-time; no prompt. | Needed to receive `BOOT_COMPLETED`: a reboot drops every alarm, so the day rollover (and from M6 the reminder alarm) is re-armed then; also on `MY_PACKAGE_REPLACED`, `TIME_SET`, `TIMEZONE_CHANGED`, `LOCALE_CHANGED`, which need no permission. It is the first platform permission in the merged manifest (the only other entry is androidx.core's own signature-level `<applicationId>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`), so the CI allow-list must contain it. WorkManager merges this in anyway. |
+| `POST_NOTIFICATIONS` | **Declared** (M6 T1, in the `:core:scheduling` library manifest) | Ships with reminders (MVP if reminders are MVP) | Runtime (API 33+). Ask **when the user first adds a reminder**, never on first launch. If denied: keep the reminder, show an inline "notifications are off" chip linking to settings. | Below API 33 notifications are on by default. **As built:** `ReminderNotifier` checks `checkSelfPermission` on API 33+ immediately before `notify()` and returns without posting, logging or throwing when it is denied; the alarm is still armed and recomputed, so turning notifications back on needs no repair step (FEATURES P2). The in-context request lives in the event editor, not in `:core:scheduling`. |
+| `USE_EXACT_ALARM` | **Declared** (M6 T3, in the `:core:scheduling` library manifest) | Ships with reminders | Normal, install-time, not user-revocable (API 33+). | Play restricts it to apps whose core function needs precise timing; **"a calendar app that shows event notifications" is explicitly allowed**, and a **Play Console declaration is required** ([Play policy](https://support.google.com/googleplay/android-developer/answer/16558241?hl=en)) — the text to submit is §5.4. Do **not** declare it in a release that has no reminders; the first build that declares it is the first build that has them. |
+| `SCHEDULE_EXACT_ALARM` with `android:maxSdkVersion="32"` | **Declared** (M6 T3, in the `:core:scheduling` library manifest) | Ships with reminders | Special app access on API 31–32 (pre-granted there, user-revocable). | This is the manifest pattern Android recommends for calendar apps ([Android 14 exact-alarm change](https://developer.android.com/about/versions/14/changes/schedule-exact-alarms)). **As built:** one helper, `armWakeup` in `:core:scheduling`, is the only place either alarm is set; it calls `canScheduleExactAlarms()` (treating API < 31 as "allowed", where an exact alarm needs no permission) and otherwise falls back to `setWindow` with a 10-minute window. `SystemEventReceiver` handles `ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` by re-arming both alarms ([alarms docs](https://developer.android.com/develop/background-work/services/alarms)). A user-facing hint for the revoked case is not built yet (see §5.1's note below the table). |
+| `RECEIVE_BOOT_COMPLETED` | **Declared** (M5 T2, in the `:core:scheduling` library manifest) | Ships with reminders / widgets | Normal, install-time; no prompt. | Needed to receive `BOOT_COMPLETED`: a reboot drops every alarm, so the day rollover and (since M6 T1) the reminder alarm are re-armed then; also on `MY_PACKAGE_REPLACED`, `TIME_SET`, `TIMEZONE_CHANGED`, `LOCALE_CHANGED`, which need no permission. It is the first platform permission in the merged manifest (the only other entry is androidx.core's own signature-level `<applicationId>.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION`), so the CI allow-list must contain it. WorkManager merges this in anyway. |
 | `READ_CALENDAR` | Request | v1.1 | Runtime, dangerous. **Just-in-time**: only when the user turns on "Show my device calendars". Precede the system dialog with a short rationale screen: what is read, that it is read-only, that it never leaves the device, how to turn it off. Handle denial, "don't ask again" (deep-link to app settings), later revocation, and auto-reset for unused apps — the overlay simply disappears; the rest of the app is unaffected. | Play treats it under the general personal-and-sensitive-data rules (runtime request + clear explanation); there is currently **no calendar-specific declaration form** comparable to SMS/Call Log or the new contacts policy (*inferred from the policy pages; not an explicit statement by Google*). The rationale screen doubles as the "prominent disclosure" should a reviewer want one. |
 | `WRITE_CALENDAR` | **NOT requested** | — | — | The app has its own event store. "Add to my Google calendar" uses an `ACTION_INSERT` intent to the calendar app, which needs no permission. Write access doubles the blast radius of any bug. |
 | `INTERNET` | **NOT requested until URL subscriptions ship** | v1.3 | Normal, install-time, invisible to users. | "No internet permission" is a verifiable privacy claim and neuters a compromised dependency (A5). Treat adding it as a product decision with its own review (§6.2), not a line in a PR. Consider whether subscriptions are worth giving it up at all. |
@@ -232,7 +248,9 @@ that adds the permission to the manifest. `android.permission.INTERNET` must nev
 
 **Guard rail (MVP, effort S):** a CI step that extracts the permissions from the merged release manifest and fails if they differ from an allow-list file checked into the repo. Dependencies add permissions silently; this makes every change a reviewed diff.
 
-**Midnight widget refresh must not depend on the exact-alarm permission.** Its policy justification is user-visible event notifications. If an MVP ships widgets without reminders, schedule the day rollover with a windowed/inexact alarm plus time-change broadcasts, and only use exact alarms once reminders (and the Play declaration) exist.
+**Midnight widget refresh must not depend on the exact-alarm permission.** Its policy justification is user-visible event notifications. If an MVP ships widgets without reminders, schedule the day rollover with a windowed/inexact alarm plus time-change broadcasts, and only use exact alarms once reminders (and the Play declaration) exist. **Done that way:** M5 T2 shipped the rollover on the windowed alarm alone, and M6 T3 added the exact branch in the same change as the permissions and the reminder feature that justifies them.
+
+**Still open (M6 follow-up):** when `canScheduleExactAlarms()` is `false` on API 31–32 nothing tells the user that reminders may be up to ten minutes late. The behaviour is correct and silent; the hint is a Settings/editor change and belongs to whoever owns those screens.
 
 ### 5.2 Google Play requirements that apply
 
@@ -242,7 +260,7 @@ that adds the permission to the manifest. `android.permission.INTERNET` must nev
 | **Privacy policy** | **Yes — required for every app**, even with no data collection ([User Data policy](https://support.google.com/googleplay/android-developer/answer/10144311?hl=en), [Data safety help](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en)) | Must be linked in the Play Console field **and inside the app**; on an active, public, non-geofenced URL; **not a PDF**; not user-editable; must name the app/developer and give a privacy contact. **Host it on GitHub Pages from this repo** (e.g. `docs/privacy-policy.md` → Pages). Version history is public, which is a feature. Also ship the same text in-app (works offline) with a link to the hosted copy. |
 | **Data safety form** | Yes, required even for closed/open testing tracks | "Collect" means transmitting data off the device; data processed only on-device is not disclosed, and "Calendar events" is a listed data type only if it leaves the device ([Data safety help](https://support.google.com/googleplay/android-developer/answer/10787469?hl=en)). Expected answers: **No data collected. No data shared.** This stays true through v1.3: a subscription fetch is a GET to a user-chosen server carrying no user data (*the form's treatment of this exact case is not verified; re-read the form guidance when v1.3 lands*). OS-level Auto Backup is performed by the platform, not collected by the developer (*not verified as an explicit carve-out*). Adding any crash/analytics SDK would change these answers — see §7. |
 | **Prominent disclosure & consent** | Only if access is outside users' reasonable expectation | A calendar app reading calendars on-device on explicit opt-in is expected use. The JIT rationale screen (§5.1) satisfies the spirit regardless. |
-| **Exact alarm declaration** | Yes, once `USE_EXACT_ALARM` is in the manifest | Complete the Play Console declaration; calendar apps showing event notifications qualify. |
+| **Exact alarm declaration** | Yes — `USE_EXACT_ALARM` has been in the manifest since M6 T3 | Complete the Play Console declaration before the first upload of a build that declares it; calendar apps showing event notifications qualify. **The text to submit is §5.4.** |
 | **Account deletion** | No (no accounts) | Still provide "Delete all data" in-app. |
 | **Advertising ID declaration** | Yes (form) | Answer "No"; ensure `AD_ID` is absent from the merged manifest. |
 | **Play App Signing / AAB** | Yes, mandatory for new apps ([Play Console Help](https://support.google.com/googleplay/android-developer/answer/9842756?hl=en)) | See §8.2. |
@@ -254,6 +272,37 @@ that adds the permission to the manifest. `android.permission.INTERNET` must nev
 
 - **API 37:** cleartext traffic is blocked unless a network security config allows it (`usesCleartextTraffic` deprecated); Certificate Transparency enforced by default; `ACCESS_LOCAL_NETWORK` required for LAN access; RemoteViews bitmap memory for widgets is capped ([behaviour changes](https://developer.android.com/about/versions/17/behavior-changes-17)). All align with this plan; the widget cap matters for Glance month-grid widgets that render bitmaps.
 - **API 36:** opt-in stricter intent matching via `android:intentMatchingFlags="enforceIntentFilter"` ([behaviour changes](https://developer.android.com/about/versions/16/behavior-changes-16)) — adopt it (§6.3).
+
+### 5.4 Play Console exact-alarm declaration — text to submit
+
+The owner completes this once, in **Play Console → App content → "Exact alarm permission"**, before the
+first upload of a build that declares `USE_EXACT_ALARM` (which every build since M6 T3 does). The
+declaration asks what the app's core functionality uses exact alarms for; the answer below is what the
+code actually does, so it can be checked against the merged manifest and `:core:scheduling`.
+
+> **What the app is:** Yearal is an offline calendar app for the International Fixed Calendar. It has
+> no network permission, no account, and no analytics.
+>
+> **Why it needs exact alarms:** the user sets reminders on their own calendar events, and a reminder
+> notification has to appear at the minute the user chose — a reminder for a 09:00 meeting is useless
+> ten minutes late. The app holds no reminders on a server and cannot receive a push, so a local exact
+> alarm is the only way to deliver one. This is the "calendar app that shows event notifications" case
+> the policy names.
+>
+> **How it is used, precisely:** the app arms **one** alarm at a time, for the single earliest upcoming
+> reminder across all events, with `AlarmManager.setExactAndAllowWhileIdle(RTC_WAKEUP, …)`. When it
+> fires, the app posts the reminders that are due and arms the next one. The same single alarm also
+> refreshes the home-screen widgets' date once a day at local midnight, a by-product of the same
+> mechanism, not a separate use. There is no repeating alarm, no polling, no foreground service, no
+> `USE_FULL_SCREEN_INTENT`, and no `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS`.
+>
+> **Behaviour without the permission:** every call site checks
+> `AlarmManager.canScheduleExactAlarms()` and falls back to an inexact `setWindow` alarm with a
+> ten-minute window. The app remains fully functional then; reminders are simply less punctual.
+
+If the declaration is ever rejected, the fix is to remove both `<uses-permission>` lines from
+`core/scheduling/src/main/AndroidManifest.xml` and the two allow-list rows above; the `armWakeup`
+fallback then runs on every device and no other code changes (ARCHITECTURE "Reconciled decisions" 11).
 
 ---
 
@@ -299,11 +348,11 @@ Target exported surface (everything else `android:exported="false"`):
 | Component | Exported | Hardening |
 |---|---|---|
 | Main activity (launcher) | Yes | Accepts only typed extras from our own widgets/notifications (epoch-day, event ID). Validate and fail soft on unknown IDs. Never accept a URI, file path, class name, or nested `Intent` from extras (no intent redirection). |
-| Glance widget receivers (`TodayWidgetReceiver` M5 T1, `MonthWidgetReceiver` M5 T3, both in `:widget`; the Agenda widget follows in M7a) | Yes (required by launchers) | Only ever re-render from the app's own bindings (the injected `Clock`/`ZoneProvider` today; `:core:data` once a widget shows events); ignore unexpected extras. Only the `APPWIDGET_UPDATE` filter is declared, so a spoofed broadcast just causes a refresh. |
+| Glance widget receivers (`TodayWidgetReceiver` M5 T1, `MonthWidgetReceiver` M5 T3, event dots M5 T6, both in `:widget`; the Agenda widget follows in M7a) | Yes (required by launchers) | Only ever re-render from the app's own bindings (the injected `Clock`/`ZoneProvider`; `ObserveAgendaUseCase.presence` for the Month widget's dots, read through `:core:domain`, bounded by a timeout and a catch so a slow or broken query never hangs or crashes the render); ignore unexpected extras. Only the `APPWIDGET_UPDATE` filter is declared, so a spoofed broadcast just causes a refresh. |
 | `.ics` import activity (v1.2) | Yes | `content://` + `text/calendar` only → preview screen → gate + confirm (§6.1). |
 | Widget configuration activity | **No** (*launchers start it via the app-widget service; verify on Pixel + Samsung launchers*) | Behind app lock. Validates the `appWidgetId` belongs to us. |
-| Boot / time-change / package-replaced receiver (`SystemEventReceiver` in `:core:scheduling`, done M5 T2) | **No** — `TIME_SET`, `TIMEZONE_CHANGED`, `LOCALE_CHANGED`, `BOOT_COMPLETED` and `MY_PACKAGE_REPLACED` are protected broadcasts that only the system can send, and the system reaches non-exported receivers (*verify on a device in the M5 T8 test matrix*) | Checks `intent.action` against exactly that set and reads nothing else from the intent; any other action is ignored. The first four are on the implicit-broadcast exemption list and `MY_PACKAGE_REPLACED` is addressed to the package, so a manifest receiver is allowed; `DATE_CHANGED` is not exempt and is not registered. |
-| Alarm + notification-action receivers (`DayRolloverAlarmReceiver`, done M5 T2; reminders M6) | No | Reached only through our own explicit `PendingIntent`s; no intent filter. The rollover `PendingIntent` is `FLAG_IMMUTABLE`, names the receiver class, and carries no extras. The receiver still checks the action. |
+| Boot / time-change / package-replaced / exact-alarm-permission receiver (`SystemEventReceiver` in `:core:scheduling`, done M5 T2, sixth action added M6 T3) | **No** — `TIME_SET`, `TIMEZONE_CHANGED`, `LOCALE_CHANGED`, `BOOT_COMPLETED`, `MY_PACKAGE_REPLACED` and `SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` are protected broadcasts that only the system can send, and the system reaches non-exported receivers (*verify on a device in the M5 T8 test matrix*) | Checks `intent.action` against exactly that set and reads nothing else from the intent; any other action is ignored. The first four are on the implicit-broadcast exemption list, and `MY_PACKAGE_REPLACED` and the exact-alarm one are addressed to the package, so a manifest receiver is allowed; `DATE_CHANGED` is not exempt and is not registered. The exact-alarm action re-arms both alarms under the new capability and notifies no day-rollover listener — it is not a date change. |
+| Alarm receivers (`DayRolloverAlarmReceiver`, done M5 T2; `reminder/ReminderAlarmReceiver`, done M6 T1) | No | Reached only through our own explicit `PendingIntent`s; no intent filter. Both `PendingIntent`s are `FLAG_IMMUTABLE`, name the receiver class, carry **no extras** and use distinct fixed request codes, so neither replaces the other. Each receiver still checks the action. Which reminder fired is recomputed from the store and the clock, never carried in the intent (CLAUDE.md rule 8), which is why a late or duplicated delivery is harmless. |
 | Providers merged by libraries (androidx.startup, WorkManager) | No | Review the merged manifest once per dependency bump (covered by the CI manifest diff if extended to components). |
 
 Also:
@@ -322,8 +371,8 @@ Also:
 
 - **Always `FLAG_IMMUTABLE`** (a mutability flag is mandatory when targeting 31+), always an **explicit** component, combined with `FLAG_UPDATE_CURRENT` and a stable per-event request code.
 - No `FLAG_MUTABLE` anywhere — no inline-reply or bubble use cases exist. If one appears, it needs a written justification.
-- Notification taps open the activity directly (no broadcast/service trampolines; blocked since API 31).
-- Extras carry IDs, never content (no event titles inside `PendingIntent` extras).
+- Notification taps open the activity directly (no broadcast/service trampolines; blocked since API 31). **As built (M6 T1):** the reminder notification's `contentIntent` is `PendingIntent.getActivity` on the launcher intent resolved through `PackageManager.getLaunchIntentForPackage` — `:core:scheduling` may not name `MainActivity`, which lives in `:app` — the same helper shape the widgets use.
+- Extras carry IDs, never content (no event titles inside `PendingIntent` extras). Today no app-owned `PendingIntent` carries **any** extra: the rollover alarm, the reminder alarm and the reminder tap are all extra-free, and `IntentRouter` is the change that will introduce the first typed id extras (§6.3).
 
 ### 6.5 `FileProvider` / content providers
 

@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import io.github.chrisjmendoza.yearal.core.domain.rollover.DayRolloverTrigger
+import io.github.chrisjmendoza.yearal.core.scheduling.reminder.dispatchReminderRecompute
 
 /**
  * Manifest-declared receiver for the system events after which "today" or the armed alarm may be
@@ -22,7 +23,14 @@ import io.github.chrisjmendoza.yearal.core.domain.rollover.DayRolloverTrigger
  * the context-registered receiver behind `DateTicker`. The app is not Direct Boot aware, so
  * `BOOT_COMPLETED` arrives after the first unlock (`docs/security-and-privacy.md` §2.3).
  *
- * Not exported: all five are protected broadcasts that only the system can send, and the system
+ * A **sixth** action, [ACTION_EXACT_ALARM_PERMISSION_CHANGED], is handled separately because it says
+ * nothing about the date: it means the "Alarms & reminders" special access was granted or revoked on
+ * API 31–32, so both alarms must be armed again under the new capability and no listener needs to
+ * hear about it (ROADMAP M6 T3; `docs/security-and-privacy.md` §5.1). Like `MY_PACKAGE_REPLACED` it is
+ * not an implicit broadcast — the system addresses it to the affected package — so a manifest receiver
+ * may listen for it.
+ *
+ * Not exported: all six are protected broadcasts that only the system can send, and the system
  * reaches non-exported receivers (`docs/security-and-privacy.md` §6.3). The action is checked against
  * exactly this set and nothing else is read from the intent; any other action is ignored.
  */
@@ -31,11 +39,23 @@ public class SystemEventReceiver : BroadcastReceiver() {
         context: Context,
         intent: Intent,
     ) {
+        if (intent.action == ACTION_EXACT_ALARM_PERMISSION_CHANGED) {
+            dispatchReminderRecompute(context, rearmRollover = true)
+            return
+        }
         val trigger = triggerFor(intent.action) ?: return
         dispatchRollover(context, trigger)
     }
 
     internal companion object {
+        /**
+         * `AlarmManager.ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED`, spelled out because the
+         * platform constant was added in API 31 and referencing it below `minSdk` inlines a value
+         * Android Lint rightly objects to (`InlinedApi`). Delivered on API 31 and later only.
+         */
+        const val ACTION_EXACT_ALARM_PERMISSION_CHANGED: String =
+            "android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED"
+
         /** The trigger for a system broadcast [action], or `null` for an action this receiver ignores. */
         fun triggerFor(action: String?): DayRolloverTrigger? =
             when (action) {

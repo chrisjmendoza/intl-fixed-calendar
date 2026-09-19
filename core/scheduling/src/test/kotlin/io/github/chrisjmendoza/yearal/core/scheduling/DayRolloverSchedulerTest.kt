@@ -58,11 +58,12 @@ class DayRolloverSchedulerTest {
         alarm.intervalMs shouldBe 0L
     }
 
-    // The exact-alarm permissions are not declared before M6, so the rollover runs on the windowed alarm
-    // whatever the platform reports, on the oldest and newest supported releases and on both sides of
-    // API 31, where canScheduleExactAlarms() and the 10-minute minimum window appeared.
+    // Since ROADMAP M6 T3 the exact-alarm permissions that reminders justify are declared, so the
+    // rollover reuses the capability: exact where it exists, the 10-minute window where it does not.
+    // Checked on both sides of API 31, where canScheduleExactAlarms() and the 10-minute minimum window
+    // appeared, and on the oldest and newest supported releases.
     @Test
-    @Config(sdk = [26, 30, 31, 36])
+    @Config(sdk = [31, 33, 36])
     fun `without exact-alarm capability the alarm is a 10-minute window`() {
         ShadowAlarmManager.setCanScheduleExactAlarms(false)
 
@@ -75,15 +76,29 @@ class DayRolloverSchedulerTest {
     }
 
     @Test
-    @Config(sdk = [26, 30, 31, 36])
-    fun `with exact-alarm capability the alarm is still the 10-minute window`() {
+    @Config(sdk = [31, 33, 36])
+    fun `with exact-alarm capability the alarm is exact and allowed while idle`() {
         ShadowAlarmManager.setCanScheduleExactAlarms(true)
 
         scheduler.arm()
 
         val alarm = onlyAlarm()
-        alarm.windowLengthMs shouldBe Duration.ofMinutes(10).toMillis()
-        alarm.isAllowWhileIdle shouldBe false
+        alarm.isAllowWhileIdle shouldBe true
+        alarm.getType() shouldBe AlarmManager.RTC_WAKEUP
+        Instant.ofEpochMilli(alarm.triggerAtMs) shouldBe Instant.parse("2026-09-19T04:00:01Z")
+    }
+
+    @Test
+    @Config(sdk = [26, 30])
+    fun `below API 31 the alarm is exact, because an exact alarm needs no permission there`() {
+        // canScheduleExactAlarms() does not exist below API 31 and must not be consulted: whatever the
+        // shadow reports, the alarm is exact.
+        ShadowAlarmManager.setCanScheduleExactAlarms(false)
+
+        scheduler.arm()
+
+        val alarm = onlyAlarm()
+        alarm.isAllowWhileIdle shouldBe true
         Instant.ofEpochMilli(alarm.triggerAtMs) shouldBe Instant.parse("2026-09-19T04:00:01Z")
     }
 

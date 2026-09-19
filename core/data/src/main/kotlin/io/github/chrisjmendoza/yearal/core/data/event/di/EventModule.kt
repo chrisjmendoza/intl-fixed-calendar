@@ -25,12 +25,14 @@ import javax.inject.Singleton
  * [EventRepository]).
  *
  * `RoomEventRepository` also takes a `java.time.Clock`, a
- * `io.github.chrisjmendoza.yearal.core.domain.event.RecurrenceExpander` and a
- * `io.github.chrisjmendoza.yearal.core.domain.event.ReminderScheduler` by constructor injection.
- * `Clock` is already bound in `:app`'s `TimeModule`. **`RecurrenceExpander` and `ReminderScheduler`
- * have no binding yet** — their implementations are ROADMAP M4 T3 and M6 T1 — so `:app`'s Hilt graph
- * does not link until both are bound in `SingletonComponent` (see the M4 T2 completion report for the
- * exact bindings needed).
+ * `io.github.chrisjmendoza.yearal.core.domain.event.RecurrenceExpander`, a
+ * `io.github.chrisjmendoza.yearal.core.domain.event.ReminderScheduler` and a
+ * `io.github.chrisjmendoza.yearal.core.domain.widget.WidgetUpdater` by constructor injection. None of them
+ * can be bound here: `Clock` is bound in `:app`'s `TimeModule`, `RecurrenceExpander` in `:app`'s
+ * `EventsModule` (`:core:domain` is pure JVM and carries no Hilt module), `ReminderScheduler` in
+ * `:core:scheduling`'s `SchedulingModule` (the `AlarmManager`-backed scheduler, ROADMAP M6 T1) and
+ * `WidgetUpdater` in `:widget`'s `WidgetModule` (ROADMAP M5 T6). `:app` depends on all three modules, so
+ * the graph links there.
  */
 @Module
 @InstallIn(SingletonComponent::class)

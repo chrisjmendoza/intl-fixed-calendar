@@ -84,6 +84,7 @@ internal fun MonthGridDecemberPreview() {
     )
 }
 
+/** Wraps [MonthGrid] in [IfcTheme] (dynamic colour off) and a [Surface] for the previews above. */
 @Composable
 private fun MonthGridPreview(
     month: IfcYearMonth,

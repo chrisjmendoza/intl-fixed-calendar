@@ -95,6 +95,8 @@ fun PrivacyScreen(
             SectionHeading(stringResource(R.string.privacy_section_permissions))
             BodyParagraph(stringResource(R.string.privacy_permission_boot))
             BodyParagraph(stringResource(R.string.privacy_permission_wake))
+            BodyParagraph(stringResource(R.string.privacy_permission_notifications))
+            BodyParagraph(stringResource(R.string.privacy_permission_exact_alarm))
             BodyParagraph(stringResource(R.string.privacy_permission_none))
             HorizontalDivider()
 

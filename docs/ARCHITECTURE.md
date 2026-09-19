@@ -17,7 +17,9 @@ is the authority for versions and §1 explains the choices. Progress per task is
 | [ROADMAP.md](ROADMAP.md) | Milestones, task breakdown for parallel agents, open questions |
 | [WORKFLOW.md](WORKFLOW.md) | How work is done: the gate, Definition of Done, KDoc standard, anti-drift rules, rules for LLM agents |
 | `gradle/libs.versions.toml` | The dependency versions the build actually uses (§1 explains the choices) |
-| [contracts/](contracts/Events.md) | Frozen public APIs that parallel tasks build against (currently the events contract) |
+| [device-test-matrix.md](device-test-matrix.md) | The on-device checks the automated gate cannot make (ROADMAP M5 T8) |
+| [reviews/](reviews/2026-09-19-astra-analysis-response.md) | External reviews of the project and our written response to each |
+| [contracts/](contracts/Events.md) | Frozen public APIs that parallel tasks build against: [Calendar.md](contracts/Calendar.md) (`:core:calendar`, frozen M1 T6) and [Events.md](contracts/Events.md) (events, frozen M4 T1) |
 | [adr/](adr/) | Decisions made after this baseline |
 
 When two docs disagree, the doc that is authoritative for that topic wins, and the other gets fixed.
@@ -36,7 +38,7 @@ When two docs disagree, the doc that is authoritative for that topic wins, and t
 | Holidays | Own pure-Kotlin rule engine, bundled JSON rule packs, computed per year, never stored |
 | Network | None in 1.0 — no `INTERNET` permission. No analytics, ads, or accounts, ever |
 | Tests | JVM-first: JUnit 6 + Kotest property tests for pure modules; Robolectric + Roborazzi for UI; emulator only for nightly smoke tests |
-| CI | GitHub Actions: format check, lint, all JVM tests, screenshot verification, debug assemble on every push to `main` (no pull requests; see WORKFLOW.md) |
+| CI | GitHub Actions: format check, lint, all JVM tests, screenshot verification, debug assemble on every branch push and pull request (local work pushes a branch and merges on the owner's word; cloud work opens a PR — see [WORKFLOW.md](WORKFLOW.md) §1) |
 
 ## Reconciled decisions
 
@@ -291,7 +293,7 @@ data class IfcYearMonth(val year: Int, val month: IfcMonth) {
 - Validation happens at construction: day 1 to 28, Leap Day only in leap years, years 1 to 9999 (proleptic Gregorian, same as `java.time`).
 - The canonical numeric text form is `IFC YYYY-MM-DD` with Leap Day `06-29` and Year Day `13-29` (calendar-spec §7.3). `parse` accepts it with or without the prefix; formatting for display always includes it.
 - Day and week arithmetic delegates to `LocalDate`. Month and year arithmetic works on the IFC fields and clamps the way `java.time` does (calendar-spec §7.7).
-- `explicitApi()` is on. The public API is frozen at the end of M1 and documented in `docs/contracts/Calendar.md`.
+- `explicitApi()` is on. The public API is frozen at the end of M1 and documented in [contracts/Calendar.md](contracts/Calendar.md).
 - There is no Android code, no localization and no display formatting here. Names live in resources in `:core:designsystem`.
 
 **Weekday insight for the UI.** Every month is 28 days, so the actual weekday of grid column k is constant within a month. It is constant across the whole year up to an intercalary day, and it shifts by one after Leap Day.
@@ -355,6 +357,47 @@ reminders(id PK, event_id FK CASCADE, minutes_before INT, UNIQUE(event_id, minut
   - All-day reminders fire at a configurable local time, 09:00 by default.
   - `POST_NOTIFICATIONS` is requested in context, the first time the user adds a reminder.
 
+**As built (M6 T1, `:core:scheduling`, package `core.scheduling.reminder`).**
+
+- `AlarmReminderScheduler` is the `ReminderScheduler` of [contracts/Events.md](contracts/Events.md) §5 and
+  a `DayRolloverListener` (§5 below) in one `@Singleton`: `reschedule()` is the only entry point and the
+  rollover hook just calls it. It is bound in `:core:scheduling`'s own `SchedulingModule` (`@Binds` plus
+  `@Binds @IntoSet`), replacing the documented no-op `@Provides` that stood in `:app`'s `EventsModule`. It
+  takes `EventRepository` as a `javax.inject.Provider`, because the production repository injects a
+  `ReminderScheduler` to call after each write and taking it directly would be a Dagger cycle.
+- One call does everything: read the clock and `ZoneProvider`, ask
+  `EventRepository.getReminderCandidates(today)` (visible calendars, events with reminders), turn each
+  candidate into trigger instants through `RecurrenceExpander.nextOccurrence` — that is `ReminderPlanner`,
+  a pure function with its own oracle tests — post what has come due, and arm **one** alarm for the
+  earliest instant still ahead, or cancel the alarm when there is none. Nothing is cached between calls
+  except how far delivery has got, so a late delivery, a backwards clock change and a flight across zones
+  all come out right.
+- **Reference instants.** Timed: `Occurrence.start(deviceZone)`, so DST gaps and overlaps resolve by the
+  frozen rule on `Occurrence`. All-day: 09:00 in the device zone on the occurrence's first date. The
+  "configurable" part of the bullet above is **not built**: `UserSettings` has no reminder-time field
+  ([contracts/Events.md](contracts/Events.md) §6 puts one out of 1.0 scope), so 09:00 lives as
+  `ReminderPlanner.ALL_DAY_REMINDER_TIME`, which is the single definition of it.
+- **Late reminders** — one whose instant passed while the device was off, in Doze, or before the process
+  existed — are delivered late if they are no more than 15 minutes old, and dropped otherwise. Late
+  delivery is what makes a reminder survive a reboot at all, since a reboot cancels every alarm and the
+  app is only called again at `BOOT_COMPLETED`; the bound keeps a phone that was off for a week from
+  emptying a fortnight of reminders into the shade. A high-water mark inside the singleton stops the same
+  reminder being posted twice, which is what makes recomputing on every repository write free. The mark is
+  in memory, so a fresh process may re-post a reminder from the last 15 minutes once; ids are stable, so
+  that replaces the same notification rather than adding a second one.
+- **Work is bounded.** At most one occurrence per calendar date and at most
+  `ReminderPlanner.MAX_OCCURRENCES_PER_EVENT` (64) occurrences per event are examined; the walk normally
+  stops after two, as soon as no later occurrence of that event could produce an earlier instant.
+- **Notifications** are [security-and-privacy.md](security-and-privacy.md) §3.3's: one channel, title and
+  time only, `VISIBILITY_PRIVATE` with a redacted public version, no full-screen intent, stable ids
+  derived from ids, and a tap that opens the app through an explicit, extras-free `PendingIntent`. On API
+  33+ the permission is checked immediately before posting; denied means nothing is posted and the alarm
+  is still armed, so the app works in full without notifications (FEATURES P2).
+- **Around it:** the in-context `POST_NOTIFICATIONS` request is the event editor's (`:feature:events`), and
+  `IfcApplication.onCreate` calls `reschedule()` off the main thread through `AppStartup` on every process
+  start, so a reminder alarm lost to a force-stop or an OEM task killer is back as soon as anything starts
+  the app. **Not built:** tap routing to the event (`IntentRouter`) and snooze.
+
 ### 3.3 Holidays
 
 Holidays are computed, never stored.
@@ -391,7 +434,7 @@ The pager keeps three months warm with `beyondViewportPageCount = 1`: `MonthView
 - **Bottom bar / rail:** the top-level destinations, via `NavigationSuiteScaffold`, are **Today | Calendar | Events | Convert | More**. "More" holds Holidays, Settings, Learn/About and Privacy.
 - **Nav keys** live in `:core:navigation`: `TodayKey`, `MonthKey(year, month)`, `YearKey(year)`, `DayKey(epochDay)`, `ConverterKey(prefillEpochDay?)`, `EventListKey`, `EventEditorKey(eventId?, prefillEpochDay?)`, `MoreKey` (the hub tab), `HolidaysKey`, `SettingsKey`, `LearnKey`, `PrivacyKey`.
 - **Per-tab back stacks** are `TabBackStacks` in `:app`: one `NavBackStack` per tab, the Today root prefixed when another tab is shown so that back from a tab root returns to Today; the Calendar tab's root `MonthKey` is resolved from `DateTicker` when the tab is first opened.
-- **Entry providers:** each feature exposes `fun EntryProviderScope<NavKey>.xEntries(navigator: Navigator)`. `:app` owns the per-tab back stacks (the Nav3 "top-level back stack" recipe) and the `NavDisplay`.
+- **Entry providers:** `:app` owns the per-tab back stacks (the Nav3 "top-level back stack" recipe), the single `NavDisplay`, and its `entryProvider` block, which registers one `entry<XKey> { XRoute(...) }` per nav key directly in [`ui/IfcApp.kt`](../app/src/main/kotlin/io/github/chrisjmendoza/yearal/ui/IfcApp.kt) — features do not expose their own `EntryProviderScope` extension; each just exports its `XRoute` composable(s) for `:app` to wire up.
 - **Intent routing:** widget and notification taps send explicit intents with extras. `IntentRouter` in `:app` builds the back stack, for example `[MonthKey, DayKey]`. No URI deep links are needed until Nav3 1.2 is stable.
 - **Screen behaviors:**
   - **Today:** the hero IFC date, the Gregorian equivalent, both weekdays, year progress, today's agenda, and the next intercalary day or holiday.
@@ -407,7 +450,7 @@ The pager keeps three months warm with `beyondViewportPageCount = 1`: `MonthView
     ViewModel's `SavedStateHandle` as primitives and is re-validated on restore. The result shows both dates, the numeric
     `IFC` form, both labelled weekdays, and the proleptic note for years up to 1923 (the latest adoption calendar-spec
     §7.1 names); copy and `ACTION_SEND` text always carry the `IFC` marker and the Gregorian date.
-  - **Day detail:** a bottom sheet on compact widths (done: a material3 `ModalBottomSheet` inside the Nav3 entry — Nav3 1.1.7 has no sheet scene, only `DialogSceneStrategy`) and a pane on expanded widths (M3 T4). It shows both dates, both weekdays and the day's events, with "Add event" and "Open in converter" actions.
+  - **Day detail:** a bottom sheet on compact widths (done: a material3 `ModalBottomSheet` inside the Nav3 entry — Nav3 1.1.7 has no sheet scene, only `DialogSceneStrategy`) and a pane on expanded widths (M3 T4). It shows both dates, both weekdays and the day's events, with "Add event" and "Open in converter" actions. An agenda row's long-press (also a TalkBack custom action) opens a delete confirmation: "delete this occurrence" for a recurring event — an `EventRepository.addExdate` on the occurrence's own start date, never the day the sheet is showing (`docs/contracts/Events.md` §4) — with an undo snackbar, or a plain, permanent delete for a one-off event (M4 T8).
   - **Learn** (done, M3 T3, `:feature:settings`): static sections (what the IFC is, the floating days, nominal-vs-actual weekdays, how dates are calculated, a brief history, an FAQ) plus an expandable-FAQ list. Every worked-example date is computed through `:core:calendar` (`LearnFacts`) and rendered with `IfcDateFormatter`, never typed as a literal.
   - **Privacy** (done, the in-app half of M2 T12, `:feature:settings`): a static, truthful statement of what the app stores and what its two declared permissions (`RECEIVE_BOOT_COMPLETED`, `WAKE_LOCK`) are for, sourced from `docs/security-and-privacy.md`'s allow-list; the hosted-policy URL is left blank until one exists.
 
@@ -487,7 +530,7 @@ All widgets use `SizeMode.Responsive` with three sizes, `GlanceTheme` dynamic co
 ### Midnight rollover (layered)
 
 1. **Primary:** one `AlarmManager.setExactAndAllowWhileIdle(RTC_WAKEUP, nextLocalMidnight + about 1s)`. It fires `updateAll` and re-arms itself. One wakeup per day has negligible battery cost.
-   - Permissions: declare `USE_EXACT_ALARM` (API 33 and later, auto-granted and not revocable) and `SCHEDULE_EXACT_ALARM` with `maxSdkVersion="32"` (granted by default on API 31 and 32).
+   - Permissions: declare `USE_EXACT_ALARM` (API 33 and later, auto-granted and not revocable) and `SCHEDULE_EXACT_ALARM` with `maxSdkVersion="32"` (granted by default on API 31 and 32). **Declared since M6 T3**; the Play Console text is [security-and-privacy.md](security-and-privacy.md) §5.4.
    - **Event reminders are what justify the exact-alarm permission** — Play explicitly allows it for calendar apps that show event notifications, and requires a Play Console declaration. The widget rollover merely reuses it. No build uploaded to Play declares `USE_EXACT_ALARM` before reminders ship (M6).
    - This route avoids the Android 14 denied-by-default `SCHEDULE_EXACT_ALARM` flow entirely.
    - Always guard with `canScheduleExactAlarms()` and fall back to `setWindow` with a 10-minute window. Pre-reminder builds, and any build where Play rejects the declaration, run on the windowed alarm plus layers 2 and 3, so the design must be correct without exact alarms.
@@ -498,11 +541,12 @@ All widgets use `SizeMode.Responsive` with three sizes, `GlanceTheme` dynamic co
 
 **As built (M5 T2, `:core:scheduling`).** Layers 1 and 2 exist and are armed in every build; layer 3 arrives with the first widget (M5 T1).
 
-- **The hook is `DayRolloverListener`** (`:core:domain`, package `core.domain.rollover`): `suspend fun onDayRollover(trigger: DayRolloverTrigger)`, with one trigger per source (`MIDNIGHT`, `TIME_CHANGED`, `ZONE_CHANGED`, `LOCALE_CHANGED`, `BOOT_COMPLETED`, `APP_UPDATED`). `:core:scheduling` declares the Hilt multibinding `Set<DayRolloverListener>` with `@Multibinds`, so the empty set is valid and the module is complete and wired into `:app` before any widget exists. `:widget` contributes a listener with `@Binds @IntoSet` that calls its `updateAll`; the reminder scheduler (M6) contributes another that recomputes its next alarm. Wherever this section says a trigger "updates the widgets and re-arms the reminder alarms", it happens through these listeners; `:core:scheduling` never learns who listens. `WidgetUpdater.requestUpdate()` stays what "Data" above says it is — the repository-write path (M5 T6) — and is not the rollover hook. `RecordingDayRolloverListener` in `:core:testing` is the fake.
+- **The hook is `DayRolloverListener`** (`:core:domain`, package `core.domain.rollover`): `suspend fun onDayRollover(trigger: DayRolloverTrigger)`, with one trigger per source (`MIDNIGHT`, `TIME_CHANGED`, `ZONE_CHANGED`, `LOCALE_CHANGED`, `BOOT_COMPLETED`, `APP_UPDATED`). `:core:scheduling` declares the Hilt multibinding `Set<DayRolloverListener>` with `@Multibinds`, so the empty set is valid and the module is complete and wired into `:app` before any widget exists. `:widget` contributes a listener with `@Binds @IntoSet` that calls its `updateAll`; since M6 T1 `AlarmReminderScheduler` contributes another (itself) that recomputes its next alarm for every trigger. Wherever this section says a trigger "updates the widgets and re-arms the reminder alarms", it happens through these listeners; `:core:scheduling` never learns who listens. `WidgetUpdater.requestUpdate()` stays what "Data" above says it is — the repository-write path (M5 T6) — and is not the rollover hook. `RecordingDayRolloverListener` in `:core:testing` is the fake.
 - **A call is a hint, not a fact.** Listeners recompute "today" from the injected `Clock` and `ZoneProvider` every time and never infer the date from the trigger or the alarm's nominal time; that is what keeps the rollover correct on the windowed alarm, after late delivery in Doze, and after the clock is set backwards.
-- `DayRolloverScheduler.arm()` sets one `setWindow(RTC_WAKEUP, nextLocalMidnight + 1 s, 10 min)` alarm. "Next local midnight" is `today.plusDays(1).atStartOfDay(zone)` from the `Clock` and the `ZoneProvider` (DST-safe, including zones where 00:00 does not exist); the only conversion to epoch milliseconds is the `AlarmManager` call. The `PendingIntent` is explicit, immutable, has a fixed request code and no extras, so re-arming replaces the alarm and never stacks one.
-- **Pre-reminder builds use the windowed alarm on every API level (26–36)**, not only where `canScheduleExactAlarms()` is false. Android Lint's `MissingPermission` rejects any `setExactAndAllowWhileIdle` call, guarded or not, while the manifest declares neither exact-alarm permission, so the `canScheduleExactAlarms()` branch of layer 1 lands in the change that declares them (M6 T3).
-- `DayRolloverAlarmReceiver` (no intent filter) and `SystemEventReceiver` (the five actions of layer 2) are declared in the library manifest with `android:exported="false"`; both check `intent.action` and read nothing else from the intent. A receiver re-arms **first**, synchronously, then notifies the listeners concurrently on a background scope under `goAsync()` with an 8-second budget. A listener that throws or hangs does not stop the others; the failure is rethrown after the broadcast is released, not swallowed.
+- `DayRolloverScheduler.arm()` sets one `RTC_WAKEUP` alarm for `nextLocalMidnight + 1 s`. "Next local midnight" is `today.plusDays(1).atStartOfDay(zone)` from the `Clock` and the `ZoneProvider` (DST-safe, including zones where 00:00 does not exist); the only conversion to epoch milliseconds is the `AlarmManager` call. The `PendingIntent` is explicit, immutable, has a fixed request code and no extras, so re-arming replaces the alarm and never stacks one.
+- ~~**Pre-reminder builds use the windowed alarm on every API level (26–36)**, not only where `canScheduleExactAlarms()` is false.~~ **Superseded by M6 T3**, which declared the permissions. Android Lint's `MissingPermission` rejects any `setExactAndAllowWhileIdle` call, guarded or not, while the manifest declares neither exact-alarm permission, which is why the `canScheduleExactAlarms()` branch of layer 1 had to land in the change that declares them.
+- **As built (M6 T3).** Both alarms are set through one internal helper, `armWakeup` (`ExactAlarms.kt`), which is the single place the exact-versus-windowed decision is taken: `setExactAndAllowWhileIdle` when `Build.VERSION.SDK_INT < 31` (an exact alarm needs no permission there) or `canScheduleExactAlarms()` is true, and `setWindow` with the 10-minute window otherwise. The capability is read on **every** call, never cached, because an API 31–32 user can revoke it at any moment; `SystemEventReceiver` also listens for `ACTION_SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED` (a sixth action, package-addressed like `MY_PACKAGE_REPLACED`) and re-arms both the rollover and the reminder alarm under the new capability, notifying no listener, since the date has not changed. The windowed branch is not an error path: nothing in the design treats it as degraded, and the scheduler tests cover both states on API 26, 30, 31, 33 and 36.
+- `DayRolloverAlarmReceiver` and `reminder/ReminderAlarmReceiver` (neither with an intent filter) and `SystemEventReceiver` (the actions of layer 2, plus the exact-alarm one) are declared in the library manifest with `android:exported="false"`; all check `intent.action` and read nothing else from the intent. A rollover receiver re-arms **first**, synchronously, then notifies the listeners concurrently on a background scope under `goAsync()` with an 8-second budget. A listener that throws or hangs does not stop the others; the failure is rethrown after the broadcast is released, not swallowed. The reminder receiver has the same shape through its own `ReminderBroadcastHandler` and the same 8-second budget, but no listeners: it only asks `AlarmReminderScheduler` to recompute.
 - `IfcApplication.onCreate` arms the alarm on every process start (one `AlarmManager` call, no listener is notified), which is how an alarm lost to force-stop or an OEM task killer comes back.
 
 Never update a widget per minute. The widgets show dates, not clocks.
@@ -584,8 +628,41 @@ package `widget.month`) is the second widget in `:widget`, built the same way as
   multibinding entry: `GlanceWidgetRefresher.refreshAll` calls `updateAll` on `TodayGlanceWidget` and
   `MonthGlanceWidget`, one call each, and its target list is `internal` so a test can verify that without a
   real `AppWidgetManager`.
-- Event dots and holiday markers are M5 T6 / H-series work and are explicitly out of scope: this widget
-  never reads the event or holiday repositories.
+- Holiday markers are H-series work and are explicitly out of scope: this widget never reads the holiday
+  repository. Event dots are M5 T6, below.
+
+**As built (M5 T6, `:widget` + `:core:domain` + `:core:data`).** Event dots on the Month widget, and the
+update-on-write path this section's "Data" bullet describes, per the two designs offered there.
+
+- **Update path -- design (a) chosen.** `WidgetUpdater` (`:core:domain`, package `core.domain.widget`,
+  `fun interface { fun requestUpdate() }`, deliberately not `suspend` -- it enqueues and returns) is
+  called by `RoomEventRepository` (`:core:data`) after every successful write, at the same call sites as
+  `ReminderScheduler.reschedule()`, including calendar writes (a visibility or colour change can change
+  which days show a dot). Chosen over an app-scoped collector in `:widget` because it needed no new
+  process-start wiring: `RoomEventRepository`'s constructor already takes `ReminderScheduler` the same
+  way, `RandomEventUidGenerator`; and `docs/contracts/Events.md` §5 already named the shape ("The widget
+  updater is declared separately under `core/domain/…/widget/`") before this task started. The
+  production implementation, `DebouncedWidgetUpdater` (`:widget`), buffers signals in a
+  `MutableSharedFlow` and a single collector coroutine (a Hilt-provided, qualified
+  `CoroutineScope(SupervisorJob() + Dispatchers.Default)`) applies `Flow.debounce(1.second)` before
+  calling `WidgetRefresher.refreshAll()` -- the same seam `WidgetRolloverListener` uses. Bound in
+  `:widget`'s own `WidgetModule`, so `:app` links with no change of its own (it already depends on
+  `:widget`). `FakeWidgetUpdater` (`:core:testing`) is the fake.
+- **Event dots.** `MonthGlanceWidget.provideGlance` takes one `fetchMonthEventPresence` snapshot of
+  `ObserveAgendaUseCase.presence(IfcYearMonth.gregorianRange)` per render -- **not** a continuous
+  collection, unlike the future Agenda widget -- bounded by `withTimeoutOrNull(3_000)` and a catch for
+  any other exception; either one renders the month with no dots rather than blocking or crashing the
+  render. `MonthWidgetState`'s `MonthDayCellState.hasEvent` / `MonthIntercalaryState.hasEvent` mark the
+  28 grid cells and the trailing Leap Day / Year Day band (an intercalary day is an ordinary date to the
+  events contract, so it can carry a dot exactly like any other day, CLAUDE.md rule 6). A dot is a small
+  bullet glyph on its own reserved line beneath the day number, shape/presence rather than colour (CLAUDE.md
+  rule 3) and never a count or a title (rule 8); its absence, not a colour, is what "no events" looks
+  like. The merged content description appends a plain, resource-backed "Has events." only when *today*
+  has one, never a count.
+- **Lock-screen category unchanged.** `docs/security-and-privacy.md` §3.2's ruling is "any widget capable
+  of showing event titles declares `not_keyguard`"; a dot is presence only, never a title, a count, or a
+  calendar name, so the Month widget is not "capable of showing event titles" in the sense that ruling
+  means and keeps `widgetCategory="home_screen"` only, unchanged from M5 T3.
 
 ### Configuration
 
@@ -600,6 +677,36 @@ package `widget.month`) is the second widget in `:widget`, built the same way as
   - Call it on app start, only when the (versionCode, locale) pair changes.
 - Provide an XML `previewLayout` for API 31 to 34.
 - Provide a `previewImage` PNG below API 31, generated from a Roborazzi capture.
+
+**As built (M5 T5, `:widget`).**
+
+- **`previewLayout` (API 31-34)** is a real static mock-up, `res/layout/today_widget_preview.xml` /
+  `res/layout/month_widget_preview.xml` -- plain `LinearLayout`/`TextView` (RemoteViews-safe, no
+  Compose/Glance), every piece of language text a string resource (CLAUDE.md rule 9), on a fixed,
+  illustrative sample date chosen to be a regular day on purpose (Today: IFC Sol 13, 2026; Month:
+  September 2026, today = IFC day 8, the same date `MonthWidgetStateTest` hand-checks) so a static
+  mock-up can never misrepresent Year Day or Leap Day, which have no month/day number of their own
+  (CLAUDE.md rule 6). Colours are plain resources (`res/values/colors.xml` +
+  `res/values-night/colors.xml`) carrying the same hex values as `:core:designsystem`'s brand light/dark
+  schemes, since a static layout cannot run `GlanceTheme`.
+- **`previewImage` (verified valid since API 11 against the SDK's own `api-versions.xml`, not API 30 as
+  once assumed) lives in the base `res/xml/*_widget_info.xml`**, not a separate qualifier split, and is a
+  simple vector drawable rather than a Roborazzi-captured PNG -- a deliberate simplification the task
+  authorized over this section's original wording, since API 26-30 is an increasingly small, legacy-only
+  audience for a picker thumbnail.
+- **`providePreview` + `setWidgetPreview` (API 35+)** reuse `TodayWidgetContent` / `MonthWidgetContent`
+  unchanged, the same composables the real widgets render, fed a `Clock.fixed` / literal `ZoneProvider`
+  pair on the exact same sample dates as the static layouts above (`TodayGlanceWidget.PREVIEW_CLOCK`,
+  `MonthGlanceWidget.PREVIEW_CLOCK`), so the dynamic and static previews cannot drift apart the way two
+  independently hand-built mock-ups could. `WidgetPreviewUpdater` (`:widget`, package `widget.preview`)
+  is the version/locale guard: SDK-gated (`Build.VERSION_CODES.VANILLA_ICE_CREAM`), persisted in a plain
+  `SharedPreferences` file keyed by `"$versionCode|$localeTag"`, and calling
+  `PreviewRegistrar.registerPreviews()` -- a seam over `GlanceAppWidgetManager.setWidgetPreviews`,
+  exactly like `WidgetRefresher` is a seam over `updateAll`, so the guard logic is unit-tested without
+  the real, API-35-only system call. The pair is persisted only when both widgets' calls report success;
+  a rate-limited result leaves it unset so the next process start retries. `IfcApplication.onCreate` calls
+  `updateIfNeeded()` off the main thread through `AppStartup`, isolated from the reminder re-arm so that
+  neither can fail the other.
 
 ## 6. Testing strategy
 

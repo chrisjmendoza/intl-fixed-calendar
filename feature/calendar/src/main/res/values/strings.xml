@@ -56,6 +56,11 @@
     <!-- Spoken description of the progress spinner shown until the day's details are ready. -->
     <string name="day_loading">Loading the day</string>
 
+    <!-- Shown when a DayKey names no showable date (an out-of-range epoch day, e.g. from a synthesized
+         widget or notification intent, docs/security-and-privacy.md §6.3), instead of crashing. -->
+    <string name="day_unavailable_title">Date not available</string>
+    <string name="day_unavailable_message">This date can\'t be shown.</string>
+
     <!-- Spoken description of the button that closes the day detail sheet. -->
     <string name="day_close">Close</string>
 
@@ -84,6 +89,25 @@
 
     <!-- Action that opens the converter pre-filled with the shown day (FEATURES D1). -->
     <string name="day_open_in_converter">Open in converter</string>
+
+    <!-- Deleting an agenda row (FEATURES E1): a recurring row offers "delete this occurrence" (with
+         undo), a non-recurring one a plain, permanent delete. -->
+
+    <!-- Confirmation dialog for a recurring row. -->
+    <string name="day_delete_occurrence_title">Delete this occurrence?</string>
+    <string name="day_delete_occurrence_text">Only this date is removed. You can undo it from the message that appears next.</string>
+    <string name="day_delete_occurrence_action">Delete this occurrence</string>
+
+    <!-- Confirmation dialog for a non-recurring row. -->
+    <string name="day_delete_event_title">Delete event?</string>
+    <string name="day_delete_event_text">This deletes the whole event. This can\'t be undone.</string>
+    <string name="day_delete_event_action">Delete event</string>
+
+    <string name="day_delete_cancel">Cancel</string>
+
+    <!-- Snackbar after "delete this occurrence", with its undo action. -->
+    <string name="day_delete_occurrence_snackbar">This occurrence was deleted.</string>
+    <string name="day_delete_occurrence_undo">Undo</string>
 
     <!-- Placeholder shown instead of an event's title when the user left it blank. -->
     <string name="agenda_untitled_event">(No title)</string>

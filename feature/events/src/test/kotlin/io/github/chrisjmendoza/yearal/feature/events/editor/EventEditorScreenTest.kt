@@ -59,6 +59,9 @@ class EventEditorScreenTest {
     private var deleteConfirmed = 0
     private var backRequested = 0
     private var discardConfirmed = 0
+    private var restoreAllOccurrences = 0
+    private var notificationNoticeDismissed = 0
+    private var notificationSettingsOpened = 0
 
     private var uiState: EventEditorUiState by mutableStateOf(EventEditorUiState.Loading)
 
@@ -86,6 +89,9 @@ class EventEditorScreenTest {
             onBack = { backRequested++ },
             onConfirmDiscard = { discardConfirmed++ },
             onCancelDiscard = {},
+            onRestoreAllOccurrences = { restoreAllOccurrences++ },
+            onDismissNotificationPermissionNotice = { notificationNoticeDismissed++ },
+            onOpenNotificationSettings = { notificationSettingsOpened++ },
         )
 
     private fun baseState(
@@ -100,6 +106,8 @@ class EventEditorScreenTest {
         showDeleteConfirm: Boolean = false,
         showDiscardConfirm: Boolean = false,
         reminders: Set<Int> = emptySet(),
+        exdateCount: Int = 0,
+        showNotificationPermissionNotice: Boolean = false,
     ) = EventEditorUiState.Loaded(
         isNew = isNew,
         title = "",
@@ -132,6 +140,8 @@ class EventEditorScreenTest {
         saveFailed = false,
         showDeleteConfirm = showDeleteConfirm,
         showDiscardConfirm = showDiscardConfirm,
+        exdateCount = exdateCount,
+        showNotificationPermissionNotice = showNotificationPermissionNotice,
     )
 
     /** Sets the initial state and composes the screen once; later state changes assign [uiState] directly. */
@@ -213,19 +223,76 @@ class EventEditorScreenTest {
         reminders shouldContainExactly listOf(0, 1440)
     }
 
-    // Reminder delivery is a no-op until docs/ROADMAP.md M6 T1 (ReminderScheduler); the reminders section
-    // must say so, and the chips must still work and still report through the callback in the meantime.
+    // The M6 T1 real scheduler lands in this wave, so the editor no longer claims notifications are
+    // undelivered; the chips still work and still report through the callback.
     @Test
-    fun `the reminders section shows the not-yet-delivered note and chips still toggle`() {
+    fun `the not-yet-delivered reminders note is gone`() {
         show(baseState())
 
         compose
-            .onNodeWithText("Reminders are saved with the event. Notifications arrive in a later version.")
-            .performScrollTo()
-            .assertIsDisplayed()
+            .onAllNodesWithText("Reminders are saved with the event. Notifications arrive in a later version.")
+            .assertCountEquals(0)
         compose.onNodeWithText("At the time").performScrollTo().performClick()
 
         reminders shouldContainExactly listOf(0)
+    }
+
+    // FEATURES E1: saving and deleting a recurring event both act on the whole series; shown only when
+    // the event is recurring (ARCHITECTURE §3.2 "Scope cuts": no per-occurrence edits in 1.0).
+    @Test
+    fun `the series notice shows only for a recurring event`() {
+        show(baseState(recurrenceKind = RecurrenceKind.NONE))
+
+        compose
+            .onAllNodesWithText(
+                "Saving changes every occurrence of this event. Deleting removes the whole series.",
+                substring = true,
+            ).assertCountEquals(0)
+
+        uiState = baseState(recurrenceKind = RecurrenceKind.WEEKLY)
+
+        compose
+            .onNodeWithText("Saving changes every occurrence of this event. Deleting removes the whole series.")
+            .performScrollTo()
+            .assertIsDisplayed()
+    }
+
+    // FEATURES E1: occurrences deleted from Day detail, with a "restore all" that clears every exdate.
+    @Test
+    fun `individually deleted occurrences are counted with a restore-all action`() {
+        show(baseState(recurrenceKind = RecurrenceKind.WEEKLY, exdateCount = 2))
+
+        compose.onNodeWithText("2 occurrences deleted individually").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Restore all").performScrollTo().performClick()
+
+        restoreAllOccurrences shouldBe 1
+    }
+
+    @Test
+    fun `no restore-all row shows when nothing was individually deleted`() {
+        show(baseState(recurrenceKind = RecurrenceKind.WEEKLY, exdateCount = 0))
+
+        compose.onAllNodesWithText("Restore all").assertCountEquals(0)
+    }
+
+    // FEATURES E4, P2: a quiet, dismissible explanation after POST_NOTIFICATIONS is denied.
+    @Test
+    fun `the notification permission notice is dismissible and links to settings`() {
+        show(baseState(showNotificationPermissionNotice = true))
+
+        compose.onNodeWithText("Reminders are saved, but notifications are off.").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("Notification settings").performScrollTo().performClick()
+        notificationSettingsOpened shouldBe 1
+
+        compose.onNodeWithContentDescription("Dismiss").performScrollTo().performClick()
+        notificationNoticeDismissed shouldBe 1
+    }
+
+    @Test
+    fun `no notification notice shows when nothing was denied`() {
+        show(baseState(showNotificationPermissionNotice = false))
+
+        compose.onAllNodesWithText("Reminders are saved, but notifications are off.").assertCountEquals(0)
     }
 
     @Test

@@ -50,7 +50,7 @@ Counts are from the 51 incumbent reviews retrieved, plus the iOS app's review fe
 
 ### The 1.0 pitch
 
-> The 13-month calendar, done properly: today's date at a glance, a widget that is always right,
+> The 13-month calendar, done properly: today's date at a glance, a widget you can trust,
 > tap any day to see the regular date, convert any date in history, and keep events that repeat on
 > *Sol 13* or *Year Day*. No ads, no tracking, works offline.
 
@@ -62,7 +62,7 @@ Counts are from the 51 incumbent reviews retrieved, plus the iOS app's review fe
 3. **Zero friction, zero creepiness.** No account, ads, or tracking. Permissions are requested in
    context, and the app works fully when they are denied.
 4. **The widget is a first-class product.** For many users it *is* the app. It updates silently
-   (a toast on refresh was a top complaint against an adjacent app) and it is never stale.
+   (a toast on refresh was a top complaint against an adjacent app) and it refreshes at local midnight and after every clock, time-zone, reboot and update event; the platform limits that remain (force-stop, OEM task killers) are documented in-app rather than denied.
 5. **Floating days are a feature, not an edge case.**
 
 ---

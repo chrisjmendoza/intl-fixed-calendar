@@ -57,6 +57,7 @@ internal fun IfcDatePickerInvalidYearPreview() {
     PickerPreview(IfcDatePickerValue.of(IfcDate.Regular(2026, IfcMonth.SEPTEMBER, 8)).withYearText("1582"))
 }
 
+/** Wraps [IfcDatePicker] in [IfcTheme] (dynamic colour off) and a [Surface] for the previews above. */
 @Composable
 private fun PickerPreview(value: IfcDatePickerValue) {
     IfcTheme(dynamicColor = false) {

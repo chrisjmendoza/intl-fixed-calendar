@@ -8,6 +8,8 @@ import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import io.github.chrisjmendoza.yearal.core.domain.rollover.DayRolloverTrigger
+import io.github.chrisjmendoza.yearal.core.scheduling.reminder.AlarmReminderScheduler
+import io.github.chrisjmendoza.yearal.core.scheduling.reminder.ReminderAlarmReceiver
 import io.github.chrisjmendoza.yearal.core.testing.FakeZoneProvider
 import io.github.chrisjmendoza.yearal.core.testing.MutableClock
 import io.github.chrisjmendoza.yearal.core.testing.RecordingDayRolloverListener
@@ -208,7 +210,7 @@ class RolloverReceiversTest {
     }
 
     @Test
-    fun `trigger mapping covers exactly the five manifest actions`() {
+    fun `trigger mapping covers exactly the five date-related manifest actions`() {
         SystemEventReceiver.triggerFor("android.intent.action.TIME_SET") shouldBe DayRolloverTrigger.TIME_CHANGED
         SystemEventReceiver.triggerFor("android.intent.action.TIMEZONE_CHANGED") shouldBe
             DayRolloverTrigger.ZONE_CHANGED
@@ -220,18 +222,25 @@ class RolloverReceiversTest {
             DayRolloverTrigger.APP_UPDATED
         SystemEventReceiver.triggerFor("android.intent.action.DATE_CHANGED") shouldBe null
         SystemEventReceiver.triggerFor(null) shouldBe null
+        // The exact-alarm permission broadcast says nothing about the date, so it maps to no trigger
+        // and is handled on its own path (ROADMAP M6 T3).
+        SystemEventReceiver.triggerFor(SystemEventReceiver.ACTION_EXACT_ALARM_PERMISSION_CHANGED) shouldBe null
     }
 
     @Test
-    fun `both receivers are declared in the manifest and neither is exported`() {
+    fun `every receiver is declared in the manifest and none is exported`() {
         val packageManager = context.packageManager
-        listOf(DayRolloverAlarmReceiver::class.java, SystemEventReceiver::class.java).forEach { receiver ->
+        listOf(
+            DayRolloverAlarmReceiver::class.java,
+            SystemEventReceiver::class.java,
+            ReminderAlarmReceiver::class.java,
+        ).forEach { receiver ->
             packageManager.getReceiverInfo(ComponentName(context, receiver), 0).exported shouldBe false
         }
     }
 
     @Test
-    fun `the manifest filter of the system receiver is exactly the five actions`() {
+    fun `the manifest filter of the system receiver is exactly the six actions`() {
         val actions =
             listOf(
                 Intent.ACTION_TIME_CHANGED,
@@ -239,9 +248,11 @@ class RolloverReceiversTest {
                 Intent.ACTION_LOCALE_CHANGED,
                 Intent.ACTION_BOOT_COMPLETED,
                 Intent.ACTION_MY_PACKAGE_REPLACED,
+                SystemEventReceiver.ACTION_EXACT_ALARM_PERMISSION_CHANGED,
                 Intent.ACTION_DATE_CHANGED,
                 Intent.ACTION_PACKAGE_REPLACED,
                 DayRolloverScheduler.ACTION_DAY_ROLLOVER,
+                AlarmReminderScheduler.ACTION_REMINDER,
             )
         val matched =
             actions.filter { action ->
@@ -255,6 +266,16 @@ class RolloverReceiversTest {
             Intent.ACTION_LOCALE_CHANGED,
             Intent.ACTION_BOOT_COMPLETED,
             Intent.ACTION_MY_PACKAGE_REPLACED,
+            SystemEventReceiver.ACTION_EXACT_ALARM_PERMISSION_CHANGED,
         )
+    }
+
+    @Test
+    fun `no receiver declares a filter for the two alarm actions, which are delivered explicitly`() {
+        listOf(DayRolloverScheduler.ACTION_DAY_ROLLOVER, AlarmReminderScheduler.ACTION_REMINDER).forEach { action ->
+            context.packageManager
+                .queryBroadcastReceivers(Intent(action).setPackage(context.packageName), 0)
+                .shouldBeEmpty()
+        }
     }
 }

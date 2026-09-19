@@ -25,6 +25,7 @@ internal data class UserSettingsDto(
     val dynamicColor: Boolean = UserSettings.DEFAULT.dynamicColor,
     val enabledHolidaySets: Set<String> = UserSettings.DEFAULT.enabledHolidaySets,
 ) {
+    /** This DTO's fields as a [UserSettings]. */
     fun toDomain(): UserSettings =
         UserSettings(
             weekdayDisplay = weekdayDisplay,
@@ -34,6 +35,7 @@ internal data class UserSettingsDto(
         )
 
     companion object {
+        /** [settings]'s fields as the DTO shape [UserSettingsSerializer.writeTo] encodes. */
         fun fromDomain(settings: UserSettings): UserSettingsDto =
             UserSettingsDto(
                 weekdayDisplay = settings.weekdayDisplay,

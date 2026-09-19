@@ -3,17 +3,23 @@ package io.github.chrisjmendoza.yearal.feature.calendar.day
 import android.content.Context
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
@@ -51,10 +57,14 @@ class DayScreenTest {
         today: LocalDate = LocalDate.of(2026, 9, 17),
         holidays: List<String> = emptyList(),
         agenda: List<AgendaItemUi> = emptyList(),
+        pendingDelete: AgendaItemUi? = null,
         onDismiss: () -> Unit = {},
         onEventClick: (Long) -> Unit = {},
         onAddEvent: () -> Unit = {},
         onOpenInConverter: () -> Unit = {},
+        onRequestDelete: (AgendaItemUi) -> Unit = {},
+        onConfirmDelete: () -> Unit = {},
+        onCancelDelete: () -> Unit = {},
         fontScale: Float = 1f,
     ) {
         compose.setContent {
@@ -62,11 +72,14 @@ class DayScreenTest {
             CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale)) {
                 IfcTheme(dynamicColor = false) {
                     DayScreen(
-                        state = buildDayUiState(day, today, formatter, holidays, agenda),
+                        state = buildDayUiState(day, today, formatter, holidays, agenda, pendingDelete),
                         onDismiss = onDismiss,
                         onEventClick = onEventClick,
                         onAddEvent = onAddEvent,
                         onOpenInConverter = onOpenInConverter,
+                        onRequestDelete = onRequestDelete,
+                        onConfirmDelete = onConfirmDelete,
+                        onCancelDelete = onCancelDelete,
                     )
                 }
             }
@@ -239,5 +252,130 @@ class DayScreenTest {
 
         compose.onNodeWithContentDescription("Loading the day").assertIsDisplayed()
         compose.onAllNodesWithText("Gregorian: ", substring = true).assertCountEquals(0)
+    }
+
+    // A DayKey can be synthesized from a widget or notification intent with an out-of-range epoch day
+    // (docs/security-and-privacy.md §6.3); DayViewModel fails soft to DayUiState.Unavailable.
+    @Test
+    fun `the unavailable state shows a message and an explicit close action`() {
+        var dismissed = 0
+        compose.setContent {
+            IfcTheme(dynamicColor = false) {
+                DayScreen(state = DayUiState.Unavailable, onDismiss = { dismissed++ })
+            }
+        }
+
+        compose.onNodeWithText("Date not available").assertIsDisplayed()
+        compose.onNodeWithText("This date can't be shown.").assertIsDisplayed()
+        compose.onNodeWithContentDescription("Close").performClick()
+        dismissed shouldBe 1
+    }
+
+    // FEATURES E1: "delete this occurrence" and plain delete, with a TalkBack-reachable action.
+
+    private val recurringItem =
+        AgendaItemUi(
+            eventId = 5,
+            title = "Sol 13 picnic",
+            isAllDay = true,
+            startTime = null,
+            endTime = null,
+            colorArgb = 0xFF123F3D.toInt(),
+            isRecurring = true,
+            occurrenceDate = LocalDate.of(2026, 6, 30),
+        )
+
+    private val oneOffItem =
+        AgendaItemUi(
+            eventId = 6,
+            title = "Once",
+            isAllDay = true,
+            startTime = null,
+            endTime = null,
+            colorArgb = 0xFF123F3D.toInt(),
+            isRecurring = false,
+            occurrenceDate = LocalDate.of(2026, 9, 17),
+        )
+
+    @Test
+    fun `long-pressing a recurring row requests its delete`() {
+        val requested = mutableListOf<AgendaItemUi>()
+        show(LocalDate.of(2026, 9, 17), agenda = listOf(recurringItem), onRequestDelete = { requested += it })
+
+        compose.onNodeWithText("Sol 13 picnic").performTouchInput { longClick() }
+
+        requested shouldBe listOf(recurringItem)
+    }
+
+    @Test
+    fun `a row's TalkBack custom action requests the same delete as long-press`() {
+        val requested = mutableListOf<AgendaItemUi>()
+        show(LocalDate.of(2026, 9, 17), agenda = listOf(oneOffItem), onRequestDelete = { requested += it })
+
+        val actionLabel = "Delete event"
+        compose
+            .onNodeWithText("Once")
+            .performSemanticsAction(actionLabel)
+
+        requested shouldBe listOf(oneOffItem)
+    }
+
+    @Test
+    fun `a recurring row's confirmation offers delete-this-occurrence wording`() {
+        var confirmed = 0
+        var cancelled = 0
+        show(
+            LocalDate.of(2026, 9, 17),
+            agenda = listOf(recurringItem),
+            pendingDelete = recurringItem,
+            onConfirmDelete = { confirmed++ },
+            onCancelDelete = { cancelled++ },
+        )
+
+        compose.onNodeWithText("Delete this occurrence?").assertIsDisplayed()
+        compose.onNodeWithText("Delete this occurrence").performClick()
+        confirmed shouldBe 1
+        cancelled shouldBe 0
+    }
+
+    @Test
+    fun `a non-recurring row's confirmation offers a plain, permanent delete`() {
+        var confirmed = 0
+        show(
+            LocalDate.of(2026, 9, 17),
+            agenda = listOf(oneOffItem),
+            pendingDelete = oneOffItem,
+            onConfirmDelete = { confirmed++ },
+        )
+
+        compose.onNodeWithText("Delete event?").assertIsDisplayed()
+        compose.onNodeWithText("This deletes the whole event. This can't be undone.").assertIsDisplayed()
+        compose.onNodeWithText("Delete event").performClick()
+        confirmed shouldBe 1
+    }
+
+    @Test
+    fun `cancelling the delete confirmation invokes onCancelDelete, not onConfirmDelete`() {
+        var confirmed = 0
+        var cancelled = 0
+        show(
+            LocalDate.of(2026, 9, 17),
+            agenda = listOf(recurringItem),
+            pendingDelete = recurringItem,
+            onConfirmDelete = { confirmed++ },
+            onCancelDelete = { cancelled++ },
+        )
+
+        compose.onNodeWithText("Cancel").performClick()
+        confirmed shouldBe 0
+        cancelled shouldBe 1
+    }
+
+    /** Invokes a semantics [CustomAccessibilityAction] by its label — the TalkBack local-context-menu path. */
+    private fun SemanticsNodeInteraction.performSemanticsAction(label: String) {
+        val node = fetchSemanticsNode()
+        val actions = node.config.getOrNull(SemanticsActions.CustomActions).orEmpty()
+        val action = actions.first { it.label == label }
+        action.action.invoke()
     }
 }

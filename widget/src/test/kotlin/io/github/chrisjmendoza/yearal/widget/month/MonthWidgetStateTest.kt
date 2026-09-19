@@ -159,4 +159,86 @@ class MonthWidgetStateTest {
         state.contentDescription shouldBe
             "September 2026. September 8, IFC Sunday. Gregorian Thursday, September 17, 2026. Today. $tapHint"
     }
+
+    // -- ROADMAP M5 T6: event dots ------------------------------------------------------------------
+
+    @Test
+    fun `only the dates in the presence set are marked, everything else is not`() {
+        val today = TodayDate(IfcDate.from(LocalDate.of(2026, 9, 17)), LocalDate.of(2026, 9, 17))
+        // September 10..16, 2026 are IFC September days 1..7; only two of them have an event.
+        val eventDates = setOf(LocalDate.of(2026, 9, 12), LocalDate.of(2026, 9, 17))
+
+        val state = buildMonthWidgetState(today, formatter, tapHint, eventDates = eventDates)
+
+        state.days.filter { it.hasEvent }.map { it.dayOfMonth } shouldBe listOf(3, 8)
+        state.days.filterNot { it.hasEvent }.map { it.dayOfMonth } shouldBe
+            (1..28).toList() - listOf(3, 8)
+    }
+
+    @Test
+    fun `an event on Leap Day marks the intercalary band, not a grid cell`() {
+        val leapDay = LocalDate.of(2028, 6, 17)
+        val today = TodayDate(IfcDate.from(leapDay), leapDay)
+
+        val state = buildMonthWidgetState(today, formatter, tapHint, eventDates = setOf(leapDay))
+
+        state.days.none { it.hasEvent } shouldBe true
+        checkNotNull(state.intercalary).hasEvent shouldBe true
+    }
+
+    @Test
+    fun `an event on Year Day marks the intercalary band, not a grid cell`() {
+        val yearDay = LocalDate.of(2026, 12, 31)
+        val today = TodayDate(IfcDate.from(yearDay), yearDay)
+
+        val state = buildMonthWidgetState(today, formatter, tapHint, eventDates = setOf(yearDay))
+
+        state.days.none { it.hasEvent } shouldBe true
+        checkNotNull(state.intercalary).hasEvent shouldBe true
+    }
+
+    @Test
+    fun `an empty presence set marks no day at all`() {
+        val state = stateFor(LocalDate.of(2026, 9, 17))
+
+        state.days.none { it.hasEvent } shouldBe true
+    }
+
+    @Test
+    fun `the has-events hint is appended only when today has an event and a label was given`() {
+        val today = LocalDate.of(2026, 9, 17)
+        val hint = "Has events."
+
+        val withEvent =
+            buildMonthWidgetState(
+                TodayDate(IfcDate.from(today), today),
+                formatter,
+                tapHint,
+                eventDates = setOf(today),
+                hasEventsLabel = hint,
+            )
+        val withoutEvent =
+            buildMonthWidgetState(
+                TodayDate(IfcDate.from(today), today),
+                formatter,
+                tapHint,
+                eventDates = emptySet(),
+                hasEventsLabel = hint,
+            )
+        val withEventButNoLabel =
+            buildMonthWidgetState(
+                TodayDate(IfcDate.from(today), today),
+                formatter,
+                tapHint,
+                eventDates = setOf(today),
+            )
+
+        withEvent.contentDescription shouldBe
+            "September 2026. September 8, IFC Sunday. Gregorian Thursday, September 17, 2026. Today. " +
+            "$hint $tapHint"
+        withoutEvent.contentDescription shouldBe
+            "September 2026. September 8, IFC Sunday. Gregorian Thursday, September 17, 2026. Today. $tapHint"
+        withEventButNoLabel.contentDescription shouldBe
+            "September 2026. September 8, IFC Sunday. Gregorian Thursday, September 17, 2026. Today. $tapHint"
+    }
 }

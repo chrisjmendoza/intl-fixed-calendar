@@ -173,6 +173,10 @@ class IfcDatePickerState(
 fun rememberIfcDatePickerState(initialDate: IfcDate): IfcDatePickerState =
     rememberSaveable(saver = IfcDatePickerState.Saver) { IfcDatePickerState(IfcDatePickerValue.of(initialDate)) }
 
+/**
+ * The year text field: free-typed digits, an error state while [IfcDatePickerValue.year] is `null`
+ * (empty, partial, or outside [DatePickerRange]), and a supporting caption spelling out the range.
+ */
 @Composable
 private fun YearField(
     value: IfcDatePickerValue,
@@ -209,6 +213,7 @@ private fun LeapDayClampedNotice(
     )
 }
 
+/** All 13 months, Sol included, as a wrapping row of single-choice options (§2.2 R4). */
 @Composable
 private fun MonthChooser(
     value: IfcDatePickerValue,
@@ -231,6 +236,11 @@ private fun MonthChooser(
     }
 }
 
+/**
+ * Days 1..28 of the selected month, laid out [WEEK_COLUMNS] wide (one nominal weekday per column,
+ * matching the grid, §2.3 R5) when that fits at [MinTouchTarget], or [NARROW_COLUMNS] wide otherwise
+ * so no option shrinks below the touch-target floor in a narrow dialog or at large font scale.
+ */
 @Composable
 private fun DayChooser(
     value: IfcDatePickerValue,

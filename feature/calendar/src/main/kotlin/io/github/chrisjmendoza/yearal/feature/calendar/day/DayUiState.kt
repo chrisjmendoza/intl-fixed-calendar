@@ -15,6 +15,14 @@ sealed interface DayUiState {
     data object Loading : DayUiState
 
     /**
+     * The requested epoch day named no showable date: outside `LocalDate`'s own representable range,
+     * or outside years [IfcDate.MIN_YEAR]..[IfcDate.MAX_YEAR] (a `DayKey` can be synthesized from a
+     * widget or notification intent, `docs/security-and-privacy.md` §6.3). Terminal — the sheet offers
+     * only its close action.
+     */
+    data object Unavailable : DayUiState
+
+    /**
      * One day, fully formatted by [IfcDateFormatter] so the sheet renders text only and computes
      * nothing.
      *
@@ -35,6 +43,9 @@ sealed interface DayUiState {
      * @property agenda the day's event occurrences (FEATURES C5), all-day first then by start time
      * ([io.github.chrisjmendoza.yearal.core.domain.event.DayAgenda.ENTRY_ORDER]); empty when there
      * are none.
+     * @property pendingDelete the agenda row awaiting delete confirmation ([AgendaItemUi.isRecurring]
+     * decides the dialog's wording: "delete this occurrence" or a plain delete), or `null` when no
+     * confirmation is open (FEATURES E1).
      */
     data class Loaded(
         val date: IfcDate,
@@ -50,6 +61,7 @@ sealed interface DayUiState {
         val isToday: Boolean,
         val holidays: List<String>,
         val agenda: List<AgendaItemUi> = emptyList(),
+        val pendingDelete: AgendaItemUi? = null,
     ) : DayUiState
 }
 
@@ -64,6 +76,7 @@ fun buildDayUiState(
     formatter: IfcDateFormatter,
     holidays: List<String>,
     agenda: List<AgendaItemUi> = emptyList(),
+    pendingDelete: AgendaItemUi? = null,
 ): DayUiState.Loaded {
     val date = IfcDate.from(day)
     return DayUiState.Loaded(
@@ -80,5 +93,6 @@ fun buildDayUiState(
         isToday = day == today,
         holidays = holidays,
         agenda = agenda,
+        pendingDelete = pendingDelete,
     )
 }

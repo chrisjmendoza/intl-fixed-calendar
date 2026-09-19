@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Shared cell styles for the static Month widget-picker preview (ROADMAP M5 T5,
+  `res/layout/month_widget_preview.xml`). Not used by the real widget, which renders through Glance.
+-->
+<resources>
+    <style name="WidgetPreviewGridCell">
+        <item name="android:layout_width">0dp</item>
+        <item name="android:layout_height">wrap_content</item>
+        <item name="android:layout_weight">1</item>
+        <item name="android:gravity">center</item>
+    </style>
+
+    <style name="WidgetPreviewHeaderCell" parent="WidgetPreviewGridCell">
+        <item name="android:textSize">10sp</item>
+        <item name="android:textColor">@color/widget_preview_on_surface</item>
+    </style>
+
+    <style name="WidgetPreviewHeaderCellVariant" parent="WidgetPreviewGridCell">
+        <item name="android:textSize">10sp</item>
+        <item name="android:textColor">@color/widget_preview_on_surface_variant</item>
+    </style>
+
+    <style name="WidgetPreviewDayCell" parent="WidgetPreviewGridCell">
+        <item name="android:textSize">12sp</item>
+        <item name="android:textColor">@color/widget_preview_on_surface</item>
+        <item name="android:padding">2dp</item>
+    </style>
+
+    <style name="WidgetPreviewDayCellToday" parent="WidgetPreviewDayCell">
+        <item name="android:textStyle">bold</item>
+        <item name="android:textColor">@color/widget_preview_on_primary</item>
+        <item name="android:background">@drawable/widget_preview_today_pill</item>
+    </style>
+</resources>

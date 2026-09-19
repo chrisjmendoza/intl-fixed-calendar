@@ -18,4 +18,39 @@
 
     <!-- Content description of the Month widget's initial/preview layout progress indicator. -->
     <string name="month_widget_loading">Loading the current IFC month</string>
+
+    <!-- Appended to the Month widget's merged content description when today has at least one event
+         (ROADMAP M5 T6). Reveals only that something exists, never a title or a count (CLAUDE.md rule 8). -->
+    <string name="month_widget_has_events_hint">Has events.</string>
+
+    <!-- Widget-picker preview content (ROADMAP M5 T5): a fixed, illustrative sample date, never live
+         data (`res/layout/today_widget_preview.xml`, `res/layout/month_widget_preview.xml`). The sample
+         is a regular day on purpose (CLAUDE.md rule 6: a static mock-up of Year Day or Leap Day could
+         misrepresent a day that exists in the app in only one form). -->
+    <string name="widget_preview_today_ifc_date">Sol 13</string>
+    <string name="widget_preview_today_gregorian_date">Tue, Jun 30, 2026</string>
+    <string name="widget_preview_today_actual_weekday">Actual weekday: Tuesday</string>
+    <string name="widget_preview_month_title">September 2026</string>
+    <string name="widget_preview_month_gregorian_span">Sep 10 – Oct 7</string>
+
+    <!-- The nominal IFC weekday header, fixed in every month and year (calendar-spec §2.3, R6). Plain
+         strings, not a `string-array`, since a static preview layout's `android:text` cannot index into
+         an array without code. -->
+    <string name="widget_preview_nominal_weekday_1">Sun</string>
+    <string name="widget_preview_nominal_weekday_2">Mon</string>
+    <string name="widget_preview_nominal_weekday_3">Tue</string>
+    <string name="widget_preview_nominal_weekday_4">Wed</string>
+    <string name="widget_preview_nominal_weekday_5">Thu</string>
+    <string name="widget_preview_nominal_weekday_6">Fri</string>
+    <string name="widget_preview_nominal_weekday_7">Sat</string>
+
+    <!-- September 2026's IFC day 1 (nominal Sunday) is real-world Thursday, hand-checked the same way
+         as MonthWidgetStateTest; a common year, so every month before Leap Day shares this rotation. -->
+    <string name="widget_preview_actual_weekday_1">Thu</string>
+    <string name="widget_preview_actual_weekday_2">Fri</string>
+    <string name="widget_preview_actual_weekday_3">Sat</string>
+    <string name="widget_preview_actual_weekday_4">Sun</string>
+    <string name="widget_preview_actual_weekday_5">Mon</string>
+    <string name="widget_preview_actual_weekday_6">Tue</string>
+    <string name="widget_preview_actual_weekday_7">Wed</string>
 </resources>

@@ -52,6 +52,13 @@ sealed interface EventEditorUiState {
      *   `docs/contracts/Events.md` T4 guidance to catch `IllegalArgumentException` and fail soft).
      * @property showDeleteConfirm the delete confirmation dialog is open.
      * @property showDiscardConfirm the unsaved-changes (back) confirmation dialog is open.
+     * @property exdateCount how many occurrences of this event were individually deleted ("delete this
+     *   occurrence" from Day detail), `0` for a new event or one with none. Per-occurrence *edits* stay
+     *   out of scope for 1.0 (`docs/ARCHITECTURE.md` §3.2 "Scope cuts"); this count and
+     *   [EventEditorViewModel.restoreAllOccurrences] are the one thing the editor offers about them.
+     * @property showNotificationPermissionNotice `true` after the user denied the in-context
+     *   `POST_NOTIFICATIONS` request (FEATURES E4, P2): a quiet, dismissible explanation that
+     *   reminders are still saved but notifications are off. Saving is never blocked by this.
      */
     data class Loaded(
         val isNew: Boolean,
@@ -85,5 +92,7 @@ sealed interface EventEditorUiState {
         val saveFailed: Boolean,
         val showDeleteConfirm: Boolean,
         val showDiscardConfirm: Boolean,
+        val exdateCount: Int = 0,
+        val showNotificationPermissionNotice: Boolean = false,
     ) : EventEditorUiState
 }

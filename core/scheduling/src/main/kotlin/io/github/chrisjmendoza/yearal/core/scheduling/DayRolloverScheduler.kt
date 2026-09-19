@@ -23,16 +23,17 @@ import javax.inject.Singleton
  * the same after a clock, zone or locale change, a reboot and an app update, and the application arms
  * it once at process start, so a lost alarm is replaced the next time anything runs.
  *
- * **The alarm time is never the date.** The alarm is a windowed one, delivered anywhere inside
- * [WINDOW] and later still in Doze, so nothing may derive "today" from it; listeners recompute it from
- * the injected [Clock] when called, and that is what makes the rollover correct without alarm
- * precision (`docs/ARCHITECTURE.md` "Reconciled decisions" 11).
+ * **The alarm time is never the date.** Delivery can be late — the windowed fallback below, Doze, a
+ * clock change — so nothing may derive "today" from it; listeners recompute it from the injected
+ * [Clock] when called, and that is what makes the rollover correct without alarm precision
+ * (`docs/ARCHITECTURE.md` "Reconciled decisions" 11).
  *
- * **No exact alarm yet, on purpose.** `docs/ARCHITECTURE.md` §5 has pre-reminder builds run on the
- * windowed alarm, and the exact-alarm permissions are declared only when reminders ship (ROADMAP M6
- * T3). Until the manifest declares one, Android Lint's `MissingPermission` rejects any
- * `setExactAndAllowWhileIdle` call, guarded or not, so the `canScheduleExactAlarms()` branch of §5 is
- * added to [arm] by the change that declares the permission.
+ * **Exact where it may be, windowed where it may not.** Since ROADMAP M6 T3 the manifest declares the
+ * exact-alarm permissions that *reminders* justify (`docs/security-and-privacy.md` §5.1), so [arm]
+ * uses the shared [armWakeup] policy: `setExactAndAllowWhileIdle` where
+ * `AlarmManager.canScheduleExactAlarms()` allows it, and a [WINDOW] window where it does not. The
+ * rollover only reuses the capability and must stay correct without it, which is why nothing here
+ * treats the windowed branch as degraded (ARCHITECTURE "Reconciled decisions" 11).
  */
 @Singleton
 public class DayRolloverScheduler
@@ -50,24 +51,17 @@ public class DayRolloverScheduler
          * keeps one alarm per matching `PendingIntent`, so calling this from several triggers never
          * stacks alarms. Cheap enough for the main thread (two binder calls, no I/O).
          *
-         * The alarm is `setWindow(RTC_WAKEUP, …, WINDOW)` on every supported API level (26–36), whatever
-         * `AlarmManager.canScheduleExactAlarms()` reports. It needs no permission anywhere; API 26–30
-         * honour the window as given, and from API 31 the platform stretches any shorter window to
-         * these same ten minutes. `RTC_WAKEUP` because the target is a wall-clock instant; one wakeup a
-         * day is the whole battery cost (FEATURES Q10).
+         * `RTC_WAKEUP` because the target is a wall-clock instant; one wakeup a day is the whole
+         * battery cost (FEATURES Q10). Whether that wakeup is exact or spread over [WINDOW] is
+         * [armWakeup]'s decision, taken afresh here on every call because the capability can be
+         * revoked at any time on API 31–32.
          */
         public fun arm() {
             // Never null for an installed app; if a broken device ever returns null, the broadcast and
             // updatePeriodMillis layers still cover the rollover, so do not take the process down.
             val alarmManager = context.getSystemService(AlarmManager::class.java) ?: return
             val triggerAt = nextLocalMidnight(clock.instant(), zoneProvider.currentZone()).plus(ROLLOVER_MARGIN)
-            // The only place a java.time value becomes epoch milliseconds: the AlarmManager boundary.
-            alarmManager.setWindow(
-                AlarmManager.RTC_WAKEUP,
-                triggerAt.toEpochMilli(),
-                WINDOW.toMillis(),
-                rolloverOperation(context),
-            )
+            alarmManager.armWakeup(triggerAt, rolloverOperation(context), WINDOW)
         }
 
         /** Constants shared with [DayRolloverAlarmReceiver] and the tests. */
@@ -85,7 +79,10 @@ public class DayRolloverScheduler
              */
             public val ROLLOVER_MARGIN: Duration = Duration.ofSeconds(1)
 
-            /** Delivery window of the alarm: 10 minutes (`docs/ARCHITECTURE.md` §5). */
+            /**
+             * Delivery window of the alarm when exact alarms are unavailable: 10 minutes
+             * (`docs/ARCHITECTURE.md` §5). Ignored on the exact branch of [armWakeup].
+             */
             public val WINDOW: Duration = Duration.ofMinutes(10)
 
             /** The app has one rollover alarm, so one fixed request code. */

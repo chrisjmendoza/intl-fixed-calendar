@@ -1,6 +1,7 @@
 package io.github.chrisjmendoza.yearal.feature.calendar.agenda
 
 import io.github.chrisjmendoza.yearal.core.domain.event.AgendaEntry
+import java.time.LocalDate
 import java.time.LocalTime
 
 /**
@@ -16,6 +17,13 @@ import java.time.LocalTime
  * @property startTime the resolved start's time of day, in the device zone; ignored when [isAllDay].
  * @property endTime the resolved exclusive end's time of day, in the device zone; ignored when [isAllDay].
  * @property colorArgb the colour to draw the leading mark in, `0xAARRGGBB` ([AgendaEntry.colorArgb]).
+ * @property isRecurring whether the underlying event repeats ([io.github.chrisjmendoza.yearal.core.domain.event.Event.isRecurring]);
+ * `false` rows offer a plain delete, `true` rows offer "delete this occurrence" (FEATURES E1).
+ * @property occurrenceDate the occurrence's **own** wall-clock start date
+ * ([io.github.chrisjmendoza.yearal.core.domain.event.Occurrence.occurrenceDate]) — the exdate key.
+ * **Not** necessarily the date the row is shown on (a multi-day or zoned occurrence can be shown up to
+ * two days away): "delete this occurrence" must pass this value, never the day being viewed
+ * (`docs/contracts/Events.md` §4, §7 "T6–T8").
  */
 data class AgendaItemUi(
     val eventId: Long,
@@ -24,6 +32,8 @@ data class AgendaItemUi(
     val startTime: LocalTime?,
     val endTime: LocalTime?,
     val colorArgb: Int,
+    val isRecurring: Boolean = false,
+    val occurrenceDate: LocalDate = LocalDate.ofEpochDay(0),
 )
 
 /**
@@ -39,4 +49,6 @@ fun AgendaEntry.toAgendaItemUi(): AgendaItemUi =
         startTime = if (isAllDay) null else start.toLocalTime(),
         endTime = if (isAllDay) null else end.toLocalTime(),
         colorArgb = colorArgb,
+        isRecurring = event.isRecurring,
+        occurrenceDate = occurrence.occurrenceDate,
     )

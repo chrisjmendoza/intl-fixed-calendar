@@ -35,6 +35,8 @@ import io.github.chrisjmendoza.yearal.core.domain.ZoneProvider
 import io.github.chrisjmendoza.yearal.widget.R
 import io.github.chrisjmendoza.yearal.widget.di.WidgetEntryPoint
 import java.time.Clock
+import java.time.Instant
+import java.time.ZoneOffset
 import java.util.Locale
 
 /**
@@ -76,6 +78,25 @@ class TodayGlanceWidget : GlanceAppWidget() {
         }
     }
 
+    /**
+     * The API 35+ system widget-picker preview (ROADMAP M5 T5; docs/ARCHITECTURE.md §5 "Picker
+     * previews"), rendered through [io.github.chrisjmendoza.yearal.widget.preview.WidgetPreviewUpdater]'s
+     * `setWidgetPreview` call. Reuses [TodayWidgetContent] unchanged -- the same code that renders the
+     * real widget -- fed a [PREVIEW_CLOCK]/[PREVIEW_ZONE_PROVIDER] pair fixed on the same illustrative
+     * sample date as `res/layout/today_widget_preview.xml` (IFC Sol 13, 2026), so the dynamic and static
+     * previews can never drift apart the way two separately hand-built mock-ups could.
+     */
+    override suspend fun providePreview(
+        context: Context,
+        widgetCategory: Int,
+    ) {
+        val formatter = IfcDateFormatter(context.resources, Locale.getDefault())
+        val tapHint = context.getString(R.string.today_widget_tap_hint)
+        provideContent {
+            TodayWidgetContent(PREVIEW_CLOCK, PREVIEW_ZONE_PROVIDER, formatter, tapHint)
+        }
+    }
+
     /** Breakpoints shared with `today_widget_info.xml`'s min/max resize attributes. */
     companion object {
         /** 2 cells wide, 1 cell tall: the IFC date only. */
@@ -86,6 +107,18 @@ class TodayGlanceWidget : GlanceAppWidget() {
 
         /** 3 cells wide, 2 cells tall: adds the labelled actual weekday. */
         val LARGE: DpSize = DpSize(180.dp, 110.dp)
+
+        /**
+         * A fixed instant resolving, in [PREVIEW_ZONE_PROVIDER]'s zone, to Gregorian June 30, 2026 --
+         * IFC Sol 13, 2026, the same sample date named in `res/layout/today_widget_preview.xml`'s KDoc.
+         * [Clock.fixed] and a literal [ZoneProvider] are ordinary `java.time`/domain values, not a
+         * fake `Clock.systemUTC()` call (CLAUDE.md rule 2 is about *live* dates; a picker preview is
+         * deliberately never live).
+         */
+        internal val PREVIEW_CLOCK: Clock = Clock.fixed(Instant.parse("2026-06-30T12:00:00Z"), ZoneOffset.UTC)
+
+        /** Paired with [PREVIEW_CLOCK]; UTC keeps the sample deterministic regardless of test/device zone. */
+        internal val PREVIEW_ZONE_PROVIDER = ZoneProvider { ZoneOffset.UTC }
     }
 }
 

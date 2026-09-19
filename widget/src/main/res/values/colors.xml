@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Colours for the static widget-picker previews only (ROADMAP M5 T5, `res/layout/*_widget_preview.xml`).
+  The real widgets never reference these; they use `GlanceTheme`'s Material You dynamic colour or
+  `BrandLightColorScheme`/`BrandDarkColorScheme` from `:core:designsystem` (docs/ARCHITECTURE.md §5).
+  A static `previewLayout` cannot run Compose/Glance code, so these are plain resources carrying the
+  same brand hex values as `core/designsystem/.../theme/Color.kt`'s light scheme (`LightPrimary` /
+  `LightOnPrimary` / `LightSurface` / `LightOnSurface` / `LightOnSurfaceVariant` /
+  `LightTertiaryContainer` / `LightOnTertiaryContainer`), duplicated here on purpose rather than
+  depended on, since a colour resource cannot reference a Kotlin `Color` value across modules.
+  `values-night/colors.xml` overrides these with the dark scheme's values for the same names.
+-->
+<resources>
+    <color name="widget_preview_surface">#FBF6EA</color>
+    <color name="widget_preview_on_surface">#1A2320</color>
+    <color name="widget_preview_on_surface_variant">#3F4945</color>
+    <color name="widget_preview_primary">#123F3D</color>
+    <color name="widget_preview_on_primary">#F4ECDA</color>
+    <color name="widget_preview_tertiary_container">#FFDCBE</color>
+    <color name="widget_preview_on_tertiary_container">#2E1500</color>
+</resources>

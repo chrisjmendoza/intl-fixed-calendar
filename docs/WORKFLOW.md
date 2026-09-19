@@ -66,7 +66,9 @@ A task is done only when **all** of these are true:
 - [ ] Anything that shows "today" has a test that crosses midnight with a fake `Clock`.
 - [ ] Every public declaration has KDoc that meets §4.1.
 - [ ] Docs changed in the same push wherever behaviour, structure, versions, or scope changed (§4.2).
-- [ ] `CHANGELOG.md` has an entry under *Unreleased* for anything user-visible or architectural.
+- [ ] `CHANGELOG.md` has an entry under *Unreleased* for anything user-visible or architectural, and
+      [`README.md`](../README.md)'s status and feature list change in the same push as any user-visible
+      feature (§4.2).
 - [ ] The full gate passes locally, and the completion report quotes the real result.
 - [ ] No leftovers: no `TODO()` or stub in `main`, no commented-out code, no debug logging, no unused
       dependency.
@@ -101,6 +103,9 @@ KDoc is mandatory on every public class, function, and property **[gate]**. Good
    repeating numbers.
 4. **Same-push rule.** A change to behaviour, a module boundary, a permission, a dependency, a
    release scope, or a priority must update the owning doc in the same push. "Docs later" is not a state.
+   [`README.md`](../README.md)'s status and feature list are a consumer of every owning doc, not an owner
+   itself, but it drifts just as easily: its "what works today" / "what's not here yet" split and its status
+   line change in the same push as any user-visible feature, the same way `CHANGELOG.md` does.
 5. **Decisions are recorded, not remembered.** Anything that changes or fills a gap in the architecture
    or spec gets an ADR in [docs/adr/](adr/) and a pointer from the owning doc.
 6. **Roadmap is a ledger.** Finishing a ROADMAP task ticks it (or strikes it) in the push that finishes
@@ -136,6 +141,9 @@ weakening tests until they pass, inventing APIs from older library versions, and
   AGP 9 (CLAUDE.md, "API generations"). If unsure an API exists, look at the dependency's sources
   rather than recalling from memory.
 - Stay inside your module. If the task needs a change elsewhere, report it; do not reach across.
+- **Every delegated task brief must include the documentation step**: which KDoc is expected, which owning
+  doc(s) need updating, and the `CHANGELOG.md`/`README.md` text being proposed to the coordinator. A brief
+  that only describes code and tests is incomplete, whether it is written by a human or by another agent.
 
 **During**
 
@@ -166,6 +174,9 @@ Not done:    <anything skipped, deferred, or uncertain — never empty by defaul
 Found:       <spec ambiguities, bugs in other modules, drift noticed>
 ```
 
+- The "Docs:" line **must name `README.md`** whenever the task changed user-visible behaviour — either
+  what was updated in it, or why it genuinely needed no change (e.g. "none, this is a pure refactor with
+  no user-visible effect"). Silence on README is not an acceptable answer for a user-visible change.
 - "Gate" must be the output of commands actually run in this session. If a command was not run, write
   "not run" — never infer a pass.
 - A reviewer (human or another agent) spot-checks the report against the diff. A report that claims

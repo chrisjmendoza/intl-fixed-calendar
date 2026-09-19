@@ -24,5 +24,11 @@ class WidgetStringsTest {
         context.getString(R.string.month_widget_label).shouldNotBeBlank()
         context.getString(R.string.month_widget_description).shouldNotBeBlank()
         context.getString(R.string.month_widget_loading).shouldNotBeBlank()
+        context.getString(R.string.month_widget_has_events_hint).shouldNotBeBlank()
+        context.getString(R.string.widget_preview_today_ifc_date).shouldNotBeBlank()
+        context.getString(R.string.widget_preview_today_gregorian_date).shouldNotBeBlank()
+        context.getString(R.string.widget_preview_today_actual_weekday).shouldNotBeBlank()
+        context.getString(R.string.widget_preview_month_title).shouldNotBeBlank()
+        context.getString(R.string.widget_preview_month_gregorian_span).shouldNotBeBlank()
     }
 }

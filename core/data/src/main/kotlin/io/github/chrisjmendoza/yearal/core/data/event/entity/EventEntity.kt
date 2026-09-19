@@ -33,10 +33,12 @@ import androidx.room3.PrimaryKey
  * @property rrule the RFC 5545 `RRULE` value; non-`null` **iff** [recurrenceType] is `1`.
  * @property ifcRule [io.github.chrisjmendoza.yearal.core.domain.event.IfcRuleText] text; non-`null`
  *   **iff** [recurrenceType] is `2`.
- * @property recurrenceUntilEpochDay `RecurrenceExpander.recurrenceEndDate(event)`, a write-time
- *   parameter the mapper does not compute (`docs/contracts/Events.md` "T2"); `null` = unbounded,
- *   unsupported, or not recurring but unterminated (never used for [recurrenceType] `0`, where
- *   [endEpochDay] already carries the only occurrence's last date).
+ * @property recurrenceUntilEpochDay the last date touched by the last occurrence
+ *   (`RecurrenceExpander.recurrenceEndDate(event)`); a write-time parameter the mapper does not
+ *   compute (`docs/contracts/Events.md` "T2"). `null` means an unbounded or an unsupported
+ *   recurrence; per the contract, a non-recurring event ([recurrenceType] `0`) gets
+ *   `event.endDate` here, the same value as [endEpochDay] — the range queries never need to read
+ *   it for that case, since [endEpochDay] alone already anchors the single occurrence.
  * @property createdAt epoch milliseconds; repository-owned, from the injected `Clock`.
  * @property updatedAt epoch milliseconds; `≥ createdAt`.
  */

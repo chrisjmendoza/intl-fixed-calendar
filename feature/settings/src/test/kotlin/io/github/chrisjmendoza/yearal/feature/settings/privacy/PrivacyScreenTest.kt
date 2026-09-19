@@ -4,10 +4,12 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -78,11 +80,33 @@ class PrivacyScreenTest {
     }
 
     @Test
-    fun `both declared permissions are explained and the absence of the rest is stated`() {
+    fun `the summary does not claim that nothing can leave the device, because a backup can`() {
+        show()
+
+        // The app sends nothing itself, but Android's encrypted backup is a copy that leaves the phone; the
+        // summary must say both and must not contradict the Backups section (docs/security-and-privacy.md §4.1).
+        compose
+            .onNodeWithText("the app itself cannot send your data anywhere", substring = true)
+            .performScrollTo()
+            .assertIsDisplayed()
+        compose
+            .onNodeWithText("The one copy that can leave your phone is Android", substring = true)
+            .performScrollTo()
+            .assertIsDisplayed()
+        compose.onAllNodesWithText("nothing it stores could leave your device", substring = true).assertCountEquals(0)
+    }
+
+    @Test
+    fun `every declared permission is explained and the absence of the rest is stated`() {
         show()
 
         compose.onNodeWithText("receive boot completed", substring = true).performScrollTo().assertIsDisplayed()
         compose.onNodeWithText("wake lock", substring = true).performScrollTo().assertIsDisplayed()
+        // One sentence per row of the allow-list table in docs/security-and-privacy.md §5 (the app's own
+        // self-scoped signature permission aside). A new permission must add its sentence here.
+        compose.onNodeWithText("post notifications", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("use exact alarm", substring = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("schedule exact alarm", substring = true).performScrollTo().assertIsDisplayed()
         compose
             .onNodeWithText(
                 "Yearal does not ask for your contacts, your location, your photos or files, " +

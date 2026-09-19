@@ -5,8 +5,12 @@ import io.github.chrisjmendoza.yearal.core.domain.settings.ThemeMode
 import io.github.chrisjmendoza.yearal.core.domain.settings.UserSettings
 import io.github.chrisjmendoza.yearal.core.domain.settings.WeekdayDisplay
 import io.github.chrisjmendoza.yearal.core.holidays.HolidayPackLoader
+import io.github.chrisjmendoza.yearal.core.testing.EventFixtures
+import io.github.chrisjmendoza.yearal.core.testing.FakeEventRepository
 import io.github.chrisjmendoza.yearal.core.testing.FakeSettingsRepository
+import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.collections.shouldContainExactly
+import io.kotest.matchers.collections.shouldHaveSize
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.coroutines.Dispatchers
@@ -52,7 +56,8 @@ class SettingsViewModelTest {
     private fun viewModel(
         repository: FakeSettingsRepository,
         dynamicColorSupported: Boolean = true,
-    ) = SettingsViewModel(repository, loader, dynamicColorSupported)
+        eventRepository: FakeEventRepository = FakeEventRepository(),
+    ) = SettingsViewModel(repository, loader, dynamicColorSupported, eventRepository)
 
     @Test
     fun `starts loading, then mirrors the stored settings and lists the bundled packs`() =
@@ -225,4 +230,95 @@ class SettingsViewModelTest {
         ifc.toItem(Locale.FRANCE) shouldBe
             HolidayPackItem(id = "ifc", name = "International Fixed Calendar", region = null)
     }
+
+    // ----- "Delete all data" (FEATURES W6): two-step destructive confirmation, cancel at each step,
+    // the repository and settings both reset. -----
+
+    @Test
+    fun `requesting delete opens the first confirmation`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel(FakeSettingsRepository())
+            viewModel.uiState.test {
+                awaitItem() shouldBe SettingsUiState.Loading
+                awaitItem().shouldBeInstanceOf<SettingsUiState.Loaded>().deleteAllDataStep shouldBe
+                    DeleteAllDataStep.NONE
+
+                viewModel.requestDeleteAllData()
+                awaitItem().shouldBeInstanceOf<SettingsUiState.Loaded>().deleteAllDataStep shouldBe
+                    DeleteAllDataStep.CONFIRM_FIRST
+            }
+        }
+
+    @Test
+    fun `cancelling the first confirmation changes nothing`() =
+        runTest(dispatcher) {
+            val settingsRepo = FakeSettingsRepository(UserSettings(themeMode = ThemeMode.DARK))
+            val eventRepo = FakeEventRepository()
+            eventRepo.seed(listOf(EventFixtures.sol13Yearly()))
+            val viewModel = viewModel(settingsRepo, eventRepository = eventRepo)
+            viewModel.uiState.test {
+                awaitItem() shouldBe SettingsUiState.Loading
+                awaitItem()
+
+                viewModel.requestDeleteAllData()
+                awaitItem()
+                viewModel.cancelDeleteAllData()
+                awaitItem().shouldBeInstanceOf<SettingsUiState.Loaded>().deleteAllDataStep shouldBe
+                    DeleteAllDataStep.NONE
+            }
+            settingsRepo.current.themeMode shouldBe ThemeMode.DARK
+            eventRepo.currentEvents shouldHaveSize 1
+        }
+
+    @Test
+    fun `cancelling the final confirmation also changes nothing`() =
+        runTest(dispatcher) {
+            val settingsRepo = FakeSettingsRepository(UserSettings(themeMode = ThemeMode.DARK))
+            val eventRepo = FakeEventRepository()
+            eventRepo.seed(listOf(EventFixtures.sol13Yearly()))
+            val viewModel = viewModel(settingsRepo, eventRepository = eventRepo)
+            viewModel.uiState.test {
+                awaitItem() shouldBe SettingsUiState.Loading
+                awaitItem()
+
+                viewModel.requestDeleteAllData()
+                awaitItem()
+                viewModel.continueDeleteAllData()
+                awaitItem().shouldBeInstanceOf<SettingsUiState.Loaded>().deleteAllDataStep shouldBe
+                    DeleteAllDataStep.CONFIRM_SECOND
+                viewModel.cancelDeleteAllData()
+                awaitItem().shouldBeInstanceOf<SettingsUiState.Loaded>().deleteAllDataStep shouldBe
+                    DeleteAllDataStep.NONE
+            }
+            settingsRepo.current.themeMode shouldBe ThemeMode.DARK
+            eventRepo.currentEvents shouldHaveSize 1
+        }
+
+    @Test
+    fun `confirming both steps erases every event and resets settings, then shows completion`() =
+        runTest(dispatcher) {
+            val settingsRepo = FakeSettingsRepository(UserSettings(themeMode = ThemeMode.DARK, dynamicColor = false))
+            val eventRepo = FakeEventRepository()
+            eventRepo.seed(listOf(EventFixtures.sol13Yearly(), EventFixtures.weeklyGregorian()))
+            val viewModel = viewModel(settingsRepo, eventRepository = eventRepo)
+            viewModel.uiState.test {
+                awaitItem() shouldBe SettingsUiState.Loading
+                awaitItem()
+
+                viewModel.requestDeleteAllData()
+                awaitItem()
+                viewModel.continueDeleteAllData()
+                awaitItem()
+                viewModel.confirmDeleteAllData()
+
+                awaitItem().shouldBeInstanceOf<SettingsUiState.Loaded>().deleteAllDataStep shouldBe
+                    DeleteAllDataStep.DONE
+
+                viewModel.dismissDeleteAllDataDone()
+                awaitItem().shouldBeInstanceOf<SettingsUiState.Loaded>().deleteAllDataStep shouldBe
+                    DeleteAllDataStep.NONE
+            }
+            eventRepo.currentEvents.shouldBeEmpty()
+            settingsRepo.current shouldBe UserSettings.DEFAULT
+        }
 }

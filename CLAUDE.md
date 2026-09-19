@@ -3,11 +3,11 @@
 **Yearal** — Android app for the International Fixed Calendar (IFC; the owner also says "FC"): 13 months × 28 days,
 the month Sol, plus Year Day and Leap Day. Solo developer working with AI agents.
 
-**Status:** M0 and M1 done; M2–M5 in progress (M3 T1–T3, M4 T1–T7, M5 T1–T3 done). Pure-JVM: `:core:calendar`,
+**Status:** M0 and M1 done; M2–M5 in progress (M3 T1–T3, M4 T1–T9, M5 T1–T3 and T5–T6, M6 T1 and T3 done). Pure-JVM: `:core:calendar`,
 `:core:domain` (clock/ticker, holiday engine, the events contract, `DayRolloverListener`), `:core:holidays`
 (JSON packs), `:core:testing`. Android: `:app` (Hilt, 5-tab Nav3 shell), `:core:designsystem` (theme,
 `MonthGrid`, date pickers), `:core:navigation`, `:core:data` (settings DataStore, Room 3 event storage), `:core:scheduling`
-(midnight rollover alarm + receivers), `:feature:calendar` (Today, Month, Year, Day detail), `:feature:converter`
+(midnight rollover + reminder alarms, receivers, notifications), `:feature:calendar` (Today, Month, Year, Day detail), `:feature:converter`
 (Gregorian ↔ IFC), `:feature:events` (list + editor), `:feature:settings` (Settings, More hub, Learn, Privacy), `:widget` (Glance Today and Month widgets). `docs/ROADMAP.md` has the ledger; frozen
 contracts are in `docs/contracts/`.
 Toolchain decisions are frozen in `docs/adr/0001-toolchain.md` — read it before touching build-logic.
@@ -15,9 +15,10 @@ Toolchain decisions are frozen in `docs/adr/0001-toolchain.md` — read it befor
 ## Workflow — mandatory
 
 **`docs/WORKFLOW.md` is binding.** In short: read the docs below first; tests and KDoc land in the same
-change as the code; owning docs are updated in the same push as the behaviour; run the gate and report the
-real result; end every task with the completion report from WORKFLOW.md §6. Never weaken a test, edit an
-expected value, or bypass a gate to get to green.
+change as the code; owning docs are updated in the same push as the behaviour, and `README.md` and
+`CHANGELOG.md` in the same push as a user-visible feature; run the gate and report the real result; end
+every task with the completion report from WORKFLOW.md §6. Never weaken a test, edit an expected value, or
+bypass a gate to get to green.
 
 ```powershell
 $env:JAVA_HOME = "C:\Program Files\Android\Android Studio\jbr"; $env:PATH = "$env:JAVA_HOME\bin;$env:PATH"
@@ -34,7 +35,7 @@ python scripts\check_docs.py        # doc link check
 
 | Working on | Read first |
 |---|---|
-| Anything involving dates | `docs/calendar-spec.md` (rules §2, algorithms §3, type model §4, semantics §7, vectors §6) |
+| Anything involving dates | `docs/calendar-spec.md` (rules §2, algorithms §3, type model §4, semantics §7, vectors §6); `docs/contracts/Calendar.md` for `:core:calendar`'s frozen public API |
 | Structure, stack, data model, widgets, tests, CI | `docs/ARCHITECTURE.md` — start with "Reconciled decisions" |
 | What to build and its priority | `docs/FEATURES.md` |
 | What to build next | `docs/ROADMAP.md` |

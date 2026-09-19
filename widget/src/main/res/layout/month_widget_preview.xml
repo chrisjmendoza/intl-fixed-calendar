@@ -1,0 +1,132 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Static widget-picker preview for the Month widget (ROADMAP M5 T5; `res/xml-v31/month_widget_info.xml`'s
+  `previewLayout`, API 31-34; superseded on API 35+ by `MonthGlanceWidget.providePreview` +
+  `WidgetPreviewUpdater`'s `setWidgetPreview` call, docs/ARCHITECTURE.md §5 "Picker previews").
+
+  A plain RemoteViews-safe layout (LinearLayout + TextView only), shown by the launcher's picker before
+  the widget is placed, so it cannot run MonthGlanceWidget's own code: every value is a fixed sample
+  (September 2026, today = IFC day 8 = Gregorian September 17, the exact date hand-checked in
+  MonthWidgetStateTest, real-world Thursday). September has no trailing Leap Day / Year Day band, so
+  nothing here can misrepresent one (CLAUDE.md rule 6's concern for a *static* mock-up, same reasoning as
+  the Today preview). Day 8 (today) and day 21 (illustrative only, not real data) carry the event-dot
+  glyph to show ROADMAP M5 T6's feature; day numbers are plain digits, not language content, so
+  `tools:ignore="HardcodedText"` applies to them alone (CLAUDE.md rule 9 covers translatable text; digits
+  are not that).
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_preview_background"
+    android:padding="8dp">
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="2dp"
+        android:gravity="start"
+        android:text="@string/widget_preview_month_title"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:textColor="@color/widget_preview_on_surface" />
+
+    <!-- Nominal IFC weekday header row. -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView style="@style/WidgetPreviewHeaderCell" android:text="@string/widget_preview_nominal_weekday_1" />
+        <TextView style="@style/WidgetPreviewHeaderCell" android:text="@string/widget_preview_nominal_weekday_2" />
+        <TextView style="@style/WidgetPreviewHeaderCell" android:text="@string/widget_preview_nominal_weekday_3" />
+        <TextView style="@style/WidgetPreviewHeaderCell" android:text="@string/widget_preview_nominal_weekday_4" />
+        <TextView style="@style/WidgetPreviewHeaderCell" android:text="@string/widget_preview_nominal_weekday_5" />
+        <TextView style="@style/WidgetPreviewHeaderCell" android:text="@string/widget_preview_nominal_weekday_6" />
+        <TextView style="@style/WidgetPreviewHeaderCell" android:text="@string/widget_preview_nominal_weekday_7" />
+    </LinearLayout>
+
+    <!-- Actual real-world weekday header row (never derived from the nominal row, calendar-spec §4.1). -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView style="@style/WidgetPreviewHeaderCellVariant" android:text="@string/widget_preview_actual_weekday_1" />
+        <TextView style="@style/WidgetPreviewHeaderCellVariant" android:text="@string/widget_preview_actual_weekday_2" />
+        <TextView style="@style/WidgetPreviewHeaderCellVariant" android:text="@string/widget_preview_actual_weekday_3" />
+        <TextView style="@style/WidgetPreviewHeaderCellVariant" android:text="@string/widget_preview_actual_weekday_4" />
+        <TextView style="@style/WidgetPreviewHeaderCellVariant" android:text="@string/widget_preview_actual_weekday_5" />
+        <TextView style="@style/WidgetPreviewHeaderCellVariant" android:text="@string/widget_preview_actual_weekday_6" />
+        <TextView style="@style/WidgetPreviewHeaderCellVariant" android:text="@string/widget_preview_actual_weekday_7" />
+    </LinearLayout>
+
+    <!-- 4x7 day-number grid. Day 8 is "today" (the pill background); days 8 and 21 carry the
+         illustrative event dot (a mock-up value, not real data; ROADMAP M5 T6). -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView style="@style/WidgetPreviewDayCell" android:text="1" tools:ignore="HardcodedText" />
+        <TextView style="@style/WidgetPreviewDayCell" android:text="2" tools:ignore="HardcodedText" />
+        <TextView style="@style/WidgetPreviewDayCell" android:text="3" tools:ignore="HardcodedText" />
+        <TextView style="@style/WidgetPreviewDayCell" android:text="4" tools:ignore="HardcodedText" />
+        <TextView style="@style/WidgetPreviewDayCell" android:text="5" tools:ignore="HardcodedText" />
+        <TextView style="@style/WidgetPreviewDayCell" android:text="6" tools:ignore="HardcodedText" />
+        <TextView style="@style/WidgetPreviewDayCell" android:text="7" tools:ignore="HardcodedText" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView style="@style/WidgetPreviewDayCellToday" android:text="8•" tools:ignore="HardcodedText" />
+        <TextView style="@style/WidgetPreviewDayCell" android:text="9" tools:ignore="HardcodedText" />
+        <TextView style="@style/WidgetPreviewDayCell" android:text="10" tools:ignore="HardcodedText" />
+        <TextView style="@style/WidgetPreviewDayCell" android:text="11" tools:ignore="HardcodedText" />
+        <TextView style="@style/WidgetPreviewDayCell" android:text="12" tools:ignore="HardcodedText" />
+        <TextView style="@style/WidgetPreviewDayCell" android:text="13" tools:ignore="HardcodedText" />
+        <TextView style="@style/WidgetPreviewDayCell" android:text="14" tools:ignore="HardcodedText" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView style="@style/WidgetPreviewDayCell" android:text="15" tools:ignore="HardcodedText" />
+        <TextView style="@style/WidgetPreviewDayCell" android:text="16" tools:ignore="HardcodedText" />
+        <TextView style="@style/WidgetPreviewDayCell" android:text="17" tools:ignore="HardcodedText" />
+        <TextView style="@style/WidgetPreviewDayCell" android:text="18" tools:ignore="HardcodedText" />
+        <TextView style="@style/WidgetPreviewDayCell" android:text="19" tools:ignore="HardcodedText" />
+        <TextView style="@style/WidgetPreviewDayCell" android:text="20" tools:ignore="HardcodedText" />
+        <TextView style="@style/WidgetPreviewDayCell" android:text="21•" tools:ignore="HardcodedText" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+
+        <TextView style="@style/WidgetPreviewDayCell" android:text="22" tools:ignore="HardcodedText" />
+        <TextView style="@style/WidgetPreviewDayCell" android:text="23" tools:ignore="HardcodedText" />
+        <TextView style="@style/WidgetPreviewDayCell" android:text="24" tools:ignore="HardcodedText" />
+        <TextView style="@style/WidgetPreviewDayCell" android:text="25" tools:ignore="HardcodedText" />
+        <TextView style="@style/WidgetPreviewDayCell" android:text="26" tools:ignore="HardcodedText" />
+        <TextView style="@style/WidgetPreviewDayCell" android:text="27" tools:ignore="HardcodedText" />
+        <TextView style="@style/WidgetPreviewDayCell" android:text="28" tools:ignore="HardcodedText" />
+    </LinearLayout>
+
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="2dp"
+        android:gravity="center"
+        android:text="@string/widget_preview_month_gregorian_span"
+        android:textSize="11sp"
+        android:textColor="@color/widget_preview_on_surface_variant" />
+
+</LinearLayout>

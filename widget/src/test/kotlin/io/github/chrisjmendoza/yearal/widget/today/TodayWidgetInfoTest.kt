@@ -7,6 +7,7 @@ import io.github.chrisjmendoza.yearal.widget.R
 import io.kotest.matchers.shouldBe
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.annotation.Config
 import org.xmlpull.v1.XmlPullParser
 
 /**
@@ -75,7 +76,8 @@ class TodayWidgetInfoTest {
     fun `initial and preview layouts, and the description, are declared`() {
         val attrs = rootAttributes()
         attrs.getValue("initialLayout") shouldBe "@${R.layout.today_widget_loading}"
-        attrs.getValue("previewLayout") shouldBe "@${R.layout.today_widget_loading}"
+        // ROADMAP M5 T5: a real static mock-up, not the loading placeholder.
+        attrs.getValue("previewLayout") shouldBe "@${R.layout.today_widget_preview}"
         attrs.getValue("description") shouldBe "@${R.string.today_widget_description}"
     }
 
@@ -83,5 +85,16 @@ class TodayWidgetInfoTest {
     @Test
     fun `has no configuration activity`() {
         rootAttributes().containsKey("configure") shouldBe false
+    }
+
+    /**
+     * `previewImage` (ROADMAP M5 T5) is valid since API 11 (verified against the SDK's own
+     * `api-versions.xml`), so it lives in the base file rather than needing its own resource-qualifier
+     * split, and stays declared at every API level this app supports.
+     */
+    @Test
+    @Config(sdk = [26])
+    fun `below API 31, previewImage is the static vector fallback`() {
+        rootAttributes().getValue("previewImage") shouldBe "@${R.drawable.widget_preview_image}"
     }
 }

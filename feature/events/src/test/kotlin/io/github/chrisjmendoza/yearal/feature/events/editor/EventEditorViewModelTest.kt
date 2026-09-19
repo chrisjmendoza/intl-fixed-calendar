@@ -18,6 +18,8 @@ import io.github.chrisjmendoza.yearal.core.testing.FakeDateTicker
 import io.github.chrisjmendoza.yearal.core.testing.FakeEventRepository
 import io.github.chrisjmendoza.yearal.core.testing.FakeEventUidGenerator
 import io.github.chrisjmendoza.yearal.core.testing.FakeZoneProvider
+import io.github.chrisjmendoza.yearal.feature.events.notification.NotificationPermissionGate
+import io.kotest.matchers.collections.shouldBeEmpty
 import io.kotest.matchers.shouldBe
 import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.coroutines.Dispatchers
@@ -68,7 +70,17 @@ class EventEditorViewModelTest {
         zoneProvider: FakeZoneProvider = FakeZoneProvider(ZoneId.of("UTC")),
         ticker: DateTicker = FakeDateTicker(specToday),
         handle: SavedStateHandle = SavedStateHandle(),
-    ) = EventEditorViewModel(key, handle, repository, uidGenerator, zoneProvider, ticker, formatter)
+        notificationPermission: NotificationPermissionGate = FakeNotificationPermissionGate(needsPermission = false),
+    ) = EventEditorViewModel(
+        key,
+        handle,
+        repository,
+        uidGenerator,
+        zoneProvider,
+        ticker,
+        formatter,
+        notificationPermission,
+    )
 
     /** Keeps [viewModel] subscribed and returns a reader of its settled, loaded state. */
     private fun TestScope.observe(viewModel: EventEditorViewModel): () -> EventEditorUiState.Loaded {
@@ -511,4 +523,148 @@ class EventEditorViewModelTest {
 
             repo.currentEvents.single().calendarId shouldBe EventCalendar.DEFAULT_ID
         }
+
+    // ----- POST_NOTIFICATIONS state machine (FEATURES E4, P2): first chip -> request; granted; denied
+    // -> explanation, save still works; second chip -> no re-prompt; below API 33 -> no request.
+
+    @Test
+    fun `the first reminder chip requests POST_NOTIFICATIONS when the device needs the runtime grant`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel(notificationPermission = FakeNotificationPermissionGate(needsPermission = true))
+            observe(viewModel)
+            runCurrent()
+            val requests = mutableListOf<EventEditorEvent>()
+            backgroundScope.launch { viewModel.editorEvents.collect { requests += it } }
+
+            viewModel.toggleReminder(0)
+            runCurrent()
+
+            requests shouldBe listOf(EventEditorEvent.RequestNotificationPermission)
+        }
+
+    @Test
+    fun `a second reminder chip does not request permission again`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel(notificationPermission = FakeNotificationPermissionGate(needsPermission = true))
+            observe(viewModel)
+            runCurrent()
+            val requests = mutableListOf<EventEditorEvent>()
+            backgroundScope.launch { viewModel.editorEvents.collect { requests += it } }
+
+            viewModel.toggleReminder(0)
+            runCurrent()
+            viewModel.toggleReminder(1440)
+            runCurrent()
+
+            requests shouldBe listOf(EventEditorEvent.RequestNotificationPermission)
+        }
+
+    @Test
+    fun `removing then re-adding a chip does not request permission again either`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel(notificationPermission = FakeNotificationPermissionGate(needsPermission = true))
+            observe(viewModel)
+            runCurrent()
+            val requests = mutableListOf<EventEditorEvent>()
+            backgroundScope.launch { viewModel.editorEvents.collect { requests += it } }
+
+            viewModel.toggleReminder(0) // add
+            runCurrent()
+            viewModel.toggleReminder(0) // remove
+            runCurrent()
+            viewModel.toggleReminder(0) // add again
+            runCurrent()
+
+            requests shouldBe listOf(EventEditorEvent.RequestNotificationPermission)
+        }
+
+    @Test
+    fun `below API 33 no permission is ever requested`() =
+        runTest(dispatcher) {
+            val viewModel = viewModel(notificationPermission = FakeNotificationPermissionGate(needsPermission = false))
+            observe(viewModel)
+            runCurrent()
+            val requests = mutableListOf<EventEditorEvent>()
+            backgroundScope.launch { viewModel.editorEvents.collect { requests += it } }
+
+            viewModel.toggleReminder(0)
+            runCurrent()
+
+            requests.shouldBeEmpty()
+        }
+
+    @Test
+    fun `denial shows a dismissible notice and never blocks saving, and granting clears it`() =
+        runTest(dispatcher) {
+            val repo = FakeEventRepository()
+            val viewModel = viewModel(repository = repo, notificationPermission = FakeNotificationPermissionGate(true))
+            val state = observe(viewModel)
+            viewModel.setTitle("Reminder test")
+            viewModel.setStartDate(LocalDate.of(2026, 6, 30))
+            viewModel.toggleReminder(0)
+            runCurrent()
+
+            viewModel.onNotificationPermissionResult(granted = false)
+            state().showNotificationPermissionNotice shouldBe true
+
+            viewModel.save()
+            runCurrent()
+            repo.currentEvents.single().title shouldBe "Reminder test"
+
+            viewModel.dismissNotificationPermissionNotice()
+            state().showNotificationPermissionNotice shouldBe false
+
+            viewModel.onNotificationPermissionResult(granted = true)
+            state().showNotificationPermissionNotice shouldBe false
+        }
+
+    // ----- Individually deleted occurrences ("delete this occurrence" from Day detail): count and restore-all -----
+
+    @Test
+    fun `exdateCount reflects the loaded event, and restoreAllOccurrences clears every exdate`() =
+        runTest(dispatcher) {
+            val repo = FakeEventRepository()
+            val withExdates =
+                EventFixtures
+                    .sol13Yearly()
+                    .copy(exdates = setOf(LocalDate.of(2027, 6, 30), LocalDate.of(2028, 6, 30)))
+            val stored = repo.seed(listOf(withExdates)).single()
+            val viewModel = viewModel(key = EventEditorKey(eventId = stored.id), repository = repo)
+            val state = observe(viewModel)
+
+            state().exdateCount shouldBe 2
+
+            viewModel.restoreAllOccurrences()
+            runCurrent()
+
+            state().exdateCount shouldBe 0
+            repo
+                .getEvent(stored.id)
+                ?.exdates
+                .orEmpty()
+                .shouldBeEmpty()
+        }
+
+    @Test
+    fun `restoreAllOccurrences is a no-op for a new event or one with nothing to restore`() =
+        runTest(dispatcher) {
+            val repo = FakeEventRepository()
+            val stored = repo.seed(listOf(EventFixtures.sol13Yearly())).single()
+            val viewModel = viewModel(key = EventEditorKey(eventId = stored.id), repository = repo)
+            val state = observe(viewModel)
+            state().exdateCount shouldBe 0
+
+            viewModel.restoreAllOccurrences()
+            runCurrent()
+
+            state().exdateCount shouldBe 0
+            repo.getEvent(stored.id) shouldBe stored
+        }
+}
+
+/** A settable [NotificationPermissionGate] for the permission state-machine tests. */
+private class FakeNotificationPermissionGate(
+    private val needsPermission: Boolean,
+) : NotificationPermissionGate {
+    override fun needsRuntimePermission(): Boolean = needsPermission
 }

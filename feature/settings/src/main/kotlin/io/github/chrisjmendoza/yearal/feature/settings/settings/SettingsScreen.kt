@@ -17,6 +17,8 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -29,6 +31,7 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -71,23 +74,34 @@ fun SettingsRoute(
         onThemeModeSelected = viewModel::setThemeMode,
         onDynamicColorChanged = viewModel::setDynamicColor,
         onHolidaySetEnabledChanged = viewModel::setHolidaySetEnabled,
+        onRequestDeleteAllData = viewModel::requestDeleteAllData,
+        onContinueDeleteAllData = viewModel::continueDeleteAllData,
+        onCancelDeleteAllData = viewModel::cancelDeleteAllData,
+        onConfirmDeleteAllData = viewModel::confirmDeleteAllData,
+        onDismissDeleteAllDataDone = viewModel::dismissDeleteAllDataDone,
         modifier = modifier,
     )
 }
 
 /**
  * The stateless Settings screen — the unit for previews, screenshot and Compose tests
- * (docs/ARCHITECTURE.md §4 "State management"). Three sections: the weekday-header mode as a radio
+ * (docs/ARCHITECTURE.md §4 "State management"). Four sections: the weekday-header mode as a radio
  * group with a reminder that IFC weekdays are not real ones (calendar-spec §4.1), the theme as a radio
- * group plus the dynamic-colour switch (disabled below API 31), and one switch per bundled holiday
- * pack. Every control reflects [SettingsUiState.Loaded.settings] and reports a change through its
- * callback; nothing is stored locally.
+ * group plus the dynamic-colour switch (disabled below API 31), one switch per bundled holiday pack,
+ * and "Delete all data" (FEATURES W6) behind a two-step destructive confirmation. Every control
+ * reflects [SettingsUiState.Loaded.settings] (or [SettingsUiState.Loaded.deleteAllDataStep]) and
+ * reports a change through its callback; nothing is stored locally.
  *
  * Opts in to the Material 3 experimental marker only because `TopAppBar`'s default arguments
  * (`TopAppBarDefaults`) still carry it.
  *
  * @param onBack the top app bar's back arrow.
  * @param onHolidaySetEnabledChanged receives the pack id (`HolidaySet.id`) and the new state.
+ * @param onRequestDeleteAllData opens the first "Delete all data" confirmation.
+ * @param onContinueDeleteAllData moves from the first confirmation to the final one.
+ * @param onCancelDeleteAllData backs out of either confirmation.
+ * @param onConfirmDeleteAllData accepted the final confirmation; erases everything.
+ * @param onDismissDeleteAllDataDone dismisses the completion notice.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -99,6 +113,11 @@ fun SettingsScreen(
     onDynamicColorChanged: (Boolean) -> Unit,
     onHolidaySetEnabledChanged: (id: String, enabled: Boolean) -> Unit,
     modifier: Modifier = Modifier,
+    onRequestDeleteAllData: () -> Unit = {},
+    onContinueDeleteAllData: () -> Unit = {},
+    onCancelDeleteAllData: () -> Unit = {},
+    onConfirmDeleteAllData: () -> Unit = {},
+    onDismissDeleteAllDataDone: () -> Unit = {},
 ) {
     Scaffold(
         modifier = modifier,
@@ -128,8 +147,26 @@ fun SettingsScreen(
                     onThemeModeSelected = onThemeModeSelected,
                     onDynamicColorChanged = onDynamicColorChanged,
                     onHolidaySetEnabledChanged = onHolidaySetEnabledChanged,
+                    onRequestDeleteAllData = onRequestDeleteAllData,
                     modifier = Modifier.padding(padding),
                 )
+                when (state.deleteAllDataStep) {
+                    DeleteAllDataStep.NONE -> {
+                        Unit
+                    }
+
+                    DeleteAllDataStep.CONFIRM_FIRST -> {
+                        DeleteAllDataFirstDialog(onContinue = onContinueDeleteAllData, onCancel = onCancelDeleteAllData)
+                    }
+
+                    DeleteAllDataStep.CONFIRM_SECOND -> {
+                        DeleteAllDataFinalDialog(onConfirm = onConfirmDeleteAllData, onCancel = onCancelDeleteAllData)
+                    }
+
+                    DeleteAllDataStep.DONE -> {
+                        DeleteAllDataDoneDialog(onDismiss = onDismissDeleteAllDataDone)
+                    }
+                }
             }
         }
     }
@@ -150,6 +187,7 @@ private fun LoadedContent(
     onThemeModeSelected: (ThemeMode) -> Unit,
     onDynamicColorChanged: (Boolean) -> Unit,
     onHolidaySetEnabledChanged: (id: String, enabled: Boolean) -> Unit,
+    onRequestDeleteAllData: () -> Unit,
     modifier: Modifier,
 ) {
     Column(
@@ -164,7 +202,92 @@ private fun LoadedContent(
         ThemeSection(state, onThemeModeSelected, onDynamicColorChanged)
         HorizontalDivider()
         HolidaySection(state, onHolidaySetEnabledChanged)
+        HorizontalDivider()
+        DataSection(onRequestDeleteAllData)
     }
+}
+
+/**
+ * FEATURES W6: "Delete all data", the honest answer to "how do I erase my data"
+ * (`docs/security-and-privacy.md` §2.4). Destructive by wording and icon, not colour alone — the row
+ * itself opens the first of two confirmations, never erasing anything by a single tap.
+ */
+@Composable
+private fun DataSection(onRequestDeleteAllData: () -> Unit) {
+    SectionHeading(stringResource(R.string.settings_section_data))
+    ListItem(
+        leadingContent = {
+            Icon(
+                imageVector = Icons.Filled.Delete,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.error,
+            )
+        },
+        headlineContent = {
+            Text(stringResource(R.string.settings_delete_all_data), color = MaterialTheme.colorScheme.error)
+        },
+        supportingContent = { Text(stringResource(R.string.settings_delete_all_data_detail)) },
+        modifier =
+            Modifier
+                .fillMaxWidth()
+                .clickableRole(onClick = onRequestDeleteAllData),
+    )
+}
+
+/** A full-width, TalkBack-reachable [Role.Button] click target for a [ListItem] row. */
+private fun Modifier.clickableRole(onClick: () -> Unit): Modifier =
+    this.then(
+        Modifier.selectable(selected = false, role = Role.Button, onClick = onClick),
+    )
+
+/** The first "Delete all data" confirmation: what will be erased. */
+@Composable
+private fun DeleteAllDataFirstDialog(
+    onContinue: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text(stringResource(R.string.settings_delete_all_data_confirm1_title)) },
+        text = { Text(stringResource(R.string.settings_delete_all_data_confirm1_text)) },
+        confirmButton = {
+            TextButton(onClick = onContinue) { Text(stringResource(R.string.settings_delete_all_data_continue)) }
+        },
+        dismissButton = { TextButton(onClick = onCancel) { Text(stringResource(R.string.settings_cancel)) } },
+    )
+}
+
+/** The final, unmistakably destructive "Delete all data" confirmation: this cannot be undone. */
+@Composable
+private fun DeleteAllDataFinalDialog(
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onCancel,
+        title = { Text(stringResource(R.string.settings_delete_all_data_confirm2_title)) },
+        text = { Text(stringResource(R.string.settings_delete_all_data_confirm2_text)) },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(
+                    stringResource(R.string.settings_delete_all_data),
+                    color = MaterialTheme.colorScheme.error,
+                )
+            }
+        },
+        dismissButton = { TextButton(onClick = onCancel) { Text(stringResource(R.string.settings_cancel)) } },
+    )
+}
+
+/** Confirms the erase finished. */
+@Composable
+private fun DeleteAllDataDoneDialog(onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(stringResource(R.string.settings_delete_all_data_done_title)) },
+        text = { Text(stringResource(R.string.settings_delete_all_data_done_text)) },
+        confirmButton = { TextButton(onClick = onDismiss) { Text(stringResource(R.string.settings_ok)) } },
+    )
 }
 
 /** FEATURES W1: `BOTH` / `ACTUAL` / `NOMINAL`, with the §4.1 reminder above the options. */

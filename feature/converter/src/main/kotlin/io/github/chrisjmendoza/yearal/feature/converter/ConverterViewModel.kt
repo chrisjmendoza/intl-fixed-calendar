@@ -35,6 +35,16 @@ import java.time.LocalDate
  * as a Gregorian epoch day — CLAUDE.md rule 4; the IFC selection as its numeric pseudo-fields) and
  * re-validated when read back. Restored input wins over the key's prefill.
  *
+ * **Direction switch.** [setDirection] only changes which input is active; it never discards the other
+ * input, so switching back and forth never loses or alters the chosen day (see
+ * [ConverterUiState.Loaded.direction]). [uiState] rebuilds on every call to [setDirection],
+ * [setGregorianDate], [setIfcInput] or [resetToToday], and on every [DateTicker] tick — a tick changes
+ * the result only while no day is chosen, since [DateTicker] supplies the default, never overrides one.
+ *
+ * **Round trip.** Converting a chosen day to the other calendar and back always lands on the same
+ * physical day; `ConverterViewModelTest` property-tests this against generated dates across 1583..9999
+ * (docs/ROADMAP.md M3 exit).
+ *
  * Every conversion goes through `:core:calendar` (rule 1); invalid input becomes
  * [ConversionResult.Invalid], never an exception. Stops collecting the ticker five seconds after the
  * last subscriber leaves.
@@ -105,6 +115,7 @@ class ConverterViewModel
 /**
  * The converter's input, the part of its state that is saved.
  *
+ * @property direction which input is active; carried into [ConverterUiState.Loaded.direction] unchanged.
  * @property chosen the chosen day, or `null` to follow today.
  * @property ifcDraft the IFC picker's value once the user has edited it, or `null` to derive it from
  * the chosen day. When it holds a date, that date is [chosen].

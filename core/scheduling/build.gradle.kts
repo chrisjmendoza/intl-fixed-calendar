@@ -12,6 +12,8 @@ android {
 dependencies {
     api(project(":core:domain"))
     implementation(libs.findLibrary("kotlinx-coroutines-core").get())
+    // NotificationCompat / NotificationChannelCompat / ContextCompat for the reminder notification.
+    implementation(libs.findLibrary("androidx-core-ktx").get())
 
     testImplementation(project(":core:testing"))
     testImplementation(libs.findLibrary("kotlinx-coroutines-test").get())

@@ -4,8 +4,11 @@
   wholesale on API 31+, adding four attributes introduced in that API level: maxResizeWidth/Height
   (upper resize bound; below API 31 the OS lets a widget resize without an upper bound once
   minResizeWidth/Height are met), targetCellWidth/Height (the launcher's preferred initial cell size,
-  matching TodayGlanceWidget.SMALL: 2 cells wide, 1 tall) and previewLayout (the widget-picker preview;
-  reuses the loading layout since dedicated preview art is ROADMAP M5 T5). Keep every other attribute
+  matching TodayGlanceWidget.SMALL: 2 cells wide, 1 tall) and previewLayout (ROADMAP M5 T5): a real
+  static mock-up of the widget, `res/layout/today_widget_preview.xml`, shown by launchers on API 31-34;
+  API 35+ launchers instead show the bitmap `TodayGlanceWidget.providePreview` renders through
+  `WidgetPreviewUpdater`'s `setWidgetPreview` call (docs/ARCHITECTURE.md §5 "Picker previews"), and fall
+  back to this attribute only if that call has not yet succeeded once. Keep every other attribute
   identical to the base file.
 -->
 <appwidget-provider xmlns:android="http://schemas.android.com/apk/res/android"
@@ -21,5 +24,5 @@
     android:widgetCategory="home_screen"
     android:updatePeriodMillis="14400000"
     android:initialLayout="@layout/today_widget_loading"
-    android:previewLayout="@layout/today_widget_loading"
+    android:previewLayout="@layout/today_widget_preview"
     android:description="@string/today_widget_description" />

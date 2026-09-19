@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Every user-visible string of the reminder notification (CLAUDE.md rule 9). Nothing here is event
+     content: the title comes from the stored event at delivery time and never from a resource. -->
+<resources>
+
+    <!-- Name of the single notification channel reminders are posted on, as shown in Android's
+         per-app notification settings. -->
+    <string name="reminder_channel_name">Event reminders</string>
+
+    <!-- Channel description shown under the channel name in Android's notification settings. -->
+    <string name="reminder_channel_description">Notifications for the reminders you set on your events.</string>
+
+    <!-- Title of the redacted copy shown when the lock screen hides sensitive content
+         (docs/security-and-privacy.md §3.3; FEATURES P3). Deliberately says nothing about the event. -->
+    <string name="reminder_public_title">Event reminder</string>
+
+    <!-- Shown in place of the start time for an all-day event. -->
+    <string name="reminder_all_day">All day</string>
+
+    <!-- Shown in place of the title of an event saved without one. -->
+    <string name="reminder_untitled_event">(No title)</string>
+
+</resources>

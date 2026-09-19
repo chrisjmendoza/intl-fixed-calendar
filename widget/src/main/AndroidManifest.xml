@@ -30,8 +30,13 @@
          the only intent filter it accepts is the system's own widget-update action, and
          TodayWidgetReceiver/MonthWidgetReceiver re-render from the injected Clock/ZoneProvider on every
          update, ignoring whatever triggered it, so a spoofed APPWIDGET_UPDATE just causes a harmless
-         refresh. -->
-    <application>
+         refresh.
+
+         supportsRtl (ROADMAP M5 T5) matches `:app`'s own declaration exactly (both "true"), so the
+         manifest merger sees a consistent value; needed once the Month widget-picker preview layout
+         (`res/layout/month_widget_preview.xml`) used an RTL-aware `android:gravity="start"`, which
+         Android Lint's `RtlEnabled` check (correctly) requires an explicit declaration for. -->
+    <application android:supportsRtl="true">
         <receiver
             android:name=".TodayWidgetReceiver"
             android:exported="true"

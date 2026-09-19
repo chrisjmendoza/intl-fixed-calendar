@@ -105,10 +105,6 @@
     <string name="events_editor_count_label">Number of times</string>
 
     <string name="events_editor_reminders_heading">Reminders</string>
-    <!-- Honesty note under the reminders heading: chips are still stored (docs/ROADMAP.md M4), but nothing
-         delivers a notification until ReminderScheduler lands (docs/ROADMAP.md M6 T1). Remove this string
-         and its supporting Text in EventEditorScreen's ReminderSection once M6 T1 ships. -->
-    <string name="events_editor_reminders_not_yet_delivered">Reminders are saved with the event. Notifications arrive in a later version.</string>
     <string name="events_reminder_0">At the time</string>
     <string name="events_reminder_10">10 minutes before</string>
     <string name="events_reminder_30">30 minutes before</string>
@@ -124,6 +120,23 @@
     <string name="events_editor_delete_confirm_text">This deletes every occurrence. This can\'t be undone.</string>
     <string name="events_editor_discard_confirm_title">Discard changes?</string>
     <string name="events_editor_discard_confirm_text">Your changes haven\'t been saved.</string>
+
+    <!-- Recurring-event honesty: saving and deleting both act on the whole series (per-occurrence edits
+         are out of scope for 1.0, docs/ARCHITECTURE.md §3.2 "Scope cuts"). -->
+    <string name="events_editor_series_notice">Saving changes every occurrence of this event. Deleting removes the whole series.</string>
+
+    <!-- Occurrences individually deleted from Day detail ("delete this occurrence"), with a way back. -->
+    <plurals name="events_editor_exdate_count">
+        <item quantity="one">%1$d occurrence deleted individually</item>
+        <item quantity="other">%1$d occurrences deleted individually</item>
+    </plurals>
+    <string name="events_editor_restore_all">Restore all</string>
+
+    <!-- POST_NOTIFICATIONS denied (FEATURES E4, P2): a quiet, dismissible explanation. Saving is never
+         blocked by this. -->
+    <string name="events_editor_notification_permission_notice">Reminders are saved, but notifications are off.</string>
+    <string name="events_editor_notification_permission_settings">Notification settings</string>
+    <string name="events_editor_notification_permission_dismiss">Dismiss</string>
 
     <string name="events_editor_pick_calendar_title">Pick the date in</string>
     <string name="events_editor_pick_gregorian">Gregorian calendar</string>

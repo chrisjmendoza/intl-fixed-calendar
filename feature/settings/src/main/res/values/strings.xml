@@ -97,6 +97,27 @@
     <!-- Supporting line under a regional holiday set. %1$s = the country name, e.g. "United States". -->
     <string name="settings_holiday_region">Region: %1$s</string>
 
+    <!-- ===== Data section: "Delete all data" (FEATURES W6, docs/security-and-privacy.md §2.4) ===== -->
+
+    <string name="settings_section_data">Data</string>
+    <string name="settings_delete_all_data">Delete all data</string>
+    <string name="settings_delete_all_data_detail">Erases every event, calendar and setting on this device. This can\'t be undone.</string>
+
+    <!-- First of two confirmations: what will be erased. -->
+    <string name="settings_delete_all_data_confirm1_title">Delete all data?</string>
+    <string name="settings_delete_all_data_confirm1_text">This erases every event and calendar, and resets every setting to its default. There is no server copy to restore from.</string>
+    <string name="settings_delete_all_data_continue">Continue</string>
+
+    <!-- Second, final confirmation: unmistakably destructive. -->
+    <string name="settings_delete_all_data_confirm2_title">This can\'t be undone</string>
+    <string name="settings_delete_all_data_confirm2_text">Deleting all data is permanent. Your events, calendars and settings will be gone for good.</string>
+
+    <string name="settings_delete_all_data_done_title">All data deleted</string>
+    <string name="settings_delete_all_data_done_text">Every event, calendar and setting has been erased.</string>
+
+    <string name="settings_cancel">Cancel</string>
+    <string name="settings_ok">OK</string>
+
     <!-- ===== Learn screen (docs/FEATURES.md L2) ===== -->
 
     <!-- Title of the Learn screen. -->
@@ -221,7 +242,7 @@
     <string name="privacy_section_summary">In short</string>
 
     <!-- The short version, close to the wording docs/security-and-privacy.md itself proposes. -->
-    <string name="privacy_summary_body">Your calendar stays on your phone. Yearal has no account, no ads, no analytics and no crash-reporting service — and because it has no permission to use the internet at all, nothing it stores could leave your device even if it wanted to.</string>
+    <string name="privacy_summary_body">Your calendar stays on your phone. Yearal has no account, no ads, no analytics and no crash-reporting service, and no server of its own. Because it has no permission to use the internet at all, the app itself cannot send your data anywhere. The one copy that can leave your phone is Android\'s own encrypted device backup, described below, which you control.</string>
 
     <!-- Section heading: what is stored. -->
     <string name="privacy_section_data">What is stored, and where</string>
@@ -237,7 +258,10 @@
     <string name="privacy_permission_boot">Restart the day at midnight: the app asks Android for permission to run right after your device restarts (\"receive boot completed\"), only so it can re-arm the alarm that keeps the widget and the date rollover correct — a restart otherwise cancels it.</string>
 
     <!-- WAKE_LOCK, merged in by WorkManager for the widget. -->
-    <string name="privacy_permission_wake">Keep the widget\'s date right: a system mechanism the widget\'s background updates rely on (\"wake lock\") briefly keeps the device awake long enough to redraw the widget, so it never goes stale.</string>
+    <string name="privacy_permission_wake">Keep the widget\'s date right: a system mechanism the widget\'s background updates rely on (\"wake lock\") briefly keeps the device awake long enough to redraw the widget.</string>
+    <!-- Reminders (ROADMAP M6 T1, T3). Keep in step with the allow-list table in docs/security-and-privacy.md §5. -->
+    <string name="privacy_permission_notifications">Show event reminders: on Android 13 and later the app asks for permission to post notifications (\"post notifications\") the first time you add a reminder to an event. If you say no, everything else keeps working; reminders are simply not shown. On the lock screen a reminder shows only \"Event reminder\" and the time, never the event\'s title.</string>
+    <string name="privacy_permission_exact_alarm">Be on time: reminders and the midnight date change use an exact alarm (\"use exact alarm\", or \"schedule exact alarm\" on Android 12), so they arrive at the right minute even when the phone is idle. The app keeps a single alarm at a time. Without it everything still works, up to about ten minutes late.</string>
 
     <!-- What is deliberately absent. -->
     <string name="privacy_permission_none">That\'s the complete list. Yearal does not ask for your contacts, your location, your photos or files, your device calendars, or the internet.</string>

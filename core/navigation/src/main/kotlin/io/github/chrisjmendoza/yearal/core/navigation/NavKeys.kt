@@ -29,7 +29,14 @@ data class MonthKey(
     val month: Int,
 ) : NavKey
 
-/** The Year overview: 13 mini-months plus the intercalary days. */
+/**
+ * The Year overview: 13 mini-months plus the intercalary days.
+ *
+ * @property year IFC year, 1583..9999 in the UI. **Not validated by this key itself** — the receiving
+ * `YearViewModel` clamps an out-of-range value into that range rather than rejecting it, so a key
+ * built from untrusted input (e.g. a synthesized intent) can never render a year the pickers would
+ * refuse.
+ */
 @Serializable
 data class YearKey(
     val year: Int,
@@ -39,6 +46,11 @@ data class YearKey(
  * Day detail for one date.
  *
  * @property epochDay the Gregorian date as days since 1970-01-01 (`LocalDate.toEpochDay()`).
+ * **Not validated by this key or by the Day detail screen** — the screen converts it with a bare
+ * `LocalDate.ofEpochDay(epochDay)` and no range check, unlike [ConverterKey.prefillEpochDay] and
+ * [EventEditorKey.prefillEpochDay], which fail soft outside `:core:calendar`'s supported years
+ * (1..9999). A value built from untrusted input (a synthesized widget or notification intent) must be
+ * validated by the caller before this key is constructed.
  */
 @Serializable
 data class DayKey(
@@ -48,7 +60,10 @@ data class DayKey(
 /**
  * The Gregorian ↔ IFC converter.
  *
- * @property prefillEpochDay a Gregorian epoch day to start from, or `null` for the converter's default.
+ * @property prefillEpochDay a Gregorian epoch day (`LocalDate.toEpochDay()`) to open the converter on,
+ * or `null` to default to today (from `DateTicker`). **Ignored, not an error,** when it falls outside
+ * the UI's supported year range (1583..9999) or does not parse as a date — the converter falls back to
+ * its default instead of surfacing a failure.
  */
 @Serializable
 data class ConverterKey(
@@ -64,7 +79,11 @@ data object EventListKey : NavKey
  *
  * @property eventId the event to edit, or `null` to create one. IDs only, never event content
  * (CLAUDE.md rule 8).
- * @property prefillEpochDay the Gregorian epoch day a new event should start on, or `null`.
+ * @property prefillEpochDay the Gregorian epoch day (`LocalDate.toEpochDay()`) a new event should start
+ * on, or `null` to default to today. **Only takes effect while creating a new event** — once [eventId]
+ * names an existing event, that event's own stored start date replaces this value once it loads. An
+ * epoch day that fails to parse or falls outside `:core:calendar`'s supported years (1..9999) is
+ * dropped silently rather than surfaced as an error.
  */
 @Serializable
 data class EventEditorKey(
